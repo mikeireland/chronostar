@@ -1,2 +1,0 @@
-A directory for temp plots to live
-(File created cause git tracks files, not directories)
