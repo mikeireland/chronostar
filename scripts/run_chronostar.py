@@ -64,14 +64,6 @@ if len(sys.argv) == 2:
     config = imp.load_source(config_name.replace('.py', ''), config_name)
     # config = importlib.import_module(config_name.replace('.py', ''), config_name)
 
-# Import suitable component class
-if config.special['component'].lower() == 'sphere':
-    from chronostar.component import SphereComponent as Component
-elif config.special['component'].lower() == 'ellip':
-    from chronostar.component import EllipComponent as Component
-else:
-    raise UserWarning('Unknown (or missing) component parametrisation')
-
 
 # Check results directory is valid
 # If path exists, make a new results_directory with a random int
@@ -248,14 +240,9 @@ else:
     elif config.config['data_savefile'] != '':
         data_table.write(config.config['data_savefile'], overwrite=True)
 
-# Set up trace_orbit_func
-if config.config['dummy_trace_orbit_function']:
-    trace_orbit_func = dummy_trace_orbit_func
-else:
-    trace_orbit_func = None
-
 if historical:
     log_message('Data set already has historical cartesian columns')
+
 
 # Convert data table into numpy arrays of mean and covariance matrices
 log_message('Building data dictionary')
@@ -265,7 +252,11 @@ data_dict = tabletool.build_data_dict_from_table(
         historical=historical,
 )
 
-STARTING_NCOMPS = 1
+# ------------------------------------------------------------
+# -----  SETTING UP DEFAULT RUN VARS  ------------------------
+# ------------------------------------------------------------
+ncomps = 1
+
 MAX_COMPS = config.special.get('max_component_count', 20)         # Set a ceiling on how long code can run for
 MAX_ITERS = config.special.get('max_em_iterations', 100)
 log_message(msg='Component count cap set to {}'.format(MAX_COMPS),
@@ -273,78 +264,127 @@ log_message(msg='Component count cap set to {}'.format(MAX_COMPS),
 log_message(msg='Iteration count cap set to {}'.format(MAX_ITERS),
         symbol='+', surround=True)
 
-# Set up initial values
-ncomps = STARTING_NCOMPS
+# ------------------------------------------------------------
+# -----  SETTING UP RUN CUSTOMISATIONS  ----------------------
+# ------------------------------------------------------------
 
-# Fit the first component
-log_message(msg='FITTING {} COMPONENT'.format(ncomps),
-            symbol='*', surround=True)
-run_dir = rdir + '{}/'.format(ncomps)
+# Set up trace_orbit_func
+if config.config['dummy_trace_orbit_function']:
+    trace_orbit_func = dummy_trace_orbit_func
+else:
+    trace_orbit_func = None
 
-# Initialise all stars in dataset to be full members of first component
-using_bg = config.config.get('include_background_distribution', False)
-init_memb_probs = np.zeros((len(data_dict['means']),1+using_bg))
-init_memb_probs[:,0] = 1.
+# Import suitable component class
+if config.special['component'].lower() == 'sphere':
+    from chronostar.component import SphereComponent as Component
+elif config.special['component'].lower() == 'ellip':
+    from chronostar.component import EllipComponent as Component
+# elif config.special['component'].lower() == 'free':
+#     from chronostar.component import FreeComponent as Component
+else:
+    raise UserWarning('Unknown (or missing) component parametrisation')
 
-store_burnin_chains = config.advanced.get('store_burnin_chains', False)
-if store_burnin_chains:
-    log_message(msg='Storing burnin chains', symbol='-')
+if config.config['init_comps_file'] is not None:
+    init_comps = Component.load_raw_components(config.config['init_comps_file'])
+    ncomps = len(init_comps)
+    print('Managed to load in init_comps from file')
+else:
+    init_comps = None
+    print("'Init comps' is initialised as none")
 
-# Try and recover any results from previous run
-try:
-    prev_med_and_spans = np.load(run_dir + 'final/'
-                                 + final_med_and_spans_file)
-    prev_memb_probs = np.load(run_dir + 'final/' + final_memb_probs_file)
+# ------------------------------------------------------------
+# -----  EXECUTE RUN  ----------------------------------------
+# ------------------------------------------------------------
+
+if ncomps == 1:
+    # Fit the first component
+    log_message(msg='FITTING {} COMPONENT'.format(ncomps),
+                symbol='*', surround=True)
+    run_dir = rdir + '{}/'.format(ncomps)
+
+    # Initialise all stars in dataset to be full members of first component
+    using_bg = config.config.get('include_background_distribution', False)
+    init_memb_probs = np.zeros((len(data_dict['means']),1+using_bg))
+    init_memb_probs[:,0] = 1.
+
+    store_burnin_chains = config.advanced.get('store_burnin_chains', False)
+    if store_burnin_chains:
+        log_message(msg='Storing burnin chains', symbol='-')
+
+    # Try and recover any results from previous run
     try:
-        prev_comps = Component.load_raw_components(
-                str(run_dir+'final/'+final_comps_file))
-    # Final comps are there, they just can't be read by current module
-    # so quickly fit them based on fixed prev membership probabilities
-    except AttributeError:
-        logging.info('Component class has been modified, reconstructing '
-                     'from chain')
-        prev_comps = ncomps * [None]
-        for i in range(ncomps):
-            final_cdir = run_dir + 'final/comp{}/'.format(i)
-            chain = np.load(final_cdir + 'final_chain.npy')
-            lnprob = np.load(final_cdir + 'final_lnprob.npy')
-            npars = len(Component.PARAMETER_FORMAT)
-            best_ix = np.argmax(lnprob)
-            best_pars = chain.reshape(-1,npars)[best_ix]
-            prev_comps[i] = Component(emcee_pars=best_pars)
-        Component.store_raw_components(str(run_dir+'final/'+final_comps_file),
-                                       prev_comps)
-        # np.save(str(run_dir+'final/'+final_comps_file), prev_comps)
+        prev_med_and_spans = np.load(run_dir + 'final/'
+                                     + final_med_and_spans_file)
+        prev_memb_probs = np.load(run_dir + 'final/' + final_memb_probs_file)
+        try:
+            prev_comps = Component.load_raw_components(
+                    str(run_dir+'final/'+final_comps_file))
+        # Final comps are there, they just can't be read by current module
+        # so quickly fit them based on fixed prev membership probabilities
+        except AttributeError:
+            logging.info('Component class has been modified, reconstructing '
+                         'from chain')
+            prev_comps = ncomps * [None]
+            for i in range(ncomps):
+                final_cdir = run_dir + 'final/comp{}/'.format(i)
+                chain = np.load(final_cdir + 'final_chain.npy')
+                lnprob = np.load(final_cdir + 'final_lnprob.npy')
+                npars = len(Component.PARAMETER_FORMAT)
+                best_ix = np.argmax(lnprob)
+                best_pars = chain.reshape(-1,npars)[best_ix]
+                prev_comps[i] = Component(emcee_pars=best_pars)
+            Component.store_raw_components(str(run_dir+'final/'+final_comps_file),
+                                           prev_comps)
+            # np.save(str(run_dir+'final/'+final_comps_file), prev_comps)
 
-    logging.info('Loaded from previous run')
-except IOError:
-    prev_comps, prev_med_and_spans, prev_memb_probs = \
-        expectmax.fit_many_comps(data=data_dict, ncomps=ncomps, rdir=run_dir,
-                                 trace_orbit_func=trace_orbit_func,
-                                 burnin=config.advanced['burnin_steps'],
-                                 sampling_steps=config.advanced['sampling_steps'],
-                                 use_background=config.config[
-                                    'include_background_distribution'],
-                                 init_memb_probs=init_memb_probs,
-                                 Component=Component,
-                                 store_burnin_chains=store_burnin_chains,
-                                 max_iters=MAX_ITERS,
-                                 )
+        logging.info('Loaded from previous run')
+    except IOError:
+        prev_comps, prev_med_and_spans, prev_memb_probs = \
+            expectmax.fit_many_comps(data=data_dict, ncomps=ncomps, rdir=run_dir,
+                                     trace_orbit_func=trace_orbit_func,
+                                     burnin=config.advanced['burnin_steps'],
+                                     sampling_steps=config.advanced['sampling_steps'],
+                                     use_background=config.config[
+                                        'include_background_distribution'],
+                                     init_memb_probs=init_memb_probs,
+                                     init_comps=init_comps,
+                                     Component=Component,
+                                     store_burnin_chains=store_burnin_chains,
+                                     max_iters=MAX_ITERS,
+                                     )
 
 
-# Calculate global score of fit for comparison with future fits with different
-# component counts
-prev_lnlike = expectmax.get_overall_lnlikelihood(data_dict, prev_comps,
-                                                 # bg_ln_ols=bg_ln_ols,
-                                                 )
-prev_lnpost = expectmax.get_overall_lnlikelihood(data_dict, prev_comps,
-                                                 # bg_ln_ols=bg_ln_ols,
-                                                 inc_posterior=True)
-prev_bic = expectmax.calc_bic(data_dict, ncomps, prev_lnlike,
-                              memb_probs=prev_memb_probs,
-                              Component=Component)
+    # Calculate global score of fit for comparison with future fits with different
+    # component counts
+    prev_lnlike = expectmax.get_overall_lnlikelihood(data_dict, prev_comps,
+                                                     # bg_ln_ols=bg_ln_ols,
+                                                     )
+    prev_lnpost = expectmax.get_overall_lnlikelihood(data_dict, prev_comps,
+                                                     # bg_ln_ols=bg_ln_ols,
+                                                     inc_posterior=True)
+    prev_bic = expectmax.calc_bic(data_dict, ncomps, prev_lnlike,
+                                  memb_probs=prev_memb_probs,
+                                  Component=Component)
 
-ncomps += 1
+    ncomps += 1
+
+if init_comps is not None and len(init_comps) > 1:
+    # fit with ncomps until convergence
+    # Note: might
+    run_dir = rdir + '{}/'.format(ncomps)
+    comps, med_and_spans, memb_probs = \
+        expectmax.fit_many_comps(
+            data=data_dict, ncomps=ncomps, rdir=run_dir,
+            init_comps=init_comps, trace_orbit_func=trace_orbit_func,
+            use_background=config.config[
+                'include_background_distribution'],
+            burnin=config.advanced['burnin_steps'],
+            sampling_steps=config.advanced['sampling_steps'],
+            Component=Component,
+            store_burnin_chains=store_burnin_chains,
+            max_iters=MAX_ITERS,
+        )
+    ncomps += 1
 
 # Begin iterative loop, each time trialing the incorporation of a new component
 while ncomps <= MAX_COMPS:
