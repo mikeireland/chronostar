@@ -25,7 +25,7 @@ config = {
     'dummy_trace_orbit_function':False,  # For testing, simple function to skip computation
     'pickup_prev_run':True,             # Pick up where left off if possible
     'banyan_assoc_name':'Lower Centaurus-Crux',
-    'init_comps_file':'../data/init_comps.npy',         # file that stored raw comps with which to initialise this run
+    'init_comps_file':'../data/all_nonbg_scocen_comps_unique.npy',         # file that stored raw comps with which to initialise this run
 }
 
 synth = None

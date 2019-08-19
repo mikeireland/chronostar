@@ -296,6 +296,11 @@ else:
 # -----  EXECUTE RUN  ----------------------------------------
 # ------------------------------------------------------------
 
+# Moved here by Marusa because if was defined only in case ncomps==1
+store_burnin_chains = config.advanced.get('store_burnin_chains', False)
+    if store_burnin_chains:
+        log_message(msg='Storing burnin chains', symbol='-')
+
 if ncomps == 1:
     # Fit the first component
     log_message(msg='FITTING {} COMPONENT'.format(ncomps),
@@ -306,10 +311,6 @@ if ncomps == 1:
     using_bg = config.config.get('include_background_distribution', False)
     init_memb_probs = np.zeros((len(data_dict['means']),1+using_bg))
     init_memb_probs[:,0] = 1.
-
-    store_burnin_chains = config.advanced.get('store_burnin_chains', False)
-    if store_burnin_chains:
-        log_message(msg='Storing burnin chains', symbol='-')
 
     # Try and recover any results from previous run
     try:
