@@ -296,8 +296,8 @@ else:
 
 # Moved here by Marusa because if was defined only in case ncomps==1
 store_burnin_chains = config.advanced.get('store_burnin_chains', False)
-    if store_burnin_chains:
-        log_message(msg='Storing burnin chains', symbol='-')
+if store_burnin_chains:
+    log_message(msg='Storing burnin chains', symbol='-')
 
 if ncomps == 1:
     # Fit the first component
