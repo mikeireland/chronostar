@@ -150,6 +150,7 @@ else:
             log_message('Synthetic data already exists')
     else:
         log_message('Setting datafile name '+'{}'.format(config.config['data_loadfile']))
+        log_message('Current dir '+os.getcwd())
         datafile = config.config['data_loadfile']
     assert os.path.exists(datafile)
 
