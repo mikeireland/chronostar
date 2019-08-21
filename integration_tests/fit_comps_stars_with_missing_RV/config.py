@@ -6,13 +6,13 @@ rdir = '/home/marusa/chronostar/integration_tests/fit_comps_stars_with_missing_R
 config = {
     # Input data
     'results_dir':rdir+'{}'.format(assoc_name),
-    'data_loadfile':'../data/gaia_cartesian_full_6d_table.fits',
+    'data_loadfile':'../../data/gaia_cartesian_full_6d_table.fits',
     'data_savefile':rdir+'{}/{}_subset.fit'.format(assoc_name, assoc_name),
     # 'datafile':'../results/{}/data.fits'.format(assoc_name),
 
     # 'background_overlaps_file':'',
     'include_background_distribution':True,
-    'kernel_density_input_datafile':'../data/gaia_cartesian_full_6d_table.fits',
+    'kernel_density_input_datafile':'../../data/gaia_cartesian_full_6d_table.fits',
                                                     # Cartesian data of all Gaia DR2 stars
                                                     # e.g. ../data/gaia_dr2_mean_xyzuvw.npy
     'plot_it':True,
