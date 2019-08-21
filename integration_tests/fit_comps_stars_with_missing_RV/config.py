@@ -69,4 +69,6 @@ advanced = {
     'burnin_steps':500,        # emcee parameters, number of steps for each burnin iteraton
     'sampling_steps':500,
     'scale_margin':1.,
+    'pos_margin': 10,
+    'vel_margin': 2,
 }

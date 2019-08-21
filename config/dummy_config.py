@@ -1,13 +1,21 @@
-
+import os
 import numpy as np
 
 run_name = 'dummy_run'
+
+output_folder = '../results'
+
 config = {
-    # 'datafile':'',
-    'results_dir':'../results/{}'.format(run_name),
+    # INPUT DATA
     'data_loadfile':'../data/gaia_cartesian_full_6d_table.fits',
-    'data_savefile':'../results/{}/{}_subset.fit'.format(run_name, run_name),
     # 'datafile':'../results/{}/data.fits'.format(run_name),
+
+    # OUTPUT DATA
+    'results_dir': os.path.join(output_folder, '{}'.format(run_name)),
+    'data_savefile': os.path.join(output_folder, '{}'.format(run_name), '{}_subset.fit'.format(run_name)),
+
+    # SETTINGS
+
     'plot_it':True,
     # 'background_overlaps_file':'',
     'include_background_distribution':True,
