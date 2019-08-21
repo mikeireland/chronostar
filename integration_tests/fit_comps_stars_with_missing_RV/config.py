@@ -4,17 +4,18 @@ import numpy as np
 assoc_name = 'beta_pictoris'
 rdir = '/home/marusa/chronostar/integration_tests/fit_comps_stars_with_missing_RV/results_with_RV/'
 config = {
-    # 'datafile':'',
+    # Input data
     'results_dir':rdir+'{}'.format(assoc_name),
     'data_loadfile':'../data/gaia_cartesian_full_6d_table.fits',
     'data_savefile':rdir+'{}/{}_subset.fit'.format(assoc_name, assoc_name),
     # 'datafile':'../results/{}/data.fits'.format(assoc_name),
-    'plot_it':True,
+
     # 'background_overlaps_file':'',
     'include_background_distribution':True,
     'kernel_density_input_datafile':'../data/gaia_cartesian_full_6d_table.fits',
                                                     # Cartesian data of all Gaia DR2 stars
                                                     # e.g. ../data/gaia_dr2_mean_xyzuvw.npy
+    'plot_it':True,
     'run_with_mpi':True,       # not yet inpmlemented
     'convert_to_cartesian':False,        # whehter need to convert data from astrometry to cartesian
     'overwrite_datafile':False,         # whether to store results in same talbe and rewrite to file

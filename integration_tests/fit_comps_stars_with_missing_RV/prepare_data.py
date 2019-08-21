@@ -5,6 +5,10 @@ Prepare data for component fit. The idea is to have two sets of data:
 A moving group... TODO
 """
 
+# This is just a copy from run_chronostar
+TODO=True
+
+
 # First see if a data savefile path has been provided, and if
 # so, then just assume this script has already been performed
 # and the data prep has already been done
