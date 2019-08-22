@@ -6,6 +6,7 @@ There is absolutely no false positives.
 
 False negatives:
 First number is the number of false negatives. The number in brackets is ratio between the false negatives and true positives.
+
 `Component 1: 11 (0.074); total N of true positives: 149
 
 Component 2: 69 (0.375); total N of true positives: 184
