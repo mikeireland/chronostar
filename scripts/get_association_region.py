@@ -45,7 +45,7 @@ def get_region(assoc_name, pos_margin=30., vel_margin=5.,
 
     if gagne_reference_data is None:
         gagne_reference_data =\
-            '../data/gagne_bonafide_full_kinematics_with_lit_and_best_radial_velocity' \
+            '/home/tcrun/chronostar/data/gagne_bonafide_full_kinematics_with_lit_and_best_radial_velocity' \
             '_comb_binars_with_banyan_radec.fits'
 
     gagne_table = tabletool.read(gagne_reference_data)
