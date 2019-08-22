@@ -9,6 +9,7 @@ config = {
     'data_loadfile': '/home/tcrun/chronostar/data/gaia_cartesian_full_6d_table.fits',
     'data_savefile':rdir+'{}/{}_subset.fit'.format(assoc_name, assoc_name),
     # 'datafile':'../results/{}/data.fits'.format(assoc_name),
+    'init_comps_file': None,
 
     # 'background_overlaps_file':'',
     'include_background_distribution':True,
