@@ -426,9 +426,10 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     # Set up old membership probabilities
     if old_memb_probs is None:
         old_memb_probs = np.ones((nstars, ncomps)) / ncomps
+    # 'weigths' is the same as 'amplitudes', amplitudes for components
     weights = old_memb_probs[:, :ncomps].sum(axis=0)
 
-    # Optionally scale each weight by the component prior, then rebalance
+    # [ADVANCED/dodgy] Optionally scale each weight by the component prior, then rebalance
     # such that total expected stars across all components is unchanged
     if inc_posterior:
         comp_lnpriors = np.zeros(ncomps)
@@ -447,7 +448,7 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
             weights *= amp_prior / weights.sum()
 
     # For each component, get log overlap with each star, scaled by
-    # amplitude (weight) of each component's pdf
+    # amplitude (weight) of each component's PDF
     for i, comp in enumerate(comps):
         lnols[:, i] = \
             np.log(weights[i]) + \
