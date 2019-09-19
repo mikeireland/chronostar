@@ -144,7 +144,8 @@ class SynthData():
         except:
             import pdb; pdb.set_trace()
 
-    def generate_init_cartesian(self, component, starcount, component_name=''):
+    def generate_init_cartesian(self, component, starcount, component_name='',
+                                seed=None):
         """Generate initial xyzuvw based on component"""
         init_xyzuvw = np.random.multivariate_normal(
             mean=component.get_mean(), cov=component.get_covmatrix(),
@@ -168,7 +169,6 @@ class SynthData():
         data_span = data_upper_bound - data_lower_bound
         box_span = 2 * data_span
         bg_starcount = self.background_density * np.product(box_span)
-        print(bg_starcount)
 
         bg_init_xyzuvw = np.random.uniform(low=-data_span, high=data_span,
                                            size=(int(round(bg_starcount)),6))
@@ -185,15 +185,14 @@ class SynthData():
         if self.background_density is not None:
             self.generate_background_stars()
 
-    def project_stars(self):
+    def project_stars(self, trace_orbit=traceorbit.trace_cartesian_orbit):
         """Project stars from xyzuvw then to xyzuvw now based on their age"""
         for star in self.table:
             mean_then = self.extract_data_as_array(
                 table=star,
                 colnames=[dim+'0' for dim in self.cart_labels],
             )
-            xyzuvw_now = traceorbit.trace_cartesian_orbit(mean_then,
-                                                          times=star['age'])
+            xyzuvw_now = trace_orbit(mean_then, times=star['age'])
             for ix, dim in enumerate(self.cart_labels):
                 star[dim+'_now'] = xyzuvw_now[ix]
 

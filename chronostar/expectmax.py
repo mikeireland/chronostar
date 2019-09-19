@@ -46,7 +46,12 @@ except:
     from chronostar.likelihood import slow_get_lnoverlaps as get_lnoverlaps
 
 #TODO check if this is needed
-from pathos.multiprocessing import ProcessingPool
+try:
+    from pathos.multiprocessing import ProcessingPool
+    use_pathos = True
+except:
+    print("WARNING: Couldn't import pathos")
+    use_pathos = False
 #from functools import partial
 
 def log_message(msg, symbol='.', surround=False):
@@ -227,12 +232,10 @@ def get_background_overlaps_with_covariances_multiprocessing(background_means, s
     TC 2019-05-28: changed signature such that it follows similar usage as
                    get_kernel_densitites
     """
-
     #TODO: this import should happen at the beginning of the file
     from multiprocessing import Pool
     import contextlib
     import time
-
 
     # Inverting the vertical values
     star_means = np.copy(star_means)

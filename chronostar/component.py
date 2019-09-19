@@ -826,8 +826,7 @@ class AbstractComponent(object):
                         color=color)
 
     def plot_cov_ellipse(self, cov, pos, nstd=2, ax=None, with_line=True,
-                         zorder=4,
-                         **kwargs):
+                         zorder=4, **kwargs):
         """
         Plots an `nstd` sigma error ellipse based on the specified covariance
         matrix (`cov`). Additional keyword arguments are passed on to the
