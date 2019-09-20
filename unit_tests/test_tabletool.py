@@ -21,6 +21,9 @@ from chronostar import tabletool
 from chronostar import coordinate
 from chronostar import transform
 
+HIST_FILE_NAME = 'sample_data/small_historical_sample_table.fits'
+CURR_FILE_NAME = 'sample_data/small_current_sample_table.fits'
+
 # -----------------------------------------------
 # -- To check correctness, have copied over    --
 # -- previous implementation into this script  --
@@ -79,7 +82,7 @@ def convertAstrErrsToCovs(err_arr):
         astr_covs[ix] = np.eye(6) * np.tile(err_arr_cp[ix], (6, 1))**2
     return astr_covs
 
-# Retired function, put here for compairsion reasons
+# Retired function, only here for comparison reasons
 def convertTableToArray(star_table):
     nstars = star_table['radeg'].shape[0]
     measured_vals = np.vstack((
@@ -102,7 +105,7 @@ def convertTableToArray(star_table):
     return measured_vals, errors
 
 
-# Retired funciton, put here for comparison reasons
+# Retired funciton, only here for comparison reasons
 def buildMeanAndCovMatFromRow(row):
     """
     Build a covariance matrix from a row
@@ -136,7 +139,7 @@ def buildMeanAndCovMatFromRow(row):
     corr_tri = np.zeros((dim,dim))
     # Insert upper triangle (top right) correlations
     for i, col_name in enumerate(CART_COL_NAMES[12:]):
-        corr_tri[np.triu_indices(dim,1)[0][i],np.triu_indices(dim,1)[1][i]]\
+        corr_tri[np.triu_indices(dim,1)[0][i],np.triu_indices(dim,1)[1][i]] \
             =row[col_name]
     # Build correlation matrix
     corr_mat = np.eye(6) + corr_tri + corr_tri.T
@@ -336,20 +339,20 @@ def convertMeasurementsToCartesian(t=None, loadfile='', astr_dict=None):
     """
     while True:
         if t:
-            nstars = len(t)
+            # nstars = len(t)
             astr_arr, err_arr = convertTableToArray(t)
             astr_covs = convertAstrErrsToCovs(err_arr)
             break
         if loadfile:
             t = Table.read(loadfile, format='ascii')
-            nstars = len(t)
+            # nstars = len(t)
             astr_arr, err_arr = convertTableToArray(t)
             astr_covs = convertAstrErrsToCovs(err_arr)
             break
         if astr_dict:
             astr_arr = astr_dict['astr_mns']
             astr_covs = astr_dict['astr_covs']
-            nstars = astr_arr.shape[0]
+            # nstars = astr_arr.shape[0]
             break
         raise StandardError
 
@@ -391,7 +394,9 @@ def alternativeBuildCovMatrix(data):
 
 
 # -----------------------------------------------
-# -- Tests begin here...                       --
+# -----------------------------------------------
+# --    TESTS BEGIN HERE   ---------------------
+# -----------------------------------------------
 # -----------------------------------------------
 
 def test_convertTableXYZUVWToArray():
@@ -399,10 +404,7 @@ def test_convertTableXYZUVWToArray():
     Check that generating cartesian means and covariance matrices matches
     previous implementation
     """
-    filename_historical = '../data/paper1/' \
-                          'historical_beta_Pictoris_with_gaia_small_everything_final.fits'
-
-    orig_star_pars = loadDictFromTable(filename_historical)
+    orig_star_pars = loadDictFromTable(HIST_FILE_NAME)
     main_colnames, error_colnames, corr_colnames =\
         tabletool.get_historical_cart_colnames()
     data = tabletool.build_data_dict_from_table(
@@ -458,14 +460,14 @@ def test_convertAstrTableToCart():
     converting to cartesian (stored back into table) then building data
     from newly inserted table cart cols.
     """
-    hist_filename = '../data/paper1/historical_beta_Pictoris_with_gaia_small_everything_final.fits'
-    hist_table = Table.read(hist_filename)
+    # hist_filename = '../data/paper1/historical_beta_Pictoris_with_gaia_small_everything_final.fits'
+    hist_table = Table.read(HIST_FILE_NAME)
 
-    curr_filename = '../data/paper1/beta_Pictoris_with_gaia_small_everything_final.fits'
-    curr_table = Table.read(curr_filename)
+    # curr_filename = '../data/paper1/beta_Pictoris_with_gaia_small_everything_final.fits'
+    curr_table = Table.read(CURR_FILE_NAME)
     # Drop stars that have gone through any binary checking
-    hist_table = Table(hist_table[100:300])
-    curr_table = Table(curr_table[100:300])
+    # hist_table = Table(hist_table[100:300])
+    # curr_table = Table(curr_table[100:300])
 
     # load in original means and covs
     orig_cart_data =\
@@ -501,8 +503,8 @@ def test_badColNames():
     corrupted_error_colnames[0], corrupted_error_colnames[3] =\
         error_colnames[3], error_colnames[0]
 
-    filename = '../data/paper1/beta_Pictoris_with_gaia_small_everything_final.fits'
-    table = Table.read(filename)
+    # filename = '../data/paper1/beta_Pictoris_with_gaia_small_everything_final.fits'
+    table = Table.read(CURR_FILE_NAME)
 
     # Only need a handful of rows
     table = Table(table[:10])
