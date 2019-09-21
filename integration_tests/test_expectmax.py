@@ -191,7 +191,7 @@ def test_fit_one_comp_with_background():
     # Check reported membership probabilities are consistent with recovery
     # rate (within 5%)
     mean_membership_confidence = np.mean(memb_probs[:starcount,0])
-    assert np.isclose(recovery_count_actual/starcount., mean_membership_confidence,
+    assert np.isclose(recovery_count_actual/starcount, mean_membership_confidence,
                       atol=0.05)
 
 
