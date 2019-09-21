@@ -1,3 +1,6 @@
+#Paramter files
+*.par
+
 #Special directories
 results/*
 *.zip
