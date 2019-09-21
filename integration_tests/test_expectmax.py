@@ -40,14 +40,14 @@ STARCOUNTS = [200, 200]
 # mkpath(savedir)
 # data_filename = savedir + '{}_expectmax_{}_data.fits'.format(PY_VERS,
 #                                                             run_name)
-log_filename = 'logs/{}_expectmax_all_tests.log'.format(PY_VERS)
+# log_filename = 'logs/{}_expectmax_all_tests.log'.format(PY_VERS)
 # plot_dir = 'temp_plots/{}_expectmax_{}'.format(PY_VERS, run_name)
-print('logging in {}'.format(log_filename))
-logging.basicConfig(level=logging.INFO, filemode='w',
-                    filename=log_filename)
+# print('logging in {}'.format(log_filename))
+# logging.basicConfig(level=logging.INFO, filemode='w',
+                    # filename=log_filename)
 
 
-def dummy_test_execution_simple_fit():
+def test_execution_simple_fit():
     """
     Don't test for correctness, but check that everything actually executes
     """
@@ -60,8 +60,10 @@ def dummy_test_execution_simple_fit():
     mkpath(savedir)
     data_filename = savedir + '{}_expectmax_{}_data.fits'.format(PY_VERS,
                                                                  run_name)
-    # log_filename = 'temp_data/{}_expectmax_{}/log.log'.format(PY_VERS,
-    #                                                           run_name)
+    log_filename = 'temp_data/{}_expectmax_{}/log.log'.format(PY_VERS,
+                                                              run_name)
+    logging.basicConfig(level=logging.INFO, filemode='w',
+                        filename=log_filename)
 
     uniform_age = 1e-10
     sphere_comp_pars = np.array([
@@ -123,8 +125,8 @@ def test_fit_one_comp_with_background():
     mkpath(savedir)
     data_filename = savedir + '{}_expectmax_{}_data.fits'.format(PY_VERS,
                                                                  run_name)
-    # log_filename = 'temp_data/{}_expectmax_{}/log.log'.format(PY_VERS,
-    #                                                           run_name)
+    log_filename = 'temp_data/{}_expectmax_{}/log.log'.format(PY_VERS,
+                                                              run_name)
 
     logging.basicConfig(level=logging.INFO, filemode='w',
                         filename=log_filename)
@@ -133,7 +135,7 @@ def test_fit_one_comp_with_background():
         # X, Y, Z, U, V, W, dX, dV,  age,
         [ 0, 0, 0, 0, 0, 0, 10.,  5, uniform_age],
     ])
-    starcount = 100
+    starcount = 200
 
     background_density = 1e-9
 
@@ -164,28 +166,32 @@ def test_fit_one_comp_with_background():
                                  ncomps=ncomps,
                                  rdir=savedir,
                                  trace_orbit_func=dummy_trace_orbit_func,
+                                 burnin=500,
+                                 sampling_steps=5000,
                                  use_background=True)
 
     # return best_comps, med_and_spans, memb_probs
 
     # Check parameters are close
     assert np.allclose(sphere_comp_pars, best_comps[0].get_pars(),
-                       atol=1.)
+                       atol=1.5)
 
     # Check most assoc members are correctly classified
     recovery_count_threshold = 0.95 * starcount
-    recovery_count_actual =  np.sum(np.round(memb_probs[:starcount,0]))
+    recovery_count_actual =  np.sum(memb_probs[:starcount,0] > 0.5)
     assert recovery_count_threshold < recovery_count_actual
 
     # Check most background stars are correctly classified
-    contamination_count_threshold = 0.05 * len(memb_probs[100:])
-    contamination_count_actual = np.sum(np.round(memb_probs[starcount:,0]))
-    assert contamination_count_threshold < contamination_count_actual
+    # Number of bg stars classified as members should be less than 5%
+    # of all background stars
+    contamination_count_threshold = 0.05 * len(memb_probs[starcount:])
+    contamination_count_actual = np.sum(memb_probs[starcount:, 0] > 0.5)
+    assert contamination_count_threshold > contamination_count_actual
 
     # Check reported membership probabilities are consistent with recovery
     # rate (within 5%)
     mean_membership_confidence = np.mean(memb_probs[:starcount,0])
-    assert np.isclose(recovery_count_actual/100., mean_membership_confidence,
+    assert np.isclose(recovery_count_actual/starcount., mean_membership_confidence,
                       atol=0.05)
 
 
@@ -207,8 +213,8 @@ def test_fit_many_comps():
     mkpath(savedir)
     data_filename = savedir + '{}_expectmax_{}_data.fits'.format(PY_VERS,
                                                                  run_name)
-    # log_filename = 'temp_data/{}_expectmax_{}/log.log'.format(PY_VERS,
-    #                                                           run_name)
+    log_filename = 'temp_data/{}_expectmax_{}/log.log'.format(PY_VERS,
+                                                              run_name)
 
     logging.basicConfig(level=logging.INFO, filemode='w',
                         filename=log_filename)
@@ -232,6 +238,11 @@ def test_fit_many_comps():
     true_memb_probs[:200,0] = 1.
     true_memb_probs[200:,1] = 1.
 
+    # Initialise some random membership probablities
+    # Normalising such that each row sums to 1
+    init_memb_probs = np.random.rand(np.sum(starcounts), ncomps)
+    init_memb_probs = (init_memb_probs.T / init_memb_probs.sum(axis=1)).T
+
     synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,
                            Components=SphereComponent,
                            )
@@ -246,6 +257,7 @@ def test_fit_many_comps():
         expectmax.fit_many_comps(data=synth_data.table,
                                  ncomps=ncomps,
                                  rdir=savedir,
+                                 init_memb_probs=init_memb_probs,
                                  trace_orbit_func=dummy_trace_orbit_func, )
 
     # compare fit with input

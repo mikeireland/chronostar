@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
     stat = pstats.Stats(stat_file)
     stat.sort_stats('cumtime')
-    stat.print_stats(0.1)
+    stat.print_stats(0.3)
 
 
 
