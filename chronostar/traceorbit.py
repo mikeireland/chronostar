@@ -9,15 +9,15 @@ local standard of rest.
 import logging
 import numpy as np
 
-from astropy.io import fits
+# from astropy.io import fits
 from galpy.orbit import Orbit
-from galpy.potential import MWPotential2014, MiyamotoNagaiPotential
+from galpy.potential import MWPotential2014 #, MiyamotoNagaiPotential
 from galpy.util import bovy_conversion
 
 mp = MWPotential2014
 # mp = MiyamotoNagaiPotential(a=0.5,b=0.0375,amp=1.,normalize=1.) # Params from the example webpage. No idea if that's good or not.
 
-from . import coordinate
+# from . import coordinate
 
 
 def convert_myr2bovytime(times):
@@ -29,7 +29,7 @@ def convert_myr2bovytime(times):
     circular orbit at r_0, with circular velocity of v_0 will travel
     1 radian, azimuthally.
 
-    Paramters
+    Parameters
     ---------
     times : [ntimes] float array
         Times in Myr

@@ -5,8 +5,13 @@ previous default) and has position errors of 1e-7 and velocity errors of
 import numpy as np
 import sys
 import time
-sys.path.insert(0, '..')
 
+if sys.version[0] == '2':
+    timer = time.clock
+elif sys.version[0] == '3':
+    timer = time.perf_counter
+
+sys.path.insert(0, '..')
 from chronostar.traceorbit import trace_cartesian_orbit
 
 integ_methods = [
@@ -51,12 +56,12 @@ for method in integ_methods:
     print('_____ Using {} _____'.format(method))
     duration_times = []
     for i in range(niters):
-        start = time.clock()
+        start = timer()
 
         trace_cartesian_orbit(xyzuvw_start, orbit_times, single_age=False,
                               method=method)
 
-        end = time.clock()
+        end = timer()
         duration_times.append(end-start)
     print('Average time taken: {:.1f} ms'.format(1000*np.mean(duration_times)))
     print('Best time:          {:.1f} ms'.format(1000*np.min(duration_times)))

@@ -1,4 +1,7 @@
 """
+OUTDATED
+TODO: If deemed important, Tim to come back and update this
+
 Compare to find the fastest means to construct covariance matrices
 from data stored in columns
 

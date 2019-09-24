@@ -2,7 +2,7 @@ from __future__ import division, print_function
 
 import numpy as np
 
-from astropy.table import Table
+# from astropy.table import Table
 import emcee
 import logging
 import os
