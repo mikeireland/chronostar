@@ -131,6 +131,7 @@ if (config.config['data_savefile'] != '' and
     log_message('Loading pre-prepared data')
     datafile = config.config['data_savefile']
     data_table = tabletool.load(datafile)
+    # Historical column names used 'c_XU' for e.g., instead of 'corr_XU'
     historical = 'c_XU' in data_table.colnames
 
 # Otherwise, perform entire process
@@ -162,9 +163,12 @@ else:
     log_message('Read data into table')
     data_table = tabletool.read(datafile)
 
-    historical = 'c_XU' in data_table.colnames
-
+    # TODO: Why is this here? Haven't checked whether cartesian data exists yet
+    # TODO: I mean... catch 22. Don't want to first convert a massive dataset to
+    # TODO: only then pick out a smaller subset. But Need data in Cartesian to
+    # TODO: apply a cut in Cartesian space
     # If data cuts provided, then apply them
+    historical = 'c_XU' in data_table.colnames
     if config.config['banyan_assoc_name'] != '':
         bounds = datatool.get_region(
                 ref_table=config.config['assoc_ref_table'],
@@ -241,10 +245,14 @@ else:
                                         col_data=ln_bg_ols,
                                         col_name=bg_lnol_colname)
 
-    if config.config['overwrite_datafile']:
+    # Only overwrite datafile if bounds is None
+    # i.e., data is not some subset of original input data
+    if config.config['overwrite_datafile'] and (bounds is None):
         data_table.write(datafile, overwrite=True)
     elif config.config['data_savefile'] != '':
         data_table.write(config.config['data_savefile'], overwrite=True)
+    else:
+        log_message(msg='Any datafile changes not saved', symbol='*')
 
 if historical:
     log_message('Data set already has historical cartesian columns')
@@ -263,7 +271,8 @@ data_dict = tabletool.build_data_dict_from_table(
 # ------------------------------------------------------------
 ncomps = 1
 
-MAX_COMPS = config.special.get('max_component_count', 20)         # Set a ceiling on how long code can run for
+# Set a ceiling on how long code can run for
+MAX_COMPS = config.special.get('max_component_count', 20)
 MAX_ITERS = config.special.get('max_em_iterations', 100)
 log_message(msg='Component count cap set to {}'.format(MAX_COMPS),
         symbol='+', surround=True)
