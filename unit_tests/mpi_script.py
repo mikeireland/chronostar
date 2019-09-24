@@ -31,10 +31,12 @@ def test_mpi(pool, the_func):
     sampler.run_mcmc(pos, 1000)
 
 if __name__ == '__main__':
+    print('mpi_script.py using python {}.{}'.format(
+        *sys.version.split('.')[:2]
+        ))
     n_walkers = 16
     p0 = np.random.uniform(0, 10, (n_walkers, 1))
     my_object = not_really_a_class(6)
-
     with MPIPool() as pool:
         if not pool.is_master():
             pool.wait()
@@ -46,3 +48,4 @@ if __name__ == '__main__':
         except PicklingError:
             assert sys.version[0] == '2'
             print('Pickling class breaks on python 2')
+

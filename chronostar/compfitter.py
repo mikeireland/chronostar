@@ -176,7 +176,7 @@ def burnin_convergence(lnprob, tol=0.25, slice_size=100, cutoff=0):
         have flatlined
     """
     # take a chunk the smaller of 100 or half the chain
-    if lnprob.shape[1] <= 2*slice_size:
+    if lnprob.shape[1] < 2*slice_size:
         logging.info("Burnin length {} too small for reliable convergence"
                      "checking".\
                      format(lnprob.shape[1]))

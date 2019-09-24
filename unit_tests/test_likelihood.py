@@ -175,6 +175,6 @@ def test_lnprob_func():
     assert lnprob_comp1_data1 > lnprob_comp2_data1
     assert lnprob_comp2_data2 > lnprob_comp1_data2
 
-    # Check that the different realisations only differ by 10%
-    assert np.isclose(lnprob_comp1_data1, lnprob_comp2_data2, rtol=1e-1)
-    assert np.isclose(lnprob_comp1_data2, lnprob_comp2_data1, rtol=1e-1)
+    # Check that the different realisations only differ by 20%
+    assert np.isclose(lnprob_comp1_data1, lnprob_comp2_data2, rtol=2e-1)
+    assert np.isclose(lnprob_comp1_data2, lnprob_comp2_data1, rtol=2e-1)
