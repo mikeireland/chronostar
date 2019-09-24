@@ -29,10 +29,11 @@ from distutils.dir_util import mkpath
 import random
 import time
 
-from get_association_region import get_region
+# from get_association_region import get_region
 sys.path.insert(0, os.path.abspath('..'))
 from chronostar.synthdata import SynthData
 from chronostar import tabletool
+from chronostar import datatool
 from chronostar import compfitter
 from chronostar import expectmax
 
@@ -139,6 +140,9 @@ else:
         log_message('Getting synthetic data')
         datafile = config.config['data_savefile']
         if not os.path.exists(datafile) and config.config['pickup_prev_run']:
+            # TODO: Fix this bit
+            raise UserWarning('This bit is broken atm... work out what'
+                              'SynthData needs')
             synth_data = SynthData(pars=config.synth['pars'],
                                    starcounts=config.synth['starcounts'],
                                    Components=Component)
@@ -162,8 +166,10 @@ else:
 
     # If data cuts provided, then apply them
     if config.config['banyan_assoc_name'] != '':
-        bounds = get_region(
-                config.config['banyan_assoc_name'],
+        bounds = datatool.get_region(
+                ref_table=config.config['assoc_ref_table'],
+                assoc_name=config.config['assoc_name'],
+                mg_colname=config.config.get(['mg_colname'], None),
                 pos_margin=config.advanced.get('pos_margin', 30.),
                 vel_margin=config.advanced.get('vel_margin', 5.),
                 scale_margin=config.advanced.get('scale_margin', None),
