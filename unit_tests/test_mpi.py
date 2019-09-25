@@ -31,6 +31,9 @@ def test_mpi():
 #    print(output)
 #    assert error is None
 
+# def test_emcee_builtin_conc():
+#
+
 if __name__=='__main__':
     test_mpi()
 
