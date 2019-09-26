@@ -210,9 +210,9 @@ else:
             log_message('Converting to cartesian')
             tabletool.convert_table_astro2cart(
                     table=data_table,
-                    main_colnames=config.astro_colnames.get('main_colnames', None),
-                    error_colnames=config.astro_colnames.get('error_colnames', None),
-                    corr_colnames=config.astro_colnames.get('corr_colnames', None),
+                    astr_main_colnames=config.astro_colnames.get('main_colnames', None),
+                    astr_error_colnames=config.astro_colnames.get('error_colnames', None),
+                    astr_corr_colnames=config.astro_colnames.get('corr_colnames', None),
                     return_table=False
             )
 

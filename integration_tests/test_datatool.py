@@ -127,5 +127,6 @@ def test_get_region():
     assert len(data_table) == len(synth_dataset_a.table)
 
 if __name__=='__main__':
-    test_get_region()
+    pass
+
 

@@ -513,9 +513,9 @@ def test_badColNames():
     try:
         tabletool.convert_table_astro2cart(
                 table,
-                main_colnames=main_colnames,
-                error_colnames=corrupted_error_colnames,
-                corr_colnames=corr_colnames
+                astr_main_colnames=main_colnames,
+                astr_error_colnames=corrupted_error_colnames,
+                astr_corr_colnames=corr_colnames
         )
     except Exception as e:
         assert type(e) == exceptions.UserWarning
@@ -524,9 +524,9 @@ def test_badColNames():
     try:
         error_colnames[0] = 'ra_dec_corr'
         tabletool.convert_table_astro2cart(table,
-                                           main_colnames=main_colnames,
-                                           error_colnames=error_colnames,
-                                           corr_colnames=corr_colnames)
+                                           astr_main_colnames=main_colnames,
+                                           astr_error_colnames=error_colnames,
+                                           astr_corr_colnames=corr_colnames)
 
     except:
         assert False
