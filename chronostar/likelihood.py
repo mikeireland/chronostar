@@ -8,10 +8,10 @@ import logging
 import numpy as np
 
 from . import tabletool
-from chronostar.component import SphereComponent
+from .component import SphereComponent
 USE_C_IMPLEMENTATION = True
 try:
-    from chronostar._overlap import get_lnoverlaps as c_get_lnoverlaps
+    from ._overlap import get_lnoverlaps as c_get_lnoverlaps
 except ImportError:
     print("C IMPLEMENTATION OF GET_OVERLAP NOT IMPORTED")
     USE_C_IMPLEMENTATION = False

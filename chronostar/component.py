@@ -48,7 +48,7 @@ import numpy as np
 from scipy.stats.mstats import gmean
 
 from . import transform
-from chronostar.traceorbit import trace_cartesian_orbit
+from .traceorbit import trace_cartesian_orbit
 
 # Including plotting capabilities
 

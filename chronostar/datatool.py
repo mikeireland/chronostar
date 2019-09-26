@@ -10,7 +10,8 @@ import numpy as np
 import sys
 sys.path.insert(0, '..')
 
-from chronostar import tabletool
+from . import tabletool
+from . import readparam
 
 
 def get_region(ref_table, assoc_name=None,
@@ -114,4 +115,36 @@ def get_region(ref_table, assoc_name=None,
     ))
 
     return box_lower_bound, box_upper_bound
+
+
+def prepare_data(data_pars):
+    """
+    Entry point for complete data preparation.
+
+    Set parameters as desired in either a .par file or as a dictionary.
+    This function will go through the main data file (as named in
+    `data_pars`) and apply all requested data conversions.
+
+    Key functionalities include:
+        - convert astrometry measurements, errors and (opt.) correlations
+            into cartesian means, standard devs and correlations
+        - calculate background overlaps of stars with typical Gaia 6D
+            phase-space densities
+        - Apply a phase-space data cut based on a cartesian region
+
+    Parameters
+    ----------
+    data_pars : dict -or- filename
+        Parameters that govern behaviour of prepare_data. Exhaustive
+        list of options is included in [TODO: include exhuastive list somewhere]
+        data_pars can be provided as a dictionary, or as a filename with
+        [key] = [value] pairs, to be parsed by `readparam.readParam`
+
+    Returns
+    -------
+    data_table [opt.]: astropy.Table object
+    """
+    if type(data_pars) is str:
+        data_pars = readparam.readParam(data_pars)
+
 

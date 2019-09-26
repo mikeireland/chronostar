@@ -16,9 +16,9 @@ from astropy.table import Table, vstack
 import logging
 import numpy as np
 
-from chronostar import coordinate
-from chronostar.component import SphereComponent
-from chronostar import traceorbit
+from . import coordinate
+from .component import SphereComponent
+from . import traceorbit
 from . import tabletool
 
 

@@ -7,9 +7,9 @@ import emcee
 import logging
 import os
 
-from chronostar.component import SphereComponent
-from chronostar.likelihood import lnprob_func
-from chronostar import tabletool
+from .component import SphereComponent
+from .likelihood import lnprob_func
+from . import tabletool
 
 try:
     import matplotlib.pyplot as plt
@@ -260,6 +260,11 @@ def get_best_component(chain, lnprob, Component=SphereComponent):
         The log probabilities of each walker at each step.
     Component: Component Class {SphereComponent}
         An implmentation of chronostar.component.AbstractComponent
+
+    Returns
+    -------
+    component: Component object
+        The component object corresponding to the highest lnprob score
     """
     if type(chain) is str:
         chain = np.load(chain)
@@ -269,7 +274,7 @@ def get_best_component(chain, lnprob, Component=SphereComponent):
     # Identify the best component
     final_best_ix = np.argmax(lnprob)
 
-    # If chain hasn't been flattened, the flatten, preserving only the
+    # If chain hasn't been flattened, then flatten, preserving only the
     # last dimension
     if len(chain.shape) == 3:
         chain = chain.reshape(-1, chain.shape[-1])

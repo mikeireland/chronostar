@@ -33,17 +33,17 @@ try:
 except ImportError:
     print("Warning: matplotlib not imported")
 
-from chronostar.component import SphereComponent
+from .component import SphereComponent
 from . import likelihood
 from . import compfitter
 from . import tabletool
 try:
     print('Using C implementation in expectmax')
-    from _overlap import get_lnoverlaps
+    from ._overlap import get_lnoverlaps
 except:
     print("WARNING: Couldn't import C implementation, using slow pythonic overlap instead")
     logging.info("WARNING: Couldn't import C implementation, using slow pythonic overlap instead")
-    from chronostar.likelihood import slow_get_lnoverlaps as get_lnoverlaps
+    from .likelihood import slow_get_lnoverlaps as get_lnoverlaps
 
 #TODO check if this is needed
 try:
