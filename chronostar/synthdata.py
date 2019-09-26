@@ -112,8 +112,7 @@ class SynthData():
     @staticmethod
     def generate_synth_data_from_file():
         """Given saved files, generate a SynthData object"""
-        pass
-
+        raise NotImplementedError
 
     def append_init_cartesian(self, init_xyzuvw, component_name='',
                               component_age=0.):
@@ -121,11 +120,6 @@ class SynthData():
         # then append to existing table
         init_size = len(self.table)
         starcount = len(init_xyzuvw)
-
-        names = np.arange(init_size, init_size+starcount).astype(np.str)
-        new_data = Table(
-            data=np.zeros(starcount, dtype=self.table.dtype)
-        )
 
         names = np.arange(init_size, init_size + starcount).astype(np.str)
         new_data = Table(
@@ -147,6 +141,10 @@ class SynthData():
     def generate_init_cartesian(self, component, starcount, component_name='',
                                 seed=None):
         """Generate initial xyzuvw based on component"""
+        # For testing reasons, can supply a seed
+        if seed:
+            np.random.seed(seed)
+
         init_xyzuvw = np.random.multivariate_normal(
             mean=component.get_mean(), cov=component.get_covmatrix(),
             size=starcount,

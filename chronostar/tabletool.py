@@ -412,8 +412,13 @@ def insert_column(table, col_data, col_name, filename=''):
 
 
 def convert_table_astro2cart(table, return_table=False, write_table=False,
-                             main_colnames=None, error_colnames=None,
-                             corr_colnames=None, filename=''):
+                             astr_main_colnames=None,
+                             astr_error_colnames=None,
+                             astr_corr_colnames=None,
+                             cart_main_colnames=None,
+                             cart_error_colnames=None,
+                             cart_corr_colnames=None,
+                             filename=''):
     """
     Use this function to convert astrometry data to cartesian data.
 
@@ -474,19 +479,29 @@ def convert_table_astro2cart(table, return_table=False, write_table=False,
 
     # Get astrometric column names
     astr_main_colnames, astr_error_colnames, astr_corr_colnames =\
-        get_colnames(main_colnames=main_colnames, error_colnames=error_colnames,
-                     corr_colnames=corr_colnames, cartesian=False)
+        get_colnames(main_colnames=astr_main_colnames,
+                     error_colnames=astr_error_colnames,
+                     corr_colnames=astr_corr_colnames,
+                     cartesian=False)
 
     data = build_data_dict_from_table(table,
                                       astr_main_colnames,
                                       astr_error_colnames,
                                       astr_corr_colnames)
 
-    # if cartesian columns don't exist, then insert them
-    if 'X_V_corr' not in table.keys(): # and 'c_XV' not in table.keys():
-        append_cart_cols_to_table(table)
+    # Establish what column names are used
     cart_main_colnames, cart_error_colnames, cart_corr_colnames = \
-        get_colnames(cartesian=True)
+        get_colnames(cart_main_colnames,
+                     cart_error_colnames,
+                     cart_corr_colnames,
+                     cartesian=True)
+
+    # if cartesian columns don't exist, then insert them
+    if cart_corr_colnames[0] not in table.keys():
+        append_cart_cols_to_table(table,
+                                  cart_main_colnames,
+                                  cart_error_colnames,
+                                  cart_corr_colnames)
 
     # Iteratively transform data to cartesian coordinates, storing as we go
     for row, astr_mean, astr_cov in zip(table, data['means'], data['covs']):

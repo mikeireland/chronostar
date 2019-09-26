@@ -149,6 +149,7 @@ def prepare_data(data_pars):
     Notes
     -----
     TODO: update background overlaps to allow for multiprocessing
+    TODO: test functionality of overlap calculations
     """
     if type(data_pars) is str:
         data_pars = readparam.readParam(data_pars)
@@ -159,15 +160,18 @@ def prepare_data(data_pars):
     # Establish what column names are
     data_table = Table.read(data_pars['input_file'])
 
-    if data_pars.get['convert_astrometry']:
+    if data_pars['convert_astrometry']:
         # --------------------------------------------------
         # --  CONVERT ASTROMETRY INTO CARTESIAN  -----------
         # --------------------------------------------------
         data_table = tabletool.convert_table_astro2cart(
                 table=data_table,
-                main_colnames=data_pars['astro_main_colnames'],
-                error_colnames=data_pars['astro_error_colnames'],
-                corr_colnames=data_pars['astro_corr_colnames'],
+                astr_main_colnames=data_pars['astr_main_colnames'],
+                astr_error_colnames=data_pars['astr_error_colnames'],
+                astr_corr_colnames=data_pars['astr_corr_colnames'],
+                cart_main_colnames=data_pars['cart_main_colnames'],
+                cart_error_colnames=data_pars['cart_error_colnames'],
+                cart_corr_colnames=data_pars['cart_corr_colnames'],
                 return_table=True,
         )
 
