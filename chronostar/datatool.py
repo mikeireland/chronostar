@@ -5,18 +5,17 @@ for input into Chronostar
 """
 
 from astropy.table import Table
+from datetime import datetime
 import logging
 import numpy as np
-import sys
-sys.path.insert(0, '..')
 
 from . import tabletool
 from . import readparam
-
+from . import expectmax
 
 def get_region(ref_table, assoc_name=None,
                pos_margin=30., vel_margin=5.,
-               scale_margin=None, mg_colname='Moving group'):
+               scale_margin=None, mg_colname=None):
     """
     Get a 6D box surrounding a set of stars identified in a fits table,
     with the entry `assoc_name` in the column `mg_colname`.
@@ -66,6 +65,9 @@ def get_region(ref_table, assoc_name=None,
     #     gagne_reference_data =\
     #         '/home/tcrun/chronostar/data/gagne_bonafide_full_kinematics_with_lit_and_best_radial_velocity' \
     #         '_comb_binars_with_banyan_radec.fits'
+
+    if mg_colname is None:
+        mg_colname = 'Moving group'
 
     # If reference table is provided as str, convert to table
     if type(ref_table) is str:
@@ -143,8 +145,105 @@ def prepare_data(data_pars):
     Returns
     -------
     data_table [opt.]: astropy.Table object
+
+    Notes
+    -----
+    TODO: update background overlaps to allow for multiprocessing
     """
     if type(data_pars) is str:
         data_pars = readparam.readParam(data_pars)
 
+    data_pars = readparam.update_data_defaults(data_pars)
+    readparam.log_used_pars(data_pars)
+
+    # Establish what column names are
+    data_table = Table.read(data_pars['input_file'])
+
+    if data_pars.get['convert_astrometry']:
+        # --------------------------------------------------
+        # --  CONVERT ASTROMETRY INTO CARTESIAN  -----------
+        # --------------------------------------------------
+        data_table = tabletool.convert_table_astro2cart(
+                table=data_table,
+                main_colnames=data_pars['astro_main_colnames'],
+                error_colnames=data_pars['astro_error_colnames'],
+                corr_colnames=data_pars['astro_corr_colnames'],
+                return_table=True,
+        )
+
+
+    if data_pars['apply_cart_cuts']:
+        # --------------------------------------------------
+        # --  APPLY DATA CUTS IN CARTESIAN SPACE  ----------
+        # --------------------------------------------------
+        # First try and form region around a subset of reference
+        # stars.
+        if data_pars['cut_on_region']:
+            bounds_min, bounds_max = get_region(
+                    ref_table=data_pars['cut_ref_table'],
+                    assoc_name=data_pars['cut_assoc_name'],
+                    mg_colname=data_pars['cut_colname']
+            )
+        # Otherwise, use some mins and maxs from the pars file
+        else:
+            bounds_min = np.array(data_pars['cart_bound_min'])
+            bounds_max = np.array(data_pars['cart_bound_max'])
+
+        input_means = tabletool.build_data_dict_from_table(
+                table=data_table,
+                main_colnames=data_pars['cart_main_colnames'],
+                only_means=True,
+        )
+        cart_cut_mask = np.where(
+                np.all(input_means > bounds_min, axis=1)
+                & np.all(input_means < bounds_max, axis=1)
+        )
+        data_table = data_table[cart_cut_mask]
+
+
+    if data_pars['calc_overlaps']:
+        # --------------------------------------------------
+        # --  CALCULATE BACKGROUND OVERLAPS  ---------------
+        # --------------------------------------------------
+        # Only accessing the main column names
+        bg_star_means = tabletool.build_data_dict_from_table(
+                table=data_pars['bg_ref_table'],
+                main_colnames=data_pars['bg_main_colnames'],
+                only_means=True,
+        )
+        input_data_dict = tabletool.build_data_dict_from_table(
+                table=data_table,
+                main_colnames=data_pars['cart_main_colnames'],
+                error_colnames=data_pars['cart_error_colnames'],
+                corr_colnames=data_pars['cart_corr_colnames'],
+        )
+
+        #TODO: A parallelised version of this exists, incorporate it?
+        ln_bg_ols = expectmax.get_background_overlaps_with_covariances(
+                background_means=bg_star_means,
+                star_means=input_data_dict['means'],
+                star_covs=input_data_dict['covs'],
+        )
+
+        tabletool.insert_column(table=data_table,
+                                col_data=ln_bg_ols,
+                                col_name=data_pars['bg_col_name'],
+                                )
+
+    # Store output. Since this everything above is so computationally
+    # expensive, if writing to the prescribed output fails, make sure
+    # the result is stored somewhere.
+    try:
+        if data_pars['overwrite_datafile']:
+            data_table.write(data_pars['input_file'], overwrite=True)
+        elif data_pars['output_file']:
+            data_table.write(data_pars['output_file'])
+    except:
+        emergency_filename = 'emergency_data_save_{:.0f}.fits'.format(
+                datetime.timestamp(datetime.now())
+        )
+        data_table.write(emergency_filename)
+
+    if data_pars['return_data_table']:
+        return data_table
 
