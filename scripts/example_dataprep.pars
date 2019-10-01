@@ -1,0 +1,34 @@
+# Some filenames
+part_log_file       = path/to/output/data_pars_record.pars
+input_file          = path/to/input/table.fits
+output_file         = path/to/output/table.fits
+
+# General usage flags
+overwrite_datafile  = True
+return_data_table   = False
+
+# Can optionally convert from astrometry to LSR, helio(ish) centred
+# cartesian data.
+convert_astrometry  = True
+
+# Can optionally provide custom column names
+astr_main_colnames  = [ra,dec,parallax,pmra,pmdec,radial_velocity] # The default
+astr_error_colnames =
+astr_corr_colnames  =
+cart_main_colnames  = [X,Y,Z,U,V,W]         # This is the default
+cart_error_colnames =
+cart_corr_colnames  =
+
+# Parameters for applying data cuts in cartesian space
+apply_cart_cuts     = False
+# cut_on_region       = False
+# cut_ref_table       = None
+# convert_ref_table   = False
+# cut_assoc_name      = None
+# cut_colname         = None
+
+# Parameters for calculating overlaps
+calc_overlaps       = True
+bg_ref_table        = path/to/gaia_cartesian_full_6d_table.fits
+bg_col_name         =
+bg_main_colnames    =

@@ -37,11 +37,14 @@ def update_data_defaults(data_pars):
         'convert_ref_table':False,
         'cut_assoc_name':None,
         'cut_colname':None,
+        'cut_on_bounds':False,
+        'cut_bound_min':None,
+        'cut_bound_max':None,
 
         'calc_overlaps':False,
         'bg_ref_table':'',
         'bg_main_colnames':None,
-        'bg_col_name':None,
+        'bg_col_name':'background_log_overlap',
         'par_log_file':'data_pars.log',
 
         'overwrite_datafile':False,

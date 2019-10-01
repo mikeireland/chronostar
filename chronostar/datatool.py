@@ -8,6 +8,7 @@ from astropy.table import Table
 from datetime import datetime
 import logging
 import numpy as np
+import os.path
 
 from . import tabletool
 from . import readparam
@@ -138,7 +139,7 @@ def prepare_data(data_pars):
     ----------
     data_pars : dict -or- filename
         Parameters that govern behaviour of prepare_data. Exhaustive
-        list of options is included in [TODO: include exhuastive list somewhere]
+        list of options is included in main README.md.
         data_pars can be provided as a dictionary, or as a filename with
         [key] = [value] pairs, to be parsed by `readparam.readParam`
 
@@ -150,12 +151,64 @@ def prepare_data(data_pars):
     -----
     TODO: update background overlaps to allow for multiprocessing
     TODO: test functionality of overlap calculations
+    TODO: Implement initialising synethetic datasets?
+    TODO: Implement various input checks
+    TODO: Allow for checkpoint saves after each stage
+    TODO: Add a logging.log output
     """
     if type(data_pars) is str:
         data_pars = readparam.readParam(data_pars)
 
     data_pars = readparam.update_data_defaults(data_pars)
     readparam.log_used_pars(data_pars)
+
+    # Input quality checks
+    # --------------------------------------------------
+    # --  INPUT PARAMETER QUALITY CHECKS  --------------
+    # --------------------------------------------------
+    # If overwrite is not set, ensure output_file doesn't exist.
+    if (not data_pars['overwrite_datafile'] and
+        os.path.isfile(data_pars['output_file'])):
+        raise UserWarning('Output file exists, yet you have not set'
+                          ' `overwrite_data = True` in the input parameters.')
+
+    # If applying cartesian cuts, ensure either cut_on_region or
+    # cut_on_bounds has necessary parameters set.
+    if data_pars['apply_cart_cuts']:
+        if data_pars['cut_on_region']:
+            try:
+                if type(data_pars['cut_ref_table']) is str:
+                    assert os.path.isfile(data_pars['cut_ref_table'])
+                elif type(data_pars['cut_ref_table']) == Table:
+                    pass
+                else:
+                    raise TypeError
+            except (AssertionError, TypeError):
+                raise UserWarning('You have set `cut_on_region`, but there is'
+                                  ' an issue with the provided table '
+                                  ' cut_ref_table`.')
+        elif data_pars['cut_on_bounds']:
+            print('here')
+            try:
+                assert len(data_pars['cut_bound_min']) == 6
+                assert len(data_pars['cut_bound_max']) == 6
+            except (TypeError, AssertionError):
+                raise UserWarning('You have set `cut_on_bounds` yet there'
+                                  ' is an issue with your provided cartesian'
+                                  ' boundaries.')
+        else:
+            UserWarning('If setting `apply_cart_cuts` to True, then'
+                        ' either `cut_on_region` or `cut_on_bounds` must'
+                        ' also be set.')
+
+    # If calculating background, ensure all required info is provided
+    if data_pars['calc_overlaps']:
+        try:
+            assert os.path.isfile(data_pars['bg_ref_table'])
+        except (AssertionError, TypeError):
+            raise UserWarning('You have set `calc_overlaps`, but there is'
+                              ' an issue with the provided table '
+                              ' bg_ref_table`.')
 
     # Establish what column names are
     data_table = Table.read(data_pars['input_file'])
@@ -189,9 +242,13 @@ def prepare_data(data_pars):
                     mg_colname=data_pars['cut_colname']
             )
         # Otherwise, use some mins and maxs from the pars file
+        elif data_pars['cut_on_bounds']:
+            bounds_min = np.array(data_pars['cut_bound_min'])
+            bounds_max = np.array(data_pars['cut_bound_max'])
         else:
-            bounds_min = np.array(data_pars['cart_bound_min'])
-            bounds_max = np.array(data_pars['cart_bound_max'])
+            UserWarning('If setting `apply_cart_cuts` to True, then'
+                        ' either `cut_on_region` or `cut_on_bounds` must'
+                        ' also be set.')
 
         input_means = tabletool.build_data_dict_from_table(
                 table=data_table,
@@ -238,15 +295,15 @@ def prepare_data(data_pars):
     # expensive, if writing to the prescribed output fails, make sure
     # the result is stored somewhere.
     try:
-        if data_pars['overwrite_datafile']:
-            data_table.write(data_pars['input_file'], overwrite=True)
-        elif data_pars['output_file']:
-            data_table.write(data_pars['output_file'])
+        data_table.write(data_pars['output_file'],
+                         overwrite=data_pars['overwrite_datafile'])
     except:
         emergency_filename = 'emergency_data_save_{:.0f}.fits'.format(
                 datetime.timestamp(datetime.now())
         )
-        data_table.write(emergency_filename)
+        data_table.write(emergency_filename, overwrite=True)
+        print("COULDN'T SAVE TO DESIGNATED OUTPUT FILE.\n"
+              "Managed an emergency save to {}".format(emergency_filename))
 
     if data_pars['return_data_table']:
         return data_table

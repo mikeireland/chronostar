@@ -113,6 +113,9 @@ def get_background_overlaps_with_covariances(background_means, star_means,
     background and stars.
     Covariance matrices for the background are Identity*bandwidth.
 
+    Takes about 3 seconds per star if using whole Gaia DR2 stars with 6D
+    kinematics as reference.
+
     Parameters
     ----------
     background_means: [nstars,6] float array_like

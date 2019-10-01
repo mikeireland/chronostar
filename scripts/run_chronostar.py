@@ -370,6 +370,7 @@ if ncomps == 1:
                                      )
 
 
+
     # Calculate global score of fit for comparison with future fits with different
     # component counts
     prev_lnlike = expectmax.get_overall_lnlikelihood(data_dict, prev_comps,
