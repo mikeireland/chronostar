@@ -111,3 +111,23 @@ def test_bg_overlaps():
     result = datatool.prepare_data(data_pars)
 
     assert not np.any(np.isnan(result[data_pars['bg_col_name']]))
+
+def test_attempted_overwrite():
+    # TODO: test the case where this fails while everything else is valid
+    data_pars = {
+        'input_file':'not/a/real/file.fits',
+        'apply_cart_cuts':True,
+    }
+    data_pars['output_file'] = data_pars['input_file']
+    try:
+        datatool.prepare_data(data_pars)
+    except UserWarning:
+        pass
+
+def test_param_logfile_usable():
+    """
+    Confirm that the logfile also serves as a valid input file,
+    identical to the file used to initialise it.
+    TODO: implement
+    """
+    pass

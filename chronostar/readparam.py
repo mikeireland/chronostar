@@ -89,7 +89,7 @@ def log_used_pars(data_pars):
                 msg = '# [CHANGED]'
             else:
                 msg = ''
-            line = '{:25} = {:25} {}\n'.format(k, str(data_pars[k]), msg)
+            line = '{:25} = {:45} {}\n'.format(k, str(data_pars[k]), msg)
             fp.write(line.replace("'",''))
 
 

@@ -172,6 +172,19 @@ def prepare_data(data_pars):
         raise UserWarning('Output file exists, yet you have not set'
                           ' `overwrite_data = True` in the input parameters.')
 
+    # Prevent users from overwriting an input file if data cuts are
+    # being applied. Note: if future cuts are implemented, extend this
+    # condition
+    if data_pars['apply_cart_cuts']:
+        try:
+            assert data_pars['input_file'] != data_pars['output_file']
+        except:
+            raise UserWarning('You have set `input_file` to be the same as '
+                              '`output_file`, but are applying data cuts. '
+                              'This would overwrite your original data file '
+                              'with a subset. For safety, choose a different '
+                              'output file name.')
+
     # If applying cartesian cuts, ensure either cut_on_region or
     # cut_on_bounds has necessary parameters set.
     if data_pars['apply_cart_cuts']:
@@ -200,6 +213,7 @@ def prepare_data(data_pars):
             UserWarning('If setting `apply_cart_cuts` to True, then'
                         ' either `cut_on_region` or `cut_on_bounds` must'
                         ' also be set.')
+
 
     # If calculating background, ensure all required info is provided
     if data_pars['calc_overlaps']:
