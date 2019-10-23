@@ -1,3 +1,12 @@
+# This is an example parameter file for prepare_data.py
+# To see detailed description of each parameter, see the main README.md
+# document.
+# It is advised to not edit this file directly, but to copy it into
+# your working directory. Replace relevant file paths below with the
+# relative path from the working directory. Then perform data preparation
+# with:
+# > python /path/to/chronostar/prepare_data.py your_data_prep.pars
+
 # Some filenames
 part_log_file       = path/to/output/data_pars_record.pars
 input_file          = path/to/input/table.fits
@@ -12,10 +21,12 @@ return_data_table   = False
 convert_astrometry  = True
 
 # Can optionally provide custom column names
-astr_main_colnames  = [ra,dec,parallax,pmra,pmdec,radial_velocity] # The default
+astr_main_colnames  = [ra,dec,parallax,pmra,pmdec,radial_velocity] # The default, leaving
+                                                                   # blank would have same effect
 astr_error_colnames =
 astr_corr_colnames  =
-cart_main_colnames  = [X,Y,Z,U,V,W]         # This is the default
+cart_main_colnames  = [X,Y,Z,U,V,W]         # This is the default, leaving
+                                            # blank would have same effect
 cart_error_colnames =
 cart_corr_colnames  =
 
