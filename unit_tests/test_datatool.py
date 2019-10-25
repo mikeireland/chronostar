@@ -18,7 +18,7 @@ def test_convert_astro_only():
         'convert_astrometry':True,
         'output_file':'temp_data/astro_only_output.fits',
         'overwrite_datafile':True,
-        'return_table':True,
+        'return_data_table':True,
     }
     result = datatool.prepare_data(data_pars)
 
@@ -54,7 +54,7 @@ def test_cut_on_region():
         'cut_ref_table':ref_table,
         'cut_colname':mock_assoc_colname,
         'cut_assoc_name':mock_assoc_label,
-        'return_table':True,
+        'return_data_table':True,
     }
 
     result = datatool.prepare_data(data_pars)
@@ -83,7 +83,7 @@ def test_cut_on_bounds():
         'cut_on_bounds':True,
         'cut_bound_min':[DMIN,DMIN,DMIN,DMIN,DMIN,DMIN],
         'cut_bound_max':[DMAX,DMAX,DMAX,DMAX,DMAX,DMAX],
-        'return_table':True,
+        'return_data_table':True,
     }
 
     result = datatool.prepare_data(data_pars)
@@ -105,7 +105,7 @@ def test_bg_overlaps():
         'calc_overlaps':True,
         'bg_col_name':'background_log_overlap',
         'bg_ref_table':'../data/gaia_cartesian_full_6d_table.fits',
-        'return_table':True,
+        'return_data_table':True,
     }
 
     result = datatool.prepare_data(data_pars)

@@ -187,10 +187,26 @@ class AbstractComponent(object):
             (centred on, and co-rotating with, the local standard of
             rest). Function must be able to take two parameters, the
             starting location and the age, with positive age
-            corrsponding to forward evolution, and negative age
-            backward evolution. It should also be "odd", i.e.:
-            func(loc_then, +age) = loc_now
-            func(loc_now,  -age) = loc_then
+            corresponding to forward evolution, and negative age
+            backward evolution.
+
+            Signature should be:
+            def func(xyzuvw_start, times)
+
+            where xyzuvw_start is a 6 element list or array corresponding
+            to [X,Y,Z,U,V,W]
+            and `times` : is a single float value
+
+            It should also be "odd", i.e.:
+
+            >> func(loc_then, +age) = loc_now
+            >> func(loc_now,  -age) = loc_then
+
+            where loc_then
+
+            odd: -f(x) = f(-x)
+            basically: tracing a point forward by age, then back by age
+            should get to the same place
 
         Returns
         -------
@@ -986,6 +1002,12 @@ class AbstractComponent(object):
 
 
 class SphereComponent(AbstractComponent):
+    """
+    External Pars: X y Z U V W, dX, dV, age
+    (Internal Pars: X y Z U V W, log dX, log dV, age)
+    """
+    # The format of internal (emcee treated) parameters...
+    # TODO: make this clearer
     PARAMETER_FORMAT = ['pos', 'pos', 'pos', 'vel', 'vel', 'vel',
                         'log_pos_std', 'log_vel_std',
                         'age']

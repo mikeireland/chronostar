@@ -294,6 +294,7 @@ def prepare_data(data_pars):
         )
 
         #TODO: A parallelised version of this exists, incorporate it?
+        #TODO: Check database for precomputed bgoverlaps
         ln_bg_ols = expectmax.get_background_overlaps_with_covariances(
                 background_means=bg_star_means,
                 star_means=input_data_dict['means'],

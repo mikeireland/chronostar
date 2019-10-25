@@ -12,7 +12,7 @@ sys.path.insert(0, '..')
 
 from chronostar import datatool
 
-if len(sys.argv[1]) != 2:
+if len(sys.argv) != 2:
     raise UserWarning('Incorrect usage. Path to parameter file is required'
                       ' as a single command line argument. e.g.\n'
                       '   > python prepare_data.py path/to/parsfile.par')
