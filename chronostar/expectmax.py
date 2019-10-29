@@ -823,7 +823,6 @@ def check_stability(data, best_comps, memb_probs):
     if np.min(np.sum(memb_probs[:, :ncomps], axis=0)) <= 2.:
         logging.info("ERROR: A component has less than 2 members")
         return False
-        stable = False
     if not np.isfinite(get_overall_lnlikelihood(data, best_comps)):
         logging.info("ERROR: Posterior is not finite")
         return False
@@ -838,7 +837,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    sampling_steps=5000, ignore_dead_comps=False,
                    Component=SphereComponent, trace_orbit_func=None,
                    use_background=False, store_burnin_chains=False,
-                   max_iters=100):
+                   max_iters=100, record_len=30):
     """
     Entry point: Fit multiple Gaussians to data set
 
@@ -979,6 +978,11 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     all_converged = False
     stable_state = True         # used to track issues
 
+    # Keep track of most recent `record_len` for convergence checking
+    list_prev_comps       = []
+    list_prev_memberships = []
+    list_prev_bics        = []
+
     # Look for previous iterations and update values as appropriate
     prev_iters = True
     iter_count = 0
@@ -987,7 +991,6 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         try:
             idir = rdir+"iter{:02}/".format(iter_count)
             memb_probs_old = np.load(idir + 'membership.npy')
-            # logging.info(msg='DEBUG: iter {}, membership is {}'.format(iter_count, memb_probs_old.sum(axis=0)))
             try:
                 old_comps = Component.load_raw_components(idir + 'best_comps.npy')
             # End up here if components aren't loadable due to change in module
@@ -1004,8 +1007,24 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
             all_init_pars = [old_comp.get_emcee_pars()
                              for old_comp in old_comps]
-            old_overall_lnlike = get_overall_lnlikelihood(data, old_comps,
-                                                          inc_posterior=False)
+            old_overall_lnlike, old_memb_probs = \
+                    get_overall_lnlikelihood(data, old_comps,
+                                             inc_posterior=False,
+                                             return_memb_probs=True,)
+
+            list_prev_comps.append(old_comps)
+            list_prev_memberships.append(old_memb_probs)
+            list_prev_bics.append(calc_bic(data, len(old_comps),
+                                           lnlike=old_overall_lnlike,
+                                           memb_probs=old_memb_probs))
+
+            # Ensure we don't exceed the maximum length of our record
+            if len(list_prev_bics) > record_len:
+                assert len(list_prev_comps)       == len(list_prev_bics)
+                assert len(list_prev_memberships) == len(list_prev_bics)
+                list_prev_comps.pop(0)
+                list_prev_memberships.pop(0)
+                list_prev_bics.pop(0)
 
             iter_count += 1
             found_prev_iters = True
@@ -1081,6 +1100,10 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                                                  inc_posterior=False)
         overall_lnposterior = get_overall_lnlikelihood(data, new_comps,
                                                       inc_posterior=True)
+        bic = calc_bic(data, ncomps, overall_lnlike,
+                       memb_probs=memb_probs_new,
+                       Component=Component)
+
         logging.info("---        Iteration results         --")
         logging.info("-- Overall likelihood so far: {} --".\
                      format(overall_lnlike))
@@ -1091,26 +1114,46 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                                      memb_probs=memb_probs_new,
                                      Component=Component)))
 
+        list_prev_comps.append(new_comps)
+        list_prev_memberships.append(memb_probs_new)
+        list_prev_bics.append(bic)
+
+        # Ensure we don't exceed the maximum length of our record
+        if len(list_prev_bics) > record_len:
+            assert len(list_prev_comps) == len(list_prev_bics)
+            assert len(list_prev_memberships) == len(list_prev_bics)
+            list_prev_comps.pop(0)
+            list_prev_memberships.pop(0)
+            list_prev_bics.pop(0)
+
         # Check status of convergence
-        chains_converged = check_convergence(
-                old_best_comps=np.array(old_comps)[success_mask],
-                new_chains=all_samples
-        )
-        amplitudes_converged = np.allclose(memb_probs_new.sum(axis=0),
-                                           memb_probs_old.sum(axis=0),
-                                           atol=AMPLITUDE_TOL)
-        likelihoods_converged = (old_overall_lnlike > overall_lnlike)
-        all_converged = (chains_converged and amplitudes_converged and
-                         likelihoods_converged)
+#         chains_converged = check_convergence(
+#                 old_best_comps=np.array(old_comps)[success_mask],
+#                 new_chains=all_samples
+#         )
+#         amplitudes_converged = np.allclose(memb_probs_new.sum(axis=0),
+#                                            memb_probs_old.sum(axis=0),
+#                                            atol=AMPLITUDE_TOL)
+#        likelihoods_converged = (old_overall_lnlike > overall_lnlike)
+#        all_converged = (chains_converged and amplitudes_converged and
+#                         likelihoods_converged)
+        if len(list_prev_bics) < record_len:
+            all_converged = False
+        else:
+            all_converged = compfitter.burnin_convergence(
+                    lnprob=np.expand_dims(list_prev_bics, axis=0),
+                    tol=0.1, slice_size=int(record_len/2)
+            )
         old_overall_lnlike = overall_lnlike
         log_message('Convergence status: {}'.format(all_converged),
                     symbol='-', surround=True)
         if not all_converged:
-            logging.info('Likelihoods converged: {}'. \
-                         format(likelihoods_converged))
-            logging.info('Chains converged: {}'.format(chains_converged))
-            logging.info('Amplitudes converged: {}'.\
-                format(amplitudes_converged))
+            logging.info('BIC not converged')
+#             logging.info('Likelihoods converged: {}'. \
+#                          format(likelihoods_converged))
+#             logging.info('Chains converged: {}'.format(chains_converged))
+#             logging.info('Amplitudes converged: {}'.\
+#                 format(amplitudes_converged))
 
 
         # Check stablity, but only affect run after sufficient iterations to
@@ -1120,7 +1163,11 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         if iter_count > 10:
             stable_state = temp_stable_state
 
-        # only update if the fit has improved
+        # TODO: Append fit to running list of most recent `N` runs
+        # TODO: Keep track of most recent BICs
+        # TODO: if running list exceeds `N`, pop the first one
+
+        # only update if we're about to iterate again
         if not all_converged:
             old_comps = new_comps
             memb_probs_old = memb_probs_new
@@ -1128,7 +1175,17 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         iter_count += 1
 
     logging.info("CONVERGENCE COMPLETE")
+    np.save('bic_list.npy', list_prev_bics)
+    best_bic_ix = np.argmin(list_prev_bics)
+    # Since len(list_prev_bics) is capped, need to count backwards form iter_count
+    best_iter = iter_count - (len(list_prev_bics) - best_bic_ix)
+    logging.info('Picked iteration: {}'.format(best_iter))
+    logging.info('With BIC: {}'.format(list_prev_bics[best_bic_ix]))
+
     log_message('EM Algorithm finished', symbol='*')
+
+    best_comps = list_prev_comps[best_bic_ix]
+    best_memb_probs = list_prev_memberships[best_bic_ix]
 
     # PERFORM FINAL EXPLORATION OF PARAMETER SPACE AND SAVE RESULTS
     if stable_state:
@@ -1136,7 +1193,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         final_dir = rdir+"final/"
         mkpath(final_dir)
 
-        memb_probs_final = expectation(data, new_comps, memb_probs_new,
+        memb_probs_final = expectation(data, best_comps, best_memb_probs,
                                        inc_posterior=inc_posterior)
         np.save(final_dir+"final_membership.npy", memb_probs_final)
         logging.info('Membership distribution:\n{}'.format(

@@ -155,8 +155,13 @@ def no_stuck_walkers(lnprob):
     return res
 
 
-def burnin_convergence(lnprob, tol=0.25, slice_size=100, cutoff=0):
+def burnin_convergence(lnprob, tol=0.25, slice_size=100, cutoff=0, debug=False):
     """Checks early lnprob vals with final lnprob vals for convergence
+
+    Takes the first `slice_size` and the final `slice_size` lnprob values.
+    Chain is deemed converged if the mean of these two slices are within
+    0.25 sigma of each other, where sigma is the standard deviation
+    of the final slice.
 
     Parameters
     ----------
@@ -189,8 +194,11 @@ def burnin_convergence(lnprob, tol=0.25, slice_size=100, cutoff=0):
     end_lnprob_std = np.std(lnprob[:, -slice_size:])
 
     stable = np.isclose(start_lnprob_mn, end_lnprob_mn,
+                        rtol=1e-10,                     # only care about atol
                         atol=tol*end_lnprob_std)
     logging.info("Stable? {}".format(stable))
+    if debug:
+        import pdb; pdb.set_trace()
 
     return stable
 
