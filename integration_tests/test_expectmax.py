@@ -9,6 +9,7 @@ from __future__ import division, print_function
 
 import logging
 import numpy as np
+import pytest
 import sys
 from distutils.dir_util import mkpath
 
@@ -52,9 +53,9 @@ def test_execution_simple_fit():
     Don't test for correctness, but check that everything actually executes
     """
     run_name = 'quickdirty'
-    logging.info(50*'-')
-    logging.info(15*'-' + '{:^20}'.format(run_name) + 15*'-')
-    logging.info(50*'-')
+    logging.info(60*'-')
+    logging.info(15*'-' + '{:^30}'.format('TEST: ' + run_name) + 15*'-')
+    logging.info(60*'-')
 
     savedir = 'temp_data/{}_expectmax_{}/'.format(PY_VERS, run_name)
     mkpath(savedir)
@@ -85,14 +86,13 @@ def test_execution_simple_fit():
                            )
     synth_data.synthesise_everything()
 
-    tabletool.convert_table_astro2cart(synth_data.table,
-                                       write_table=True,
-                                       filename=data_filename)
+    tabletool.convert_table_astro2cart(synth_data.table)
     background_count = len(synth_data.table) - starcount
 
     # insert background densities
     synth_data.table['background_log_overlap'] =\
         len(synth_data.table) * [np.log(background_density)]
+    synth_data.table.write(data_filename, overwrite=True)
 
     origins = [SphereComponent(pars) for pars in sphere_comp_pars]
 
@@ -104,22 +104,23 @@ def test_execution_simple_fit():
                                  use_background=True,
                                  burnin=10,
                                  sampling_steps=10,
-
+                                 max_iters=200,
                                  )
 
 
+@pytest.mark.skip
 def test_fit_one_comp_with_background():
     """
     Synthesise a file with negligible error, retrieve initial
     parameters
 
-    Takes a while... maybe this belongs in integration unit_tests
+    Takes a while...
     """
     run_name = 'background'
 
-    logging.info(50*'-')
-    logging.info(15*'-' + '{:^20}'.format(run_name) + 15*'-')
-    logging.info(50*'-')
+    logging.info(60*'-')
+    logging.info(15*'-' + '{:^30}'.format('TEST: ' + run_name) + 15*'-')
+    logging.info(60*'-')
 
     savedir = 'temp_data/{}_expectmax_{}/'.format(PY_VERS, run_name)
     mkpath(savedir)
@@ -150,14 +151,13 @@ def test_fit_one_comp_with_background():
                            )
     synth_data.synthesise_everything()
 
-    tabletool.convert_table_astro2cart(synth_data.table,
-                                       write_table=True,
-                                       filename=data_filename)
+    tabletool.convert_table_astro2cart(synth_data.table)
     background_count = len(synth_data.table) - starcount
 
     # insert background densities
     synth_data.table['background_log_overlap'] =\
         len(synth_data.table) * [np.log(background_density)]
+    synth_data.table.write(data_filename, overwrite=True)
 
     origins = [SphereComponent(pars) for pars in sphere_comp_pars]
 
@@ -168,7 +168,9 @@ def test_fit_one_comp_with_background():
                                  trace_orbit_func=dummy_trace_orbit_func,
                                  burnin=500,
                                  sampling_steps=5000,
-                                 use_background=True)
+                                 use_background=True,
+                                 max_iters=200,
+                                 )
 
     # return best_comps, med_and_spans, memb_probs
 
@@ -194,7 +196,7 @@ def test_fit_one_comp_with_background():
     assert np.isclose(recovery_count_actual/starcount, mean_membership_confidence,
                       atol=0.05)
 
-
+@pytest.mark.skip
 def test_fit_many_comps():
     """
     Synthesise a file with negligible error, retrieve initial
@@ -205,9 +207,9 @@ def test_fit_many_comps():
 
     run_name = 'stationary'
 
-    logging.info(50*'-')
-    logging.info(15*'-' + '{:^20}'.format(run_name) + 15*'-')
-    logging.info(50*'-')
+    logging.info(60*'-')
+    logging.info(15*'-' + '{:^30}'.format('TEST: ' + run_name) + 15*'-')
+    logging.info(60*'-')
 
     savedir = 'temp_data/{}_expectmax_{}/'.format(PY_VERS, run_name)
     mkpath(savedir)

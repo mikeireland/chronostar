@@ -975,13 +975,19 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     old_comps = init_comps
     old_overall_lnlike = -np.inf
     all_init_pos = ncomps * [None]
+    all_med_and_spans = ncomps * [None]
     all_converged = False
     stable_state = True         # used to track issues
 
     # Keep track of most recent `record_len` for convergence checking
-    list_prev_comps       = []
-    list_prev_memberships = []
-    list_prev_bics        = []
+    list_prev_comps        = []
+    list_prev_memberships  = []
+    list_all_init_pos      = []
+    list_all_med_and_spans = []
+    list_prev_bics         = []
+
+    # Keep track of ALL BICs, so that progress can be observed
+    all_bics = []
 
     # Look for previous iterations and update values as appropriate
     prev_iters = True
@@ -1004,6 +1010,9 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                     best_ix = np.argmax(lnprob)
                     best_pars = chain.reshape(-1, npars)[best_ix]
                     old_comps[i] = Component(emcee_pars=best_pars)
+                    all_med_and_spans[i] = compfitter.calc_med_and_span(
+                            chain, intern_to_extern=True, Component=Component,
+                    )
 
             all_init_pars = [old_comp.get_emcee_pars()
                              for old_comp in old_comps]
@@ -1014,16 +1023,24 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
             list_prev_comps.append(old_comps)
             list_prev_memberships.append(old_memb_probs)
+            list_all_init_pos.append(all_init_pos)
+            list_all_med_and_spans.append(all_med_and_spans)
             list_prev_bics.append(calc_bic(data, len(old_comps),
                                            lnlike=old_overall_lnlike,
                                            memb_probs=old_memb_probs))
 
+            all_bics.append(list_prev_bics[-1])
+
             # Ensure we don't exceed the maximum length of our record
             if len(list_prev_bics) > record_len:
-                assert len(list_prev_comps)       == len(list_prev_bics)
-                assert len(list_prev_memberships) == len(list_prev_bics)
+                assert len(list_prev_comps)            == len(list_prev_bics)
+                assert len(list_prev_memberships)      == len(list_prev_bics)
+                assert len(list_all_init_pos)          == len(list_prev_bics)
+                assert len(list_all_med_and_spans)     == len(list_prev_bics)
                 list_prev_comps.pop(0)
                 list_prev_memberships.pop(0)
+                list_all_init_pos.pop(0)
+                list_all_med_and_spans.pop(0)
                 list_prev_bics.pop(0)
 
             iter_count += 1
@@ -1079,6 +1096,12 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                          store_burnin_chains=store_burnin_chains,
                          )
 
+        for i in range(ncomps):
+            all_med_and_spans[i] = compfitter.calc_med_and_span(
+                    all_samples[i], intern_to_extern=True,
+                    Component=Component,
+            )
+
         # update number of comps to reflect any loss of dead components
         ncomps = len(success_mask)
         logging.info("The following components survived: {}".format(
@@ -1116,14 +1139,22 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
         list_prev_comps.append(new_comps)
         list_prev_memberships.append(memb_probs_new)
+        list_all_init_pos.append(all_init_pos)
+        list_all_med_and_spans.append(all_med_and_spans)
         list_prev_bics.append(bic)
+
+        all_bics.append(bic)
 
         # Ensure we don't exceed the maximum length of our record
         if len(list_prev_bics) > record_len:
-            assert len(list_prev_comps) == len(list_prev_bics)
-            assert len(list_prev_memberships) == len(list_prev_bics)
+            assert len(list_prev_comps)        == len(list_prev_bics)
+            assert len(list_prev_memberships)  == len(list_prev_bics)
+            assert len(list_all_init_pos)      == len(list_prev_bics)
+            assert len(list_all_med_and_spans) == len(list_prev_bics)
             list_prev_comps.pop(0)
             list_prev_memberships.pop(0)
+            list_all_init_pos.pop(0)
+            list_all_med_and_spans.pop(0)
             list_prev_bics.pop(0)
 
         # Check status of convergence
@@ -1149,6 +1180,17 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                     symbol='-', surround=True)
         if not all_converged:
             logging.info('BIC not converged')
+            np.save(rdir + 'all_bics.npy', all_bics)
+
+            # Plot all bics to date
+            plt.clf()
+            plt.plot(all_bics,
+                     label='All {} BICs'.format(len(all_bics)))
+            plt.vlines(np.argmin(all_bics), ls='--', color='blue',
+                       ymin=plt.ylim()[0], ymax=plt.ylim()[1],
+                       label='best BIC')
+            plt.legend(loc='best')
+            plt.savefig(rdir + 'all_bics.pdf')
 #             logging.info('Likelihoods converged: {}'. \
 #                          format(likelihoods_converged))
 #             logging.info('Chains converged: {}'.format(chains_converged))
@@ -1175,7 +1217,19 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         iter_count += 1
 
     logging.info("CONVERGENCE COMPLETE")
-    np.save('bic_list.npy', list_prev_bics)
+    np.save(rdir + 'bic_list.npy', list_prev_bics)
+
+    # Plot final few BICs
+    plt.clf()
+    nbics = len(list_prev_bics)
+    plt.plot(range(iter_count-nbics, iter_count), list_prev_bics,
+             label='Final {} BICs'.format(len(list_prev_bics)))
+    plt.vlines(np.argmin(list_prev_bics), ls='--', color='blue',
+               ymin=plt.ylim()[0], ymax=plt.ylim()[1],
+               label='best BIC')
+    plt.legend(loc='best')
+    plt.savefig(rdir + 'bics.pdf')
+
     best_bic_ix = np.argmin(list_prev_bics)
     # Since len(list_prev_bics) is capped, need to count backwards form iter_count
     best_iter = iter_count - (len(list_prev_bics) - best_bic_ix)
@@ -1184,49 +1238,51 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
     log_message('EM Algorithm finished', symbol='*')
 
-    best_comps = list_prev_comps[best_bic_ix]
-    best_memb_probs = list_prev_memberships[best_bic_ix]
+    final_best_comps    = list_prev_comps[best_bic_ix]
+    final_memb_probs    = list_prev_memberships[best_bic_ix]
+    best_all_init_pos   = list_all_init_pos[best_bic_ix]
+    final_med_and_spans = list_all_med_and_spans[best_bic_ix]
 
     # PERFORM FINAL EXPLORATION OF PARAMETER SPACE AND SAVE RESULTS
+    # No longer need to do characterisation... waste of time and source of
+    # inconsistencies
     if stable_state:
-        log_message('Characterising', symbol='-', surround=True)
-        final_dir = rdir+"final/"
+        log_message('Storing final result', symbol='-', surround=True)
+        final_dir = rdir+'final/'
         mkpath(final_dir)
 
-        memb_probs_final = expectation(data, best_comps, best_memb_probs,
-                                       inc_posterior=inc_posterior)
-        np.save(final_dir+"final_membership.npy", memb_probs_final)
+#         memb_probs_final = expectation(data, best_comps, best_memb_probs,
+#                                        inc_posterior=inc_posterior)
+        np.save(final_dir+'final_membership.npy', final_memb_probs)
         logging.info('Membership distribution:\n{}'.format(
-            memb_probs_final.sum(axis=0)
+            final_memb_probs.sum(axis=0)
         ))
-        final_med_and_spans = [None] * ncomps
-        final_best_comps = [None] * ncomps
 
-        for i in range(ncomps):
-            logging.info("Characterising comp {}".format(i))
-            final_gdir = final_dir + "comp{}/".format(i)
-            mkpath(final_gdir)
+        # for i in range(ncomps):
+            # logging.info('Characterising comp {}'.format(i))
+            # final_gdir = final_dir + 'comp{}/'.format(i)
+            # mkpath(final_gdir)
 
-            best_comp, chain, lnprob = compfitter.fit_comp(
-                    data=data,
-                    memb_probs=memb_probs_final[:, i],
-                    burnin_steps=BURNIN_STEPS,
-                    plot_it=True, pool=pool, convergence_tol=C_TOL,
-                    plot_dir=final_gdir, save_dir=final_gdir,
-                    init_pos=all_init_pos[i],
-                    sampling_steps=SAMPLING_STEPS,
-                    trace_orbit_func=trace_orbit_func,
-                    store_burnin_chains=False,
-            )
-            logging.info("Finished fit")
-            final_best_comps[i] = best_comp
-            final_med_and_spans[i] = compfitter.calc_med_and_span(
-                    chain, intern_to_extern=True, Component=Component,
-            )
-            np.save(final_gdir + 'final_chain.npy', chain)
-            np.save(final_gdir + 'final_lnprob.npy', lnprob)
-
-            all_init_pos[i] = chain[:, -1, :]
+            # best_comp, chain, lnprob = compfitter.fit_comp(
+            #         data=data,
+            #         memb_probs=final_memb_probs[:, i],
+            #         burnin_steps=BURNIN_STEPS,
+            #         plot_it=True, pool=pool, convergence_tol=C_TOL,
+            #         plot_dir=final_gdir, save_dir=final_gdir,
+            #         init_pos=best_all_init_pos[i],
+            #         sampling_steps=SAMPLING_STEPS,
+            #         trace_orbit_func=trace_orbit_func,
+            #         store_burnin_chains=False,
+            # )
+            # logging.info("Finished fit")
+            # final_best_comps[i] = best_comp
+            # final_med_and_spans[i] = compfitter.calc_med_and_span(
+            #         chain, intern_to_extern=True, Component=Component,
+            # )
+            # np.save(final_gdir + 'final_chain.npy', chain)
+            # np.save(final_gdir + 'final_lnprob.npy', lnprob)
+            #
+            # all_init_pos[i] = chain[:, -1, :]
 
         # SAVE FINAL RESULTS IN MAIN SAVE DIRECTORY
         Component.store_raw_components(final_dir+'final_comps.npy', final_best_comps)
@@ -1234,13 +1290,13 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         np.save(final_dir+'final_med_and_spans.npy', final_med_and_spans)
 
         overall_lnlike = get_overall_lnlikelihood(
-                data, new_comps, inc_posterior=False
+                data, final_best_comps, inc_posterior=False
         )
         overall_lnposterior = get_overall_lnlikelihood(
-                data, new_comps, inc_posterior=True
+                data, final_best_comps, inc_posterior=True
         )
         bic = calc_bic(data, ncomps, overall_lnlike,
-                       memb_probs=memb_probs_final, Component=Component)
+                       memb_probs=final_memb_probs, Component=Component)
         logging.info("Final overall lnlikelihood: {}".format(overall_lnlike))
         logging.info("Final overall lnposterior:  {}".format(overall_lnposterior))
         logging.info("Final BIC: {}".format(bic))
@@ -1249,23 +1305,23 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                                                           overall_lnposterior,
                                                           bic))
 
-        logging.info("FINISHED CHARACTERISATION")
+        logging.info("FINISHED SAVING")
         logging.info("Best fits:\n{}".format(
             [fc.get_pars() for fc in final_best_comps]
         ))
         logging.info("Stars per component:\n{}".format(
-                memb_probs_final.sum(axis=0)
+                final_memb_probs.sum(axis=0)
         ))
         logging.info("Memberships: \n{}".format(
-                (memb_probs_final*100).astype(np.int)
+                (final_memb_probs*100).astype(np.int)
         ))
 
         logging.info(50*'=')
 
-        return final_best_comps, np.array(final_med_and_spans), memb_probs_final
+        return final_best_comps, np.array(final_med_and_spans), final_memb_probs
 
     # Handle the case where the run was not stable
     else:
         log_message('BAD RUN TERMINATED', symbol='*', surround=True)
-        return new_comps, -1, memb_probs_new
+        return final_best_comps, np.array(final_med_and_spans), final_memb_probs
 

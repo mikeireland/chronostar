@@ -97,6 +97,11 @@ def test_cut_on_bounds():
                     reason='No provided background data reference file. Ask Tim'
                            'for "gaia_cartesian_full_6d_table.fits"')
 def test_bg_overlaps():
+    ref_table_filename = '../data/gaia_cartesian_full_6d_table.fits'
+    ref_table = Table.read(ref_table_filename)
+
+    # Only use subset
+    sub_ref_table = ref_table[:100]
     data_pars = {
         'input_file':'sample_data/sample_table_astro_only.fits',
         'convert_astrometry':True,
@@ -104,7 +109,8 @@ def test_bg_overlaps():
         'overwrite_datafile':True,
         'calc_overlaps':True,
         'bg_col_name':'background_log_overlap',
-        'bg_ref_table':'../data/gaia_cartesian_full_6d_table.fits',
+        # 'bg_ref_table':'../data/gaia_cartesian_full_6d_table.fits',
+        'bg_ref_table':sub_ref_table,
         'return_data_table':True,
     }
 

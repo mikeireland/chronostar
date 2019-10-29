@@ -670,7 +670,7 @@ class AbstractComponent(object):
         This is a static method because it needs as input a list of
         components, not just the component itself
         """
-        if type(components) is not list:
+        if (type(components) is not list) and (type(components) is not np.ndarray):
             components = [components]
         if use_emcee_pars:
             pars = np.array([c.get_emcee_pars() for c in components])

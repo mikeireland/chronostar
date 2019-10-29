@@ -218,7 +218,10 @@ def prepare_data(data_pars):
     # If calculating background, ensure all required info is provided
     if data_pars['calc_overlaps']:
         try:
-            assert os.path.isfile(data_pars['bg_ref_table'])
+            if type(data_pars['bg_ref_table']) is str:
+                assert os.path.isfile(data_pars['bg_ref_table'])
+            else:
+                assert type(data_pars['bg_ref_table']) is Table
         except (AssertionError, TypeError):
             raise UserWarning('You have set `calc_overlaps`, but there is'
                               ' an issue with the provided table '
