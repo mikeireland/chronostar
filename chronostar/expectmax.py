@@ -837,7 +837,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    sampling_steps=5000, ignore_dead_comps=False,
                    Component=SphereComponent, trace_orbit_func=None,
                    use_background=False, store_burnin_chains=False,
-                   max_iters=100, record_len=30):
+                   max_iters=100, record_len=30, bic_conv_tol=0.1):
     """
     Entry point: Fit multiple Gaussians to data set
 
@@ -1173,7 +1173,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         else:
             all_converged = compfitter.burnin_convergence(
                     lnprob=np.expand_dims(list_prev_bics, axis=0),
-                    tol=0.1, slice_size=int(record_len/2)
+                    tol=bic_conv_tol, slice_size=int(record_len/2)
             )
         old_overall_lnlike = overall_lnlike
         log_message('Convergence status: {}'.format(all_converged),
@@ -1204,10 +1204,6 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         logging.info('Stability: {}'.format(temp_stable_state))
         if iter_count > 10:
             stable_state = temp_stable_state
-
-        # TODO: Append fit to running list of most recent `N` runs
-        # TODO: Keep track of most recent BICs
-        # TODO: if running list exceeds `N`, pop the first one
 
         # only update if we're about to iterate again
         if not all_converged:
