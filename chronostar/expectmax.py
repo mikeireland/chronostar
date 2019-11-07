@@ -1188,7 +1188,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                      label='All {} BICs'.format(len(all_bics)))
             plt.vlines(np.argmin(all_bics), linestyles='--', color='blue',
                        ymin=plt.ylim()[0], ymax=plt.ylim()[1],
-                       label='best BIC')
+                       label='best BIC {:.0f} | iter {}'.format(np.min(all_bics),
+                                                                np.argmin(all_bics)))
             plt.legend(loc='best')
             plt.savefig(rdir + 'all_bics.pdf')
 #             logging.info('Likelihoods converged: {}'. \
@@ -1218,11 +1219,13 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # Plot final few BICs
     plt.clf()
     nbics = len(list_prev_bics)
-    plt.plot(range(iter_count-nbics, iter_count), list_prev_bics,
+    start_ix = iter_count - nbics
+    plt.plot(range(start_ix, iter_count), list_prev_bics,
              label='Final {} BICs'.format(len(list_prev_bics)))
-    plt.vlines(np.argmin(list_prev_bics), ls='--', color='blue',
+    plt.vlines(start_ix + np.argmin(list_prev_bics), ls='--', color='blue',
                ymin=plt.ylim()[0], ymax=plt.ylim()[1],
-               label='best BIC')
+               label='best BIC {:.0f} | iter {}'.format(np.min(list_prev_bics),
+                                                        start_ix+np.argmin(list_prev_bics)))
     plt.legend(loc='best')
     plt.savefig(rdir + 'bics.pdf')
 

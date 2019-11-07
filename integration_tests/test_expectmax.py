@@ -108,7 +108,6 @@ def test_execution_simple_fit():
                                  )
 
 
-@pytest.mark.skip
 def test_fit_one_comp_with_background():
     """
     Synthesise a file with negligible error, retrieve initial
@@ -153,6 +152,7 @@ def test_fit_one_comp_with_background():
 
     tabletool.convert_table_astro2cart(synth_data.table)
     background_count = len(synth_data.table) - starcount
+    logging.info('Generated {} background stars'.format(background_count))
 
     # insert background densities
     synth_data.table['background_log_overlap'] =\
@@ -196,7 +196,6 @@ def test_fit_one_comp_with_background():
     assert np.isclose(recovery_count_actual/starcount, mean_membership_confidence,
                       atol=0.05)
 
-@pytest.mark.skip
 def test_fit_many_comps():
     """
     Synthesise a file with negligible error, retrieve initial

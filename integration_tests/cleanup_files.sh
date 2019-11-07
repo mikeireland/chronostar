@@ -10,3 +10,5 @@ else
   echo 'Careful! Calling an extensive "rm" in unknown directory!!'
   echo 'Nothing happened... this time.'
 fi
+rm screen.out
+rm *.fits

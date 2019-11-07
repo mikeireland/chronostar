@@ -166,8 +166,17 @@ def prepare_data(data_pars):
     # --------------------------------------------------
     # --  INPUT PARAMETER QUALITY CHECKS  --------------
     # --------------------------------------------------
-    # If overwrite is not set, ensure output_file doesn't exist.
-    if (not data_pars['overwrite_datafile'] and
+    # Check if output_file is viable
+    if data_pars['output_file'] == '' or data_pars['output_file'] is None:
+        logging.info('No output file provided, so result will not be '
+                     'saved to file.')
+        if not data_pars['return_data_table']:
+            raise UserWarning('Neither an output file was provided, nor '
+                              '`return_data_table` set to True. No way to '
+                              'return the result!')
+    # If output_file is provided, but  overwrite is not set, ensure file
+    # doesn't already exist.
+    elif (not data_pars['overwrite_datafile'] and
         os.path.isfile(data_pars['output_file'])):
         raise UserWarning('Output file exists, yet you have not set'
                           ' `overwrite_data = True` in the input parameters.')
