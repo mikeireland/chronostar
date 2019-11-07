@@ -1186,7 +1186,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             plt.clf()
             plt.plot(all_bics,
                      label='All {} BICs'.format(len(all_bics)))
-            plt.vlines(np.argmin(all_bics), ls='--', color='blue',
+            plt.vlines(np.argmin(all_bics), linestyles='--', color='blue',
                        ymin=plt.ylim()[0], ymax=plt.ylim()[1],
                        label='best BIC')
             plt.legend(loc='best')

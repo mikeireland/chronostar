@@ -13,6 +13,7 @@ import sys
 
 sys.path.insert(0, '/Users/marusa/chronostar/')
 from chronostar import tabletool
+from astropy.table import Table, vstack
 
 
 def prepare_stars_that_need_bg_ols():
@@ -49,6 +50,35 @@ def prepare_stars_that_need_bg_ols():
 
     todo.write('solar_neighbourhood_determine_bg_ols_for_these_stars.fits', format='fits')
 
+
+def match_bg_ols_from_textfile_and_sobject_id():
+    n = [0, 1, 2, 3]  # filenumbers
+
+    datafile = 'solar_neighbourhood_determine_bg_ols_for_these_stars.fits'
+    data0 = Table.read(datafile)
+    N = 10  # that many chunks. DON'T CHANGE THIS, this number should be the same as in the bg_ols_multiprocessing.py!!
+    indices_chunks = np.array_split(range(len(data)), N)
+
+    for NI in n:
+        bg_ols_filename = 'bgols_multiprocessing_round2_%d.dat' % NI
+        bgols = np.loadtxt(bg_ols_filename)
+
+        data = data0[indices_chunks[NI]]
+        ids = data['source_id']
+
+        print
+        len(bgols), len(ids)
+
+        if NI == 0:
+            tab = Table([ids], names=['source_id'])
+            tab['background_log_overlap'] = bgols
+        else:
+            tab0 = Table([ids], names=['source_id'])
+            tab0['background_log_overlap'] = bgols
+
+            tab = vstack([tab, tab0])
+
+    print tab
 
 def insert_bg_ols_into_table():
     bg_ols_filename = 'bgols_multiprocessing_0.dat'
