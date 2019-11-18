@@ -7,6 +7,7 @@ Tests for `expectmax` module
 """
 from __future__ import division, print_function
 
+import itertools
 import logging
 import numpy as np
 import pytest
@@ -19,8 +20,10 @@ from chronostar.component import SphereComponent
 from chronostar.synthdata import SynthData
 from chronostar import tabletool
 from chronostar import expectmax
+from chronostar import traceorbit
 
 PY_VERS = sys.version[0]
+
 
 def dummy_trace_orbit_func(loc, times=None):
     """Dummy trace orbit func to skip irrelevant computation"""
@@ -29,25 +32,7 @@ def dummy_trace_orbit_func(loc, times=None):
             return loc + 1000.
     return loc
 
-SPHERE_COMP_PARS = np.array([
-    # X, Y, Z, U, V, W, dX, dV, age,nstars
-    [ 0, 0, 0, 0, 0, 0, 10,  5,  10],
-    [50,50, 0, 0, 0, 0, 10,  5,  10],
-])
-STARCOUNTS = [200, 200]
-
-# run_name = 'stationary'
-# savedir = 'temp_data/{}_expectmax_{}/'.format(PY_VERS, run_name)
-# mkpath(savedir)
-# data_filename = savedir + '{}_expectmax_{}_data.fits'.format(PY_VERS,
-#                                                             run_name)
-# log_filename = 'logs/{}_expectmax_all_tests.log'.format(PY_VERS)
-# plot_dir = 'temp_plots/{}_expectmax_{}'.format(PY_VERS, run_name)
-# print('logging in {}'.format(log_filename))
-# logging.basicConfig(level=logging.INFO, filemode='w',
-                    # filename=log_filename)
-
-
+@pytest.mark.skip
 def test_execution_simple_fit():
     """
     Don't test for correctness, but check that everything actually executes
@@ -105,15 +90,20 @@ def test_execution_simple_fit():
                                  burnin=10,
                                  sampling_steps=10,
                                  max_iters=200,
+                                 ignore_stable_comps=False,
                                  )
 
-
+@pytest.mark.skip
 def test_fit_one_comp_with_background():
     """
     Synthesise a file with negligible error, retrieve initial
     parameters
 
     Takes a while...
+
+    Parameters
+    ----------
+
     """
     run_name = 'background'
 
@@ -170,6 +160,7 @@ def test_fit_one_comp_with_background():
                                  sampling_steps=5000,
                                  use_background=True,
                                  max_iters=200,
+                                 ignore_stable_comps=False,
                                  )
 
     # return best_comps, med_and_spans, memb_probs
@@ -196,6 +187,7 @@ def test_fit_one_comp_with_background():
     assert np.isclose(recovery_count_actual/starcount, mean_membership_confidence,
                       atol=0.05)
 
+@pytest.mark.skip
 def test_fit_many_comps():
     """
     Synthesise a file with negligible error, retrieve initial
@@ -221,23 +213,19 @@ def test_fit_many_comps():
                         filename=log_filename)
     uniform_age = 1e-10
     sphere_comp_pars = np.array([
-        #  X,  Y,  Z, U, V, W, dX, dV,  age,
-        [-50,-50,-50, 0, 0, 0, 10.,  5, uniform_age],
-        [ 50, 50, 50, 0, 0, 0, 10.,  5, uniform_age],
+        #   X,  Y,  Z, U, V, W, dX, dV,  age,
+        [ -50,-50,-50, 0, 0, 0, 10.,  5, uniform_age],
+        [  50, 50, 50, 0, 0, 0, 10.,  5, uniform_age],
     ])
-    starcounts = [200,200]
+    starcounts = [20,50]
     ncomps = sphere_comp_pars.shape[0]
 
     # initialise z appropriately
-    # start = 0
-    # for i in range(ngroups):
-    #     nstars_in_group = int(group_pars[i,-1])
-    #     z[start:start+nstars_in_group,i] = 1.0
-    #     start += nstars_in_group
-
     true_memb_probs = np.zeros((np.sum(starcounts), ncomps))
-    true_memb_probs[:200,0] = 1.
-    true_memb_probs[200:,1] = 1.
+    start = 0
+    for i in range(ncomps):
+        true_memb_probs[start:start+starcounts[i],i] = 1.0
+        start += starcounts[i]
 
     # Initialise some random membership probablities
     # Normalising such that each row sums to 1
@@ -259,17 +247,17 @@ def test_fit_many_comps():
                                  ncomps=ncomps,
                                  rdir=savedir,
                                  init_memb_probs=init_memb_probs,
-                                 trace_orbit_func=dummy_trace_orbit_func, )
+                                 trace_orbit_func=dummy_trace_orbit_func,
+                                 ignore_stable_comps=False,
+                                 )
 
-    # compare fit with input
-    try:
-        assert np.allclose(true_memb_probs, memb_probs)
-    except AssertionError:
-        # If not close, check if flipping component order fixes things
-        memb_probs = memb_probs[:,::-1]
-        best_comps = best_comps[::-1]
-        assert np.allclose(true_memb_probs, memb_probs)
-    for origin, best_comp in zip(origins, best_comps):
+    perm = expectmax.get_best_permutation(memb_probs, true_memb_probs)
+
+    logging.info('Best permutation is: {}'.format(perm))
+
+    assert np.allclose(true_memb_probs, memb_probs[:,perm])
+
+    for origin, best_comp in zip(origins, np.array(best_comps)[perm,]):
         assert (isinstance(origin, SphereComponent) and
                 isinstance(best_comp, SphereComponent))
         o_pars = origin.get_pars()
@@ -290,7 +278,128 @@ def test_fit_many_comps():
                            best_comp.get_age(),
                            atol=1.)
 
+def test_fit_stability_mixed_comps():
+    """
+    Have a fit with some iterations that have a mix of stable and
+    unstable comps.
 
+    TODO: Maybe give 2 similar comps tiny age but overlapping origins
+    """
+
+    run_name = 'mixed_stability'
+
+    logging.info(60*'-')
+    logging.info(15*'-' + '{:^30}'.format('TEST: ' + run_name) + 15*'-')
+    logging.info(60*'-')
+
+    savedir = 'temp_data/{}_expectmax_{}/'.format(PY_VERS, run_name)
+    mkpath(savedir)
+    data_filename = savedir + '{}_expectmax_{}_data.fits'.format(PY_VERS,
+                                                                 run_name)
+    log_filename = 'temp_data/{}_expectmax_{}/log.log'.format(PY_VERS,
+                                                              run_name)
+
+    logging.basicConfig(level=logging.INFO, filemode='w',
+                        filename=log_filename)
+
+    shared_cd_mean = np.zeros(6)
+    tiny_age = 0.1
+    medium_age = 10.
+
+#    origin_1 = traceorbit.trace_cartesian_orbit(shared_cd_mean, times=-medium_age)
+#    origin_2 = traceorbit.trace_cartesian_orbit(shared_cd_mean, times=-2*medium_age)
+#
+#    cd_mean_3 = np.array([-200,200,0,0,50,0.])
+#    origin_3 = traceorbit.trace_cartesian_orbit(cd_mean_3, times=-tiny_age)
+#
+#    sphere_comp_pars = np.array([
+#        #   X,  Y,  Z, U, V, W, dX, dV,  age,
+#        np.hstack((origin_1, 10., 5., medium_age)),   # Next two comps share a current day origin
+#        np.hstack((origin_2, 10., 5., 2*medium_age)), #  so hopefully will need several iterations to\
+#                                                      #  disentangle
+#         np.hstack((origin_3, 10., 5., tiny_age)),     # a distinct comp that is stable quickly
+#     ])
+    uniform_age = 1e-10
+    sphere_comp_pars = np.array([
+        #   X,  Y,  Z, U, V, W, dX, dV,  age,
+        [  50,  0,  0, 0,50, 0, 10.,  5, uniform_age], # Very distant (and stable) comp
+        [   0,-20,  0, 0,-5, 0, 10.,  5, uniform_age], # Overlapping comp 1
+        [   0, 20,  0, 0, 5, 0, 10.,  5, uniform_age], # Overlapping comp 2
+    ])
+    starcounts = [20,100,200]
+    ncomps = sphere_comp_pars.shape[0]
+
+    # initialise z appropriately
+    true_memb_probs = np.zeros((np.sum(starcounts), ncomps))
+    start = 0
+    for i in range(ncomps):
+        true_memb_probs[start:start+starcounts[i],i] = 1.0
+        start += starcounts[i]
+
+    # Initialise some random membership probablities
+    #  which will serve as our starting guess
+    init_memb_probs = np.random.rand(np.sum(starcounts), ncomps)
+    # To aid a component in quickly becoming stable, initialse the memberships
+    # correclty for stars belonging to this component
+    init_memb_probs[:starcounts[0]] = 0.
+    init_memb_probs[:starcounts[0],0] = 1.
+    init_memb_probs[starcounts[0]:,0] = 0.
+
+    # Normalising such that each row sums to 1
+    init_memb_probs = (init_memb_probs.T / init_memb_probs.sum(axis=1)).T
+
+
+    synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,
+                           Components=SphereComponent,
+                           )
+    synth_data.synthesise_everything()
+    tabletool.convert_table_astro2cart(synth_data.table,
+                                       write_table=True,
+                                       filename=data_filename)
+
+    origins = [SphereComponent(pars) for pars in sphere_comp_pars]
+    SphereComponent.store_raw_components(savedir + 'origins.npy', origins)
+
+    best_comps, med_and_spans, memb_probs = \
+        expectmax.fit_many_comps(data=synth_data.table,
+                                 ncomps=ncomps,
+                                 rdir=savedir,
+                                 init_memb_probs=init_memb_probs,
+                                 trace_orbit_func=dummy_trace_orbit_func,
+                                 ignore_stable_comps=True,
+                                 )
+
+    perm = expectmax.get_best_permutation(memb_probs, true_memb_probs)
+
+    logging.info('Best permutation is: {}'.format(perm))
+
+    # Calculate the membership difference, we divide by 2 since
+    # incorrectly allocated stars are double counted
+    total_diff = 0.5 * np.sum(np.abs(true_memb_probs - memb_probs[:,perm]))
+
+    # Assert that expected membership is less than 10%
+    assert total_diff < 0.1 * np.sum(starcounts)
+
+    for origin, best_comp in zip(origins, np.array(best_comps)[perm,]):
+        assert (isinstance(origin, SphereComponent) and
+                isinstance(best_comp, SphereComponent))
+        o_pars = origin.get_pars()
+        b_pars = best_comp.get_pars()
+
+        logging.info("origin pars:   {}".format(o_pars))
+        logging.info("best fit pars: {}".format(b_pars))
+        assert np.allclose(origin.get_mean(),
+                           best_comp.get_mean(),
+                           atol=5.)
+        assert np.allclose(origin.get_sphere_dx(),
+                           best_comp.get_sphere_dx(),
+                           atol=2.)
+        assert np.allclose(origin.get_sphere_dv(),
+                           best_comp.get_sphere_dv(),
+                           atol=2.)
+        assert np.allclose(origin.get_age(),
+                           best_comp.get_age(),
+                           atol=1.)
 
 """
 def test_expectation(self):

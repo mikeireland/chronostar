@@ -7,6 +7,7 @@ co-rotating with the local standard of rest.
 from __future__ import print_function, division
 
 from distutils.dir_util import mkpath
+import itertools
 import logging
 import numpy as np
 
@@ -60,6 +61,19 @@ def log_message(msg, symbol='.', surround=False):
     if surround:
         res = '\n{}\n{}\n{}'.format(50*symbol, res, 50*symbol)
     logging.info(res)
+
+
+def get_best_permutation(memb_probs, true_memb_probs):
+    n_comps = memb_probs.shape[1]
+    perms = itertools.permutations(np.arange(n_comps))
+    best_perm = None
+    min_diff = np.inf
+    for perm in perms:
+        diff = np.sum(np.abs(memb_probs[:,perm] - true_memb_probs))
+        if diff < min_diff:
+            min_diff = diff
+            best_perm = perm
+    return best_perm
 
 
 def get_kernel_densities(background_means, star_means, amp_scale=1.0):
@@ -664,7 +678,10 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                  convergence_tol=0.25, ignore_dead_comps=False,
                  Component=SphereComponent,
                  trace_orbit_func=None,
-                 store_burnin_chains=False,):
+                 store_burnin_chains=False,
+                 unstable_comps=None,
+                 ignore_stable_comps=False,
+                 ):
     """
     Performs the 'maximisation' step of the EM algorithm
 
@@ -701,6 +718,8 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     ignore_dead_comps : bool {False}
         if componennts have fewer than 2(?) expected members, then ignore
         them
+    ignore_stable_comps : bool {False}
+        If components have been deemed to be stable, then disregard them
     Component: Implementation of AbstractComponent {Sphere Component}
         The class used to convert raw parametrisation of a model to
         actual model attributes.
@@ -740,6 +759,11 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
         all_init_pos = ncomps * [None]
     if all_init_pars is None:
         all_init_pars = ncomps * [None]
+    if unstable_comps is None:
+        unstable_comps = ncomps * [True]
+
+    log_message('Ignoring stable comps? {}'.format(ignore_stable_comps))
+    log_message('Unstable comps are {}'.format(unstable_comps))
 
     for i in range(ncomps):
         log_message('Fitting comp {}'.format(i), symbol='.', surround=True)
@@ -751,6 +775,8 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
             logging.info("Skipped component {} with nstars {}".format(
                     i, np.sum(memb_probs[:, i])
             ))
+        elif ignore_stable_comps and not unstable_comps[i]:
+            logging.info("Skipped stable component {}".format(i))
         # Otherwise, run maximisation and sampling stage
         else:
             best_comp, chain, lnprob = compfitter.fit_comp(
@@ -785,11 +811,15 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
             # record the final position of the walkers for each comp
             all_final_pos[i] = final_pos
 
-    Component.store_raw_components(idir + 'best_comps.npy', new_comps)
-    np.save(idir + 'best_comps_bak.npy', new_comps)
+    # # TODO: Maybe need to this outside of this call, so as to include
+    # # reference to stable comps
+    # Component.store_raw_components(idir + 'best_comps.npy', new_comps)
+    # np.save(idir + 'best_comps_bak.npy', new_comps)
 
-    return np.array(new_comps), np.array(all_samples), np.array(all_lnprob),\
-           np.array(all_final_pos), np.array(success_mask)
+#    return np.array(new_comps), np.array(all_samples), np.array(all_lnprob),\
+#           np.array(all_final_pos), np.array(success_mask)
+    return new_comps, all_samples, all_lnprob, \
+           all_final_pos, success_mask
 
 
 def check_stability(data, best_comps, memb_probs):
@@ -832,13 +862,51 @@ def check_stability(data, best_comps, memb_probs):
     return True
 
 
+def check_comps_stability(z, unstable_flags_old, ref_counts, thresh=0.02):
+    """
+    Compares current total member count of each component with those
+    from the last time it was deemed stable, and see if membership has
+    changed strongly enough to warrant a refit of a component model
+
+    Parameters
+    ----------
+    z : [nstars,ncomps] float array
+        Membership probability of each star with each component
+    ref_counts : [ncomps] float array
+        Stored expected membership of each component, when the component was
+        last refitted.
+    thresh : float {0.02}
+        The threshold fractional difference within which the component
+        is considered stable
+    """
+    ncomps = z.shape[1]
+
+    memb_counts = z.sum(axis=0)
+    # Handle first call
+    if ref_counts is None:
+        unstable_flags = np.array(ncomps * [True])
+        ref_counts = memb_counts
+
+    else:
+        # Update instability flag
+        unstable_flags = np.abs((memb_counts - ref_counts)/ref_counts) > thresh
+
+        # Only update reference counts for components that have just been
+        # refitted
+        ref_counts[unstable_flags_old] = memb_counts[unstable_flags_old]
+
+    return unstable_flags, ref_counts
+
+
 def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    init_comps=None, inc_posterior=False, burnin=1000,
                    sampling_steps=5000, ignore_dead_comps=False,
                    Component=SphereComponent, trace_orbit_func=None,
                    use_background=False, store_burnin_chains=False,
+                   ignore_stable_comps=False,
                    max_iters=100, record_len=30, bic_conv_tol=0.1):
     """
+
     Entry point: Fit multiple Gaussians to data set
 
     This is where we apply the expectation maximisation algorithm.
@@ -881,6 +949,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     sampling_steps: int {5000}
         The number of emcee steps for sampling a Component's fit
     ignore_dead_comps: bool {False}
+        DEPRECATED FOR NOW!!!
         order groupfitter to skip maximising if component has less than...
         2..? expected members
     Component: Implementation of AbstractComponent {Sphere Component}
@@ -893,6 +962,11 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     use_background: bool {False}
         Whether to incorporate a background density to account for stars
         that mightn't belong to any component.
+    ignore_stable_comps: bool {False}
+        Set to true if components that barely change should only be refitted
+        every 5 iterations. Component stability is determined by inspecting
+        whether the change in total star member count is less than 2% as
+        compared to previous fit.
 
     Return
     ------
@@ -903,6 +977,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         each final sampling chain
     memb_probs: [nstars, ncomps] array
         membership probabilities
+
     """
     # Tidying up input
     if not isinstance(data, dict):
@@ -926,8 +1001,6 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     BURNIN_STEPS = burnin
     SAMPLING_STEPS = sampling_steps
     C_TOL = 0.5
-    AMPLITUDE_TOL = 1.0 # total sum of memberships for each component
-                        # cannot vary by more than this value to be converged
 
     logging.info("Fitting {} groups with {} burnin steps with cap "
                  "of {} iterations".format(ncomps, BURNIN_STEPS, max_iters))
@@ -961,10 +1034,10 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
         if use_background:
             init_memb_probs = np.hstack((init_memb_probs, np.zeros((nstars,1))))
-        memb_probs_old = init_memb_probs
+        memb_probs_old    = init_memb_probs
         skip_first_e_step = True
-        all_init_pars = ncomps * [None]
-        init_comps = ncomps * [None]
+        all_init_pars     = ncomps * [None]
+        init_comps        = ncomps * [None]
 
     # Store the initial components if available
     if init_comps[0] is not None:
@@ -972,12 +1045,12 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # np.save(rdir + init_comp_filename, init_comps)
 
     # Initialise values for upcoming iterations
-    old_comps = init_comps
-    old_overall_lnlike = -np.inf
-    all_init_pos = ncomps * [None]
-    all_med_and_spans = ncomps * [None]
-    all_converged = False
-    stable_state = True         # used to track issues
+    old_comps          = init_comps
+    # old_overall_lnlike = -np.inf
+    all_init_pos       = ncomps * [None]
+    all_med_and_spans  = ncomps * [None]
+    all_converged      = False
+    stable_state       = True         # used to track issues
 
     # Keep track of most recent `record_len` for convergence checking
     list_prev_comps        = []
@@ -989,9 +1062,17 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # Keep track of ALL BICs, so that progress can be observed
     all_bics = []
 
+    # Keep track of unstable components, which will require
+    # extra iterations
+    ref_counts = None
+    if ignore_stable_comps:
+        unstable_comps = np.array(ncomps * [True])
+    else:
+        unstable_comps = None
+
     # Look for previous iterations and update values as appropriate
-    prev_iters = True
-    iter_count = 0
+    prev_iters       = True
+    iter_count       = 0
     found_prev_iters = False
     while prev_iters:
         try:
@@ -1004,11 +1085,11 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             except AttributeError:
                 old_comps = ncomps * [None]
                 for i in range(ncomps):
-                    chain = np.load(idir + 'comp{}/final_chain.npy'.format(i))
-                    lnprob = np.load(idir + 'comp{}/final_lnprob.npy'.format(i))
-                    npars = len(Component.PARAMETER_FORMAT)
+                    chain   = np.load(idir + 'comp{}/final_chain.npy'.format(i))
+                    lnprob  = np.load(idir + 'comp{}/final_lnprob.npy'.format(i))
+                    npars   = len(Component.PARAMETER_FORMAT)
                     best_ix = np.argmax(lnprob)
-                    best_pars = chain.reshape(-1, npars)[best_ix]
+                    best_pars    = chain.reshape(-1, npars)[best_ix]
                     old_comps[i] = Component(emcee_pars=best_pars)
                     all_med_and_spans[i] = compfitter.calc_med_and_span(
                             chain, intern_to_extern=True, Component=Component,
@@ -1020,6 +1101,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                     get_overall_lnlikelihood(data, old_comps,
                                              inc_posterior=False,
                                              return_memb_probs=True,)
+            ref_counts = np.sum(old_memb_probs, axis=0)
 
             list_prev_comps.append(old_comps)
             list_prev_memberships.append(old_memb_probs)
@@ -1057,11 +1139,21 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
     # TODO: put convergence checking at the start of the loop so restarting doesn't repeat an iteration
     while not all_converged and stable_state and iter_count < max_iters:
+        ignore_stable_comps_iter = ignore_stable_comps and (iter_count % 5 != 0)
+
         # for iter_count in range(10):
         idir = rdir+"iter{:02}/".format(iter_count)
+        mkpath(idir)
+
         log_message('Iteration {}'.format(iter_count),
                     symbol='-', surround=True)
-        mkpath(idir)
+        if not ignore_stable_comps_iter:
+            log_message('Fitting all {} components'.format(ncomps))
+            unstable_comps = np.array(ncomps * [True])
+        else:
+            log_message('Fitting the following unstable comps:')
+            log_message(str(np.arange(ncomps)[unstable_comps]))
+            log_message(str(unstable_comps))
 
         # EXPECTATION
         # Need to handle couple of side cases of initalising by memberships.
@@ -1084,7 +1176,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         np.save(idir+"membership.npy", memb_probs_new)
 
         # MAXIMISE
-        new_comps, all_samples, all_lnprob, all_init_pos, success_mask =\
+        new_comps, all_samples, _, all_init_pos, success_mask =\
             maximisation(data, ncomps=ncomps,
                          burnin_steps=BURNIN_STEPS,
                          plot_it=True, pool=pool, convergence_tol=C_TOL,
@@ -1094,27 +1186,42 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                          ignore_dead_comps=ignore_dead_comps,
                          trace_orbit_func=trace_orbit_func,
                          store_burnin_chains=store_burnin_chains,
+                         unstable_comps=unstable_comps,
+                         ignore_stable_comps=ignore_stable_comps_iter,
                          )
 
         for i in range(ncomps):
-            all_med_and_spans[i] = compfitter.calc_med_and_span(
-                    all_samples[i], intern_to_extern=True,
-                    Component=Component,
-            )
+            if i in success_mask:
+                j = success_mask.index(i)
+                all_med_and_spans[i] = compfitter.calc_med_and_span(
+                        all_samples[j], intern_to_extern=True,
+                        Component=Component,
+                )
+            # If component is stable, then it wasn't fit, so just duplicate
+            # from last fit
+            else:
+                all_med_and_spans[i] = list_all_med_and_spans[-1][i]
+                new_comps.insert(i,list_prev_comps[-1][i])
+                all_init_pos.insert(i,list_all_init_pos[-1][i])
 
-        # update number of comps to reflect any loss of dead components
-        ncomps = len(success_mask)
-        logging.info("The following components survived: {}".format(
-                success_mask
-        ))
+        Component.store_raw_components(idir + 'best_comps.npy', new_comps)
+        np.save(idir + 'best_comps_bak.npy', new_comps)
 
-        # apply success mask to memb_probs, somewhat awkward cause need to preserve
-        # final column (for background overlaps) if present
-        if use_background:
-            memb_probs_new = np.hstack((memb_probs_new[:,success_mask],
-                                    memb_probs_new[:,-1][:,np.newaxis]))
-        else:
-            memb_probs_new = memb_probs_new[:,success_mask]
+        ##!! This is left over code for handling dead components, success mask !!
+        ##!! has been repurposed for more efficient fitting                    !!
+        #
+        # # update number of comps to reflect any loss of dead components
+        # ncomps = len(success_mask)
+        # logging.info("The following components were fitted: {}".format(
+        #         success_mask
+        # ))
+        # # apply success mask to memb_probs, somewhat awkward cause need to preserve
+        # # final column (for background overlaps) if present
+        # if use_background:
+        #     memb_probs_new = np.hstack((memb_probs_new[:,success_mask],
+        #                             memb_probs_new[:,-1][:,np.newaxis]))
+        # else:
+        #     memb_probs_new = memb_probs_new[:,success_mask]
 
         logging.info('DEBUG: new_comps length: {}'.format(len(new_comps)))
 
@@ -1197,6 +1304,19 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 #             logging.info('Chains converged: {}'.format(chains_converged))
 #             logging.info('Amplitudes converged: {}'.\
 #                 format(amplitudes_converged))
+
+
+        # Check individual components stability
+        if (iter_count % 5 == 0 and ignore_stable_comps):
+            memb_probs_new = expectation(data, new_comps, memb_probs_new,
+                                         inc_posterior=inc_posterior)
+            log_message('Orig ref_counts {}'.format(ref_counts))
+            unstable_comps, ref_counts = check_comps_stability(memb_probs_new,
+                                                               unstable_comps,
+                                                               ref_counts)
+            log_message('New memb counts: {}'.format(memb_probs_new.sum(axis=0)))
+            log_message('Unstable comps: {}'.format(unstable_comps))
+            log_message('New ref_counts {}'.format(ref_counts))
 
 
         # Check stablity, but only affect run after sufficient iterations to
