@@ -173,7 +173,7 @@ else:
         bounds = datatool.get_region(
                 ref_table=config.config['assoc_ref_table'],
                 assoc_name=config.config['assoc_name'],
-                mg_colname=config.config.get(['mg_colname'], None),
+                mg_colname=config.config.get('mg_colname', None),
                 pos_margin=config.advanced.get('pos_margin', 30.),
                 vel_margin=config.advanced.get('vel_margin', 5.),
                 scale_margin=config.advanced.get('scale_margin', None),
@@ -367,6 +367,7 @@ if ncomps == 1:
                                      Component=Component,
                                      store_burnin_chains=store_burnin_chains,
                                      max_iters=MAX_ITERS,
+                                     ignore_stable_comps=config.advanced['ignore_stable_comps'],
                                      )
 
 
@@ -400,6 +401,7 @@ if init_comps is not None and len(init_comps) > 1:
             Component=Component,
             store_burnin_chains=store_burnin_chains,
             max_iters=MAX_ITERS,
+            ignore_stable_comps=config.advanced['ignore_stable_comps'],
         )
     ncomps += 1
 
@@ -447,7 +449,7 @@ while ncomps <= MAX_COMPS:
                 comps = Component.load_raw_components(run_dir + 'final/'
                                                       + final_comps_file)
             # Final comps are there, they just can't be read by current module
-            # so quickly fit them based on fixed prev membership probabilities
+            # so quickly retrieve them from the sample chain
             except AttributeError:
                 logging.info(
                     'Component class has been modified, reconstructing from'
@@ -478,6 +480,7 @@ while ncomps <= MAX_COMPS:
                     Component=Component,
                     store_burnin_chains=store_burnin_chains,
                     max_iters=MAX_ITERS,
+                    ignore_stable_comps=config.advanced['ignore_stable_comps'],
             )
 
         best_fits.append(comps)

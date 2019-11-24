@@ -326,7 +326,7 @@ def test_fit_stability_mixed_comps():
         [   0,-20,  0, 0,-5, 0, 10.,  5, uniform_age], # Overlapping comp 1
         [   0, 20,  0, 0, 5, 0, 10.,  5, uniform_age], # Overlapping comp 2
     ])
-    starcounts = [20,100,200]
+    starcounts = [50,100,200]
     ncomps = sphere_comp_pars.shape[0]
 
     # initialise z appropriately
