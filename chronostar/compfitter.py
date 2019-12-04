@@ -1,3 +1,16 @@
+"""
+Fit a single component to a set of stellar 6D phase-space data, along
+with an optional membership probability array. The fitting uses a
+monte carlo markov chain approach (emcee by Dan Foreman-Mackay(?))
+to explore the parameter space of the model.
+
+The default model is SphereComponent, which is a Gaussain distribution,
+spherical in position and spherical in velocity. Alternative models can
+be used by writing a new Component class that extends AbstractComponent,
+and passing the class to the Component argument.
+
+Main entry point is `fit_comp`.
+"""
 from __future__ import division, print_function
 
 import numpy as np
@@ -34,11 +47,9 @@ def calc_med_and_span(chain, perc=34, intern_to_extern=False,
     intern_to_extern : boolean {False}
         Set to true if chain has dx and dv provided in log form and output
         is desired to have dx and dv in linear form
-    sphere: Boolean {True}
-        Currently hardcoded to take the exponent of the logged
-        standard deviations. If sphere is true the log stds are at
-        indices 6, 7. If sphere is false, the log stds are at
-        indices 6:10.
+    Component : Subclass of AbstractComponent
+        The class used in the fitting process. This class's static methods
+        are used to interpret
 
     Returns
     -------
@@ -53,9 +64,7 @@ def calc_med_and_span(chain, perc=34, intern_to_extern=False,
         # Externalise each sample
         for ix in range(flat_chain.shape[0]):
             flat_chain = np.copy(flat_chain)
-            temp_comp = Component(emcee_pars=flat_chain[ix])
-            flat_chain[ix] = temp_comp.get_pars()
-            # flat_chain[ix] = Component.externalise(flat_chain[ix])
+            flat_chain[ix] = Component.externalise(flat_chain[ix])
 
     return np.array(list(map(lambda v: (v[1], v[2], v[0]),
                             zip(*np.percentile(flat_chain,
@@ -334,15 +343,19 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         hardcoded as INIT_SDEV
     burnin_steps: int {1000}
         Number of steps per each burnin iteration
-    Component: Implementation of AbstractComponent {Sphere Component}
-        The class used to convert raw parametrisation of a model to
-        actual model attributes.
+    Component: Class implementation of component.AbstractComponent {Sphere Component}
+        A class that can read in `pars`, and generate the three key
+        attributes for the modelled origin point:
+        mean, covariance matrix, age
+        As well as get_current_day_projection()
+        See AbstractComponent to see which methods must be implemented
+        for a new model.
     plot_it: bool {False}
         Whether to generate plots of the lnprob in 'plot_dir'
     pool: MPIPool object {None}
         pool of threads to execute walker steps concurrently
     convergence_tol: float {0.25}
-        How many standard devaitions an lnprob chain is allowed to vary
+        How many standard deviations an lnprob chain is allowed to vary
         from its mean over the course of a burnin stage and still be
         considered "converged". Default value allows the median of the
         final 20 steps to differ by 0.25 of its standard deviations from

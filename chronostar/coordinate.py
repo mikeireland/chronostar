@@ -1,7 +1,7 @@
 """
 Module to handle various coordinate transformations.
 
-TODO: Currently uses astropy units. Very slow. Remove and simply apply tests
+TODO: Update docstrings to reflect the removal of astropy
 """
 
 import logging

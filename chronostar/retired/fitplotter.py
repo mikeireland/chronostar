@@ -1,5 +1,6 @@
 """
 Provides many functions that aid plotting of stellar data sets and their fits
+
 """
 
 import matplotlib as mpl

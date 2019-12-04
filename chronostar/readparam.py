@@ -1,5 +1,10 @@
 """
 This module defines the parameter reading function.
+Used to parse a text file into a dictionary to be
+passed to datatool.prepare_data()
+
+It also defines the default parameters for prepare_data()
+
 
 Credit: Mark Krumholz
 """

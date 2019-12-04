@@ -1,8 +1,11 @@
 """
-Implemention of the expectation-maximisation algorithm used to fit
+Implementation of the expectation-maximisation algorithm used to fit
 a multivariate gaussian mixture model of moving groups' origins
 to a data set of stars, measured in Cartesian space, centred on and
 co-rotating with the local standard of rest.
+
+This module is in desperate need of a tidy. The entry point
+`fit_many_comps` is particularly messy and clumsy.
 """
 from __future__ import print_function, division
 

@@ -1,8 +1,8 @@
+"""
+Primary entry point for preparing and converting data for
+input into Chronostar
+"""
 from __future__ import print_function, division, unicode_literals
-"""
-A collection of functions that aid in data preparation
-for input into Chronostar
-"""
 
 from astropy.table import Table
 from datetime import datetime

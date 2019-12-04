@@ -1,13 +1,35 @@
 """
-A module containing all the required functions to evaluate the likelhood
-of a Component model and data.
+A module containing all the required functions to evaluate the Bayesian
+posterior of a Component model given the data.
 
-from astropy table
+The entry point function lnprob_func yields a score (higher is better)
+for a given model for the data. This function can be given to an
+emcee Sampler object for the model's parameter space to be explored.
+
+Bayes' Theorem states that the posterior of a model given the data
+(goodness of the fit) is proportional to the product of the prior
+belief on model parameters with the likelihood of the seeing the data
+given the model. For convenience this equation is calculated in
+log form. That is:
+ln P(M|D) \propto ln P(M) + ln P(D|M)
+
+In this module, lnprob_func calculates P(M|D)
+lnlike calculates ln P(D|M)
+lnprior calculates ln P(M)
+
+A simple example to consider is finding the posterior probabilty
+of a proposed normal distribution given some N data points
+D distributed over X. The chance we see one individual data point x
+given the model M is P(d|M), which we can find by evaluating the
+normal distribution at x.
+
+To find the combined probability of seeing every data point in D,
+given the model of M, we take the product of the model evaluated at each
+data point:
+P(D|M) = P(x_1|M) * P(x_2|M) * .. * P(x_N|M) = \prod_i^N P(x_i|M)
 """
-import logging
 import numpy as np
 
-from . import tabletool
 from .component import SphereComponent
 USE_C_IMPLEMENTATION = True
 try:
@@ -33,7 +55,8 @@ def slow_get_lnoverlaps(g_cov, g_mn, st_covs, st_mns, dummy=None):
         means of the stars
     dummy: {None}
         a place holder parameter such that this function's signature
-        matches that of the c implementation
+        matches that of the c implementation, which requires an
+        explicit size of `nstars`.
 
     Returns
     -------
@@ -218,13 +241,15 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     # Boost expect star count to some minimum threshold
     # This is a bit of a hack to prevent component amplitudes dwindling
     # to nothing
+    # TODO: Check if this effect is ever actually triggered...
     exp_starcount = np.sum(memb_probs)
     if exp_starcount < minimum_exp_starcount:
         memb_probs = np.copy(memb_probs)
         memb_probs *= minimum_exp_starcount / exp_starcount
 
-    # Only consider contributions of stars with larger than provided
-    # threshold membership prob
+    # As a potentially negligible optimisation:
+    # only consider contributions of stars with larger than provided
+    # threshold membership prob.
     nearby_star_mask = np.where(memb_probs > memb_threshold)
 
     # Calculate log overlaps of relevant stars
@@ -265,7 +290,9 @@ def lnprob_func(pars, data, memb_probs=None,
         A function that, given a starting phase-space position, and an
         age, returns a new phase-space position. Leave as None to use
         default (coordinate.traceOrbitXYZUVW)
-
+    kwargs:
+        Any extra parameters will be carried over to lnlike.
+        As of 2019-12-04 this feature has never been utilised.
 
     Returns
     -------
