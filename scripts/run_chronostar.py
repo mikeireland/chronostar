@@ -36,6 +36,7 @@ from chronostar import tabletool
 from chronostar import datatool
 from chronostar import compfitter
 from chronostar import expectmax
+from chronostar import epicyclic
 
 
 def dummy_trace_orbit_func(loc, times=None):
@@ -288,6 +289,9 @@ if config.config['dummy_trace_orbit_function']:
     trace_orbit_func = dummy_trace_orbit_func
 else:
     trace_orbit_func = None
+
+if config.config['epicyclic']:
+    trace_orbit_func=epicyclic.trace_cartesian_orbit_epicyclic
 
 # Import suitable component class
 if config.special['component'].lower() == 'sphere':
