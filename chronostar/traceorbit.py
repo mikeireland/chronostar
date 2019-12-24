@@ -5,7 +5,6 @@ A module aimed at projecting an orbit forward or backward through time.
 Operates in a co-rotating, RH cartesian coordinate system centred on the
 local standard of rest.
 """
-
 import logging
 import numpy as np
 
@@ -106,7 +105,13 @@ def convert_cart2galpycoords(data, ts=None, ro=8., vo=220., debug=False,
     # Calculate planar velocities. Note that we need to incorporate
     # The velocity of the LSR in V
     vTs = ((Vs+220) * np.cos(phis) + Us*np.sin(phis))/vo
-    vRs = ((Vs+220)*np.sin(phis) - Us * np.cos(phis))/vo
+    vRs = ((Vs+220) * np.sin(phis) - Us * np.cos(phis))/vo
+
+    # Calculate planar velocities. Note that we need to incorporate
+    # The velocity of the LSR in V
+    vTs = (220*Rs + Vs * np.cos(phis) + Us*np.sin(phis))/vo
+    vRs = (Vs * np.sin(phis) - Us * np.cos(phis))/vo
+    #import pdb; pdb.set_trace()
 
     # Finally, we offset the azimuthal position angle by the amount
     # travelled by the lsr
@@ -273,8 +278,11 @@ def trace_cartesian_orbit(xyzuvw_start, times=None, single_age=True,
     else:
         times = np.array(times)
 
+    #Make sure we have a float array.
+    #MJI: Not sure why this is needed, as this isn't changed in-place anywhere.
     xyzuvw_start = np.copy(xyzuvw_start).astype(np.float)
 
+    #Convert to to Galpy times, which go from 0 to 2\pi around the LSR orbit. 
     bovy_times = convert_myr2bovytime(times)
 
     # since the LSR is constant in chron coordinates, the starting point
@@ -283,10 +291,10 @@ def trace_cartesian_orbit(xyzuvw_start, times=None, single_age=True,
                                             ro=ro, vo=vo)
     o = Orbit(vxvv=galpy_coords, ro=ro, vo=vo)
     o.integrate(bovy_times, potential, method=method)
-    # o.integrate(bovy_times, potential, method='dopr54_c')
-
+    
     xyzuvw = convert_galpycoords2cart(o.getOrbit(), bovy_times,
                                       ro=ro, vo=vo)
+    #import pdb; pdb.set_trace()
     if single_age:
         return xyzuvw[-1]
     return xyzuvw

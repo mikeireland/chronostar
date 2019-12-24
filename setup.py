@@ -50,6 +50,9 @@ _overlap = Extension("chronostar/_overlap",
                     ["chronostar/overlap/overlap.i", "chronostar/overlap/overlap.c"],
                     include_dirs = [numpy_include],
                     libraries = ['gsl', 'gslcblas'], 
+#https://stackoverflow.com/questions/44380459/is-openmp-available-in-high-sierra-llvm
+#... but no obvious compile errors. 
+#                   extra_compile_args = ["-Xclang -fopenmp -lomp"],
 # MJI Remove these flags that now make the default OSX compiler break.
 #                   extra_compile_args = ["-floop-parallelize-all","-ftree-parallelize-loops=4"],
                     )
