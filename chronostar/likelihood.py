@@ -289,7 +289,8 @@ def lnprob_func(pars, data, memb_probs=None,
     trace_orbit_func: function {None}
         A function that, given a starting phase-space position, and an
         age, returns a new phase-space position. Leave as None to use
-        default (coordinate.traceOrbitXYZUVW)
+        default (traceorbit.trace_cartesian_orbit) set in the abstract
+        component initializer.
     kwargs:
         Any extra parameters will be carried over to lnlike.
         As of 2019-12-04 this feature has never been utilised.
