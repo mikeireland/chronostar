@@ -316,7 +316,7 @@ class AbstractComponent(object):
         raise NotImplementedError
 
     @staticmethod
-    def internalise(self, pars):
+    def internalise(pars):
         """
         Take parameter set in external form (as used to build attributes)
         and convert to internal form (as used by emcee).

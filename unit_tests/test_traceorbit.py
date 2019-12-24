@@ -39,6 +39,52 @@ method_atols = {
     'rk6_c':1e-6,
 }
 
+
+def test_galpy2chron2galpy_stationary():
+    """
+    Check that converting from Galpy to Chronostar is internally
+    consistent (you can convert back and forth)
+
+    Time is fixed at 0
+    """
+    for i in range(100):
+        xyzuvw_start = np.random.rand(6)
+        galpy_start = torb.convert_cart2galpycoords(xyzuvw_start)
+        xyzuvw_res = torb.convert_galpycoords2cart(galpy_start)
+        assert np.allclose(xyzuvw_start, xyzuvw_res)
+
+def test_galpy2chron2galpy_moving():
+    """
+    Check that converting from Galpy to Chronostar is internally
+    consistent (you can convert back and forth)
+
+    Time is allowed to vary
+    """
+
+    # Test first LSR
+    xyzuvw_start = np.zeros(6)
+    time = 1.
+    galpy_start = torb.convert_cart2galpycoords(xyzuvw_start, ts=time,
+                                                bovy_times=True)
+    # import pdb; pdb.set_trace()
+    xyzuvw_res = torb.convert_galpycoords2cart(galpy_start, ts=time)
+    # import pdb; pdb.set_trace()
+    assert np.allclose(xyzuvw_start, xyzuvw_res)
+
+    # Now test points randomly dispersed near the LSR
+    # but at a time range corresponding to LSR rotation of [0-1] rad
+    for i in range(100):
+        xyzuvw_start = np.random.rand(6)
+        # Time is in galpy units
+        time = np.random.rand()
+        galpy_start = torb.convert_cart2galpycoords(xyzuvw_start, ts=time,
+                                                    bovy_times=True)
+        # import pdb; pdb.set_trace()
+        xyzuvw_res = torb.convert_galpycoords2cart(galpy_start, ts=time)
+        # import pdb; pdb.set_trace()
+        assert np.allclose(xyzuvw_start, xyzuvw_res)
+
+
 def test_LSR():
     """
     Check that LSR remains constant in our frame of reference.
@@ -65,6 +111,7 @@ def test_rotatedLSR():
     for method, atol in method_atols.items():
         rot_lsr_gp_coords = np.array([1., 0., 1., 0., 0., np.pi])
         xyzuvw_rot_lsr = torb.convert_galpycoords2cart(rot_lsr_gp_coords)
+        ### xyzuvw_rot_lsr = [16000., 0, 0, 0, 0, 0,]
         times = np.linspace(0,100,101)
         xyzuvws = torb.trace_cartesian_orbit(xyzuvw_rot_lsr, times,
                                              single_age=False,

@@ -102,16 +102,17 @@ def convert_cart2galpycoords(data, ts=None, ro=8., vo=220., debug=False,
         import pdb; pdb.set_trace()
     phis = np.arctan2(Ys/1000., ro - Xs/1000.)
 
-    # Calculate planar velocities. Note that we need to incorporate
-    # The velocity of the LSR in V
-    vTs = ((Vs+220) * np.cos(phis) + Us*np.sin(phis))/vo
-    vRs = ((Vs+220) * np.sin(phis) - Us * np.cos(phis))/vo
+    # ## This was Tim's original implementation
+    # # Calculate planar velocities. Note that we need to incorporate
+    # # The velocity of the LSR in V
+    # vTs = ((Vs+220) * np.cos(phis) + Us*np.sin(phis))/vo
+    # vRs = ((Vs+220) * np.sin(phis) - Us * np.cos(phis))/vo
 
+    ## This is Mike's new implementation (2019.12.24)
     # Calculate planar velocities. Note that we need to incorporate
     # The velocity of the LSR in V
     vTs = (220*Rs + Vs * np.cos(phis) + Us*np.sin(phis))/vo
     vRs = (Vs * np.sin(phis) - Us * np.cos(phis))/vo
-    #import pdb; pdb.set_trace()
 
     # Finally, we offset the azimuthal position angle by the amount
     # travelled by the lsr
@@ -203,8 +204,17 @@ def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True):
     X = 1000 * ro * (1. - R * np.cos(phi))
     Y = 1000 * ro * R * np.sin(phi)
     Z = 1000 * ro * z
+    # ## This was Tim's original implementation
+    # U = vo * (-vR*np.cos(phi) + vT*np.sin(phi))
+    # V = vo * ( vT*np.cos(phi) + vR*np.sin(phi) - 1.)
+
+    ## This is Tim's attempt to apply the inverse of Mike's implementation (2019.12.24)
+    ## NOTE: It works for t=0, but not for other times
+    vT -= 1.*R
     U = vo * (-vR*np.cos(phi) + vT*np.sin(phi))
-    V = vo * ( vT*np.cos(phi) + vR*np.sin(phi) - 1.)
+    V = vo * ( vT*np.cos(phi) + vR*np.sin(phi))
+
+
     W = vo * vz
 
     if not rc:
