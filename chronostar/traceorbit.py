@@ -17,6 +17,7 @@ mp = MWPotential2014
 # mp = MiyamotoNagaiPotential(a=0.5,b=0.0375,amp=1.,normalize=1.) # Params from the example webpage. No idea if that's good or not.
 
 # from . import coordinate
+MIKES_IMP = True
 
 
 def convert_myr2bovytime(times):
@@ -102,17 +103,19 @@ def convert_cart2galpycoords(data, ts=None, ro=8., vo=220., debug=False,
         import pdb; pdb.set_trace()
     phis = np.arctan2(Ys/1000., ro - Xs/1000.)
 
-    # ## This was Tim's original implementation
-    # # Calculate planar velocities. Note that we need to incorporate
-    # # The velocity of the LSR in V
-    # vTs = ((Vs+220) * np.cos(phis) + Us*np.sin(phis))/vo
-    # vRs = ((Vs+220) * np.sin(phis) - Us * np.cos(phis))/vo
+    if MIKES_IMP:
+        ## This is Mike's new implementation (2019.12.24)
+        # Calculate planar velocities. Note that we need to incorporate
+        # The velocity of the LSR in V
+        vTs = (220*Rs + Vs * np.cos(phis) + Us*np.sin(phis))/vo
+        vRs = (Vs * np.sin(phis) - Us * np.cos(phis))/vo
+    else:
+        # ## This was Tim's original implementation
+        # # Calculate planar velocities. Note that we need to incorporate
+        # # The velocity of the LSR in V
+        vTs = ((Vs+220) * np.cos(phis) + Us*np.sin(phis))/vo
+        vRs = ((Vs+220) * np.sin(phis) - Us * np.cos(phis))/vo
 
-    ## This is Mike's new implementation (2019.12.24)
-    # Calculate planar velocities. Note that we need to incorporate
-    # The velocity of the LSR in V
-    vTs = (220*Rs + Vs * np.cos(phis) + Us*np.sin(phis))/vo
-    vRs = (Vs * np.sin(phis) - Us * np.cos(phis))/vo
 
     # Finally, we offset the azimuthal position angle by the amount
     # travelled by the lsr
@@ -187,6 +190,8 @@ def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True):
         coordinates (cartesian coordinate system with LSR as the origin
         and coordinate frame co-rotates such that the X axis points
         towards the galactic centre.
+
+    TODO: This works for t=0, but not for other times
     """
     if ts is not None:
         phi_lsr = ts
@@ -204,16 +209,16 @@ def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True):
     X = 1000 * ro * (1. - R * np.cos(phi))
     Y = 1000 * ro * R * np.sin(phi)
     Z = 1000 * ro * z
-    # ## This was Tim's original implementation
-    # U = vo * (-vR*np.cos(phi) + vT*np.sin(phi))
-    # V = vo * ( vT*np.cos(phi) + vR*np.sin(phi) - 1.)
 
-    ## This is Tim's attempt to apply the inverse of Mike's implementation (2019.12.24)
-    ## NOTE: It works for t=0, but not for other times
-    vT -= 1.*R
-    U = vo * (-vR*np.cos(phi) + vT*np.sin(phi))
-    V = vo * ( vT*np.cos(phi) + vR*np.sin(phi))
-
+    if MIKES_IMP:
+        ## This is Tim's attempt to apply the inverse of Mike's implementation (2019.12.24)
+        vT -= 1.*R
+        U = vo * (-vR*np.cos(phi) + vT*np.sin(phi))
+        V = vo * ( vT*np.cos(phi) + vR*np.sin(phi))
+    else:
+        # ## This was Tim's original implementation
+        U = vo * (-vR*np.cos(phi) + vT*np.sin(phi))
+        V = vo * ( vT*np.cos(phi) + vR*np.sin(phi) - 1.)
 
     W = vo * vz
 

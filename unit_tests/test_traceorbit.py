@@ -64,11 +64,19 @@ def test_galpy2chron2galpy_moving():
     # Test first LSR
     xyzuvw_start = np.zeros(6)
     time = 1.
-    galpy_start = torb.convert_cart2galpycoords(xyzuvw_start, ts=time,
-                                                bovy_times=True)
+    galpy_start = torb.convert_cart2galpycoords(xyzuvw_start, bovy_times=time)
     # import pdb; pdb.set_trace()
     xyzuvw_res = torb.convert_galpycoords2cart(galpy_start, ts=time)
     # import pdb; pdb.set_trace()
+    assert np.allclose(xyzuvw_start, xyzuvw_res)
+
+    # Now test slightly rotated LSR
+    time = np.pi/4
+    galpy_stat_start = np.array([1., 0., 1., 0., 0., time])
+    xyzuvw_start = torb.convert_galpycoords2cart(galpy_stat_start)
+    import pdb; pdb.set_trace()
+    galpy_start = torb.convert_cart2galpycoords(xyzuvw_start, bovy_times=time)
+    xyzuvw_res = torb.convert_galpycoords2cart(galpy_start, ts=time)
     assert np.allclose(xyzuvw_start, xyzuvw_res)
 
     # Now test points randomly dispersed near the LSR
@@ -77,8 +85,7 @@ def test_galpy2chron2galpy_moving():
         xyzuvw_start = np.random.rand(6)
         # Time is in galpy units
         time = np.random.rand()
-        galpy_start = torb.convert_cart2galpycoords(xyzuvw_start, ts=time,
-                                                    bovy_times=True)
+        galpy_start = torb.convert_cart2galpycoords(xyzuvw_start, bovy_times=time)
         # import pdb; pdb.set_trace()
         xyzuvw_res = torb.convert_galpycoords2cart(galpy_start, ts=time)
         # import pdb; pdb.set_trace()
