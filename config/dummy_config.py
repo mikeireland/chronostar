@@ -36,7 +36,7 @@ config = {
     'init_comps_file':'../data/all_nonbg_scocen_comps_unique.npy',         # file that stored raw comps with which to initialise this run
 
     # Orbits
-    'epicyclic': True,
+    'epicyclic': False,
 }
 
 synth = None
