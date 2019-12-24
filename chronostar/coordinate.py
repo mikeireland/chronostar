@@ -83,13 +83,26 @@ def convert_dec2deg(deg, arcm, arcs):
     result : float
         declination in degrees
     """
+
     if isinstance(deg, str):
+        sign=1.0
+        if '-' in deg:
+            sign=-1.0
         deg = float(deg)
+    else:
+        sign = 1.0
+        if deg < 0:  # But make sure that in case deg=-0 you still get this minus!
+            sign = -1.0
     if isinstance(arcm, str):
         arcm = float(arcm)
     if isinstance(arcs, str):
         arcs = float(arcs)
-    return deg + arcm / 60. + arcs / 3600.
+
+    deg=np.abs(deg) # Multiply with the sign a few lines below
+    result = deg + arcm / 60. + arcs / 3600.
+    result = sign * result
+
+    return result
 
 
 def calc_eq2gc_matrix(a_deg=192.8595, d_deg=27.1283, th_deg=122.9319):
