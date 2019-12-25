@@ -21,9 +21,9 @@ def trace_cartesian_orbit_epicyclic(xyzuvw_start, times=None):
     Parameters
     ----------
     xyzuvw : [pc,pc,pc,km/s,km/s,km/s]
-    times : (float) or ([ntimes] float array) # TODO: are times really an array?
-        Myr - time of 0.0 must be present in the array. Times need not be
-        spread linearly.
+    times : (float) or ([ntimes] float array)
+        Myr - time of 0.0 must be present in the array (for the plotting purposes).
+        Times need not be spread linearly.
 
     Returns
     -------
@@ -67,10 +67,10 @@ def trace_cartesian_orbit_epicyclic(xyzuvw_start, times=None):
     Zg = z / np.cos(phi_c)
 
     # New position
-    k = kappa * t + phi_b
-    n = nu * t + phi_c
+    k = kappa * times + phi_b
+    n = nu * times + phi_c
     X = Xg + b0 * s * np.cos(k)
-    Y = Yg + 2.0 * A * Xg * t + b0 * np.sin(k)
+    Y = Yg + 2.0 * A * Xg * times + b0 * np.sin(k)
     Z = Zg * np.cos(n)
     U = -b0 * kappa * s * np.sin(k)
     V = 2.0 * A * Xg + b0 * kappa * np.cos(k)
