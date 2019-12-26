@@ -292,6 +292,7 @@ else:
 
 if config.config['epicyclic']:
     trace_orbit_func=epicyclic.trace_cartesian_orbit_epicyclic
+    log_message('trace_orbit: epicyclic')
 
 # Import suitable component class
 if config.special['component'].lower() == 'sphere':
