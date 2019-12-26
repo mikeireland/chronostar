@@ -896,7 +896,12 @@ def check_comps_stability(z, unstable_flags_old, ref_counts, thresh=0.02):
 
         # Only update reference counts for components that have just been
         # refitted
+        ref_counts[unstable_flags_old] = memb_counts[unstable_flags_old] # TODO: MZ: there is a bug here:
+        """
+        File "/home/marusa/chronostar/chronostar/expectmax.py", line 899, in check_comps_stability
         ref_counts[unstable_flags_old] = memb_counts[unstable_flags_old]
+        IndexError: boolean index did not match indexed array along dimension 0; dimension is 15 but corresponding boolean dimension is 14
+        """
 
     return unstable_flags, ref_counts
 

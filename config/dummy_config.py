@@ -82,4 +82,5 @@ advanced = {
     'store_burnin_chains':True, 
     'pos_margin':10,
     'vel_margin':2,
+    'ignore_stable_comps': False,
 }
