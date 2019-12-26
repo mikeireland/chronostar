@@ -1349,6 +1349,27 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     plt.clf()
     nbics = len(list_prev_bics)
     start_ix = iter_count - nbics
+    log_message('MZ: Temporary disabled plotting.') # TODO
+    """
+    MZ: Temporary disabled plotting for now because there is a bug here:
+      File "/home/marusa/chronostar/scripts/run_chronostar.py", line 409, in <module>
+    ignore_stable_comps=config.advanced['ignore_stable_comps'],
+  File "/home/marusa/chronostar/chronostar/expectmax.py", line 1352, in fit_many_comps
+    start_ix+np.argmin(list_prev_bics)))
+  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/pyplot.py", line 3759, in vlines
+    label=label, data=data, **kwargs)
+  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/__init__.py", line 1867, in inner
+    return func(ax, *args, **kwargs)
+  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/axes/_axes.py", line 1055, in vlines
+    lines.update(kwargs)
+  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/artist.py", line 888, in update
+    for k, v in props.items()]
+  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/artist.py", line 881, in _update_property
+    raise AttributeError('Unknown property %s' % k)
+AttributeError: Unknown property ls
+    
+    
+    
     plt.plot(range(start_ix, iter_count), list_prev_bics,
              label='Final {} BICs'.format(len(list_prev_bics)))
     plt.vlines(start_ix + np.argmin(list_prev_bics), ls='--', color='red',
@@ -1357,6 +1378,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                                                         start_ix+np.argmin(list_prev_bics)))
     plt.legend(loc='best')
     plt.savefig(rdir + 'bics.pdf')
+    """
 
     best_bic_ix = np.argmin(list_prev_bics)
     # Since len(list_prev_bics) is capped, need to count backwards form iter_count
