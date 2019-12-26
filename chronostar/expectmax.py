@@ -1155,7 +1155,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             unstable_comps = np.array(ncomps * [True])
         else:
             log_message('Fitting the following unstable comps:')
-            log_message(str(np.arange(ncomps)[unstable_comps]))
+            #log_message(str(np.arange(ncomps)[unstable_comps]))
+            log_message('MZ: removed this line due to index error (unstable_comps too big number)')
             log_message(str(unstable_comps))
 
         # EXPECTATION
