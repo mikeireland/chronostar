@@ -307,6 +307,7 @@ else:
 if config.config['init_comps_file'] is not None:
     init_comps = Component.load_raw_components(config.config['init_comps_file'])
     ncomps = len(init_comps)
+    prev_comps=init_comps # MZ: I think that's correct
     print('Managed to load in init_comps from file')
 else:
     init_comps = None
@@ -320,6 +321,7 @@ else:
 store_burnin_chains = config.advanced.get('store_burnin_chains', False)
 if store_burnin_chains:
     log_message(msg='Storing burnin chains', symbol='-')
+
 
 if ncomps == 1:
     # Fit the first component
