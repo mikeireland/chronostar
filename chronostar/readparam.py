@@ -125,37 +125,34 @@ def readParam(paramFile, noCheck=False):
     paramDict = {}
 
     # Try to open the file
-    fp = open(paramFile, 'r')
+    with open(paramFile, 'r') as fp:
 
-    # Read the file
-    for line in fp:
+        # Read the file
+        for line in fp:
 
-        # Skip blank and comment lines
-        if line == '\n':
-            continue
-        if line.strip()[0] == "#":
-            continue
+            # Skip blank and comment lines
+            if line == '\n':
+                continue
+            if line.strip()[0] == "#":
+                continue
 
-        # Break line up based on equal sign
-        linesplit = line.split("=")
-        if len(linesplit) < 2:
-            print("Error parsing input line: " + line)
-            raise IOError
-#         if linesplit[1] == '':
-#             print("Error parsing input line: " + line)
-#             raise IOError
+            # Break line up based on equal sign
+            linesplit = line.split("=")
+            if len(linesplit) < 2:
+                print("Error parsing input line: " + line)
+                raise IOError
+    #         if linesplit[1] == '':
+    #             print("Error parsing input line: " + line)
+    #             raise IOError
 
-        # Trim trailing comments from portion after equal sign
-        linesplit2 = linesplit[1].split('#')
+            # Trim trailing comments from portion after equal sign
+            linesplit2 = linesplit[1].split('#')
 
-        # Store token-value pairs, as strings for now. Type conversion
-        # happens below.
-        if linesplit2 != '':
-            # linesplit2[0].replace("'",'')
-            paramDict[linesplit[0].strip()] = linesplit2[0].strip()
-
-    # Close file
-    fp.close
+            # Store token-value pairs, as strings for now. Type conversion
+            # happens below.
+            if linesplit2 != '':
+                # linesplit2[0].replace("'",'')
+                paramDict[linesplit[0].strip()] = linesplit2[0].strip()
 
     # Try converting parameters to bools or numbers, for convenience
     for k in paramDict.keys():
