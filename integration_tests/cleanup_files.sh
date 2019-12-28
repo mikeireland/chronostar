@@ -12,3 +12,4 @@ else
 fi
 rm screen.out
 rm *.fits
+rm *.log

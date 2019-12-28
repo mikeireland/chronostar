@@ -46,5 +46,26 @@ def test_comments():
         assert dummydict[key] == retrieved_dict[key]
     comments_dict = readparam.readParam(comments_filename)
 
+def test_default_pars():
+    default_pars_filename = 'temp_data/default_pars.par'
+    default_pars = {
+        'A':1,
+        'B':2,
+        'C':3,
+        'D':4,
+        'par_log_file':'temp_data/default_pars.log'
+    }
+    custom_pars = {
+        'B':'two',
+        'E':'five',
+    }
+    with open(default_pars_filename, 'w') as fp:
+        fp.write('# This is a comment\n')
+        for k,v in custom_pars.items():
+            fp.write('{}={}\n'.format(k,v))
+
+    data_pars = readparam.readParam(default_pars_filename, default_pars=default_pars)
+
+    readparam.log_used_pars(data_pars, default_pars)
 
 

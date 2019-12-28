@@ -14,6 +14,40 @@ from . import tabletool
 from . import readparam
 from . import expectmax
 
+DEFAULT_PARS = {
+    'input_file':'',
+    'convert_astrometry':False,
+
+    'astr_main_colnames':None,
+    'astr_error_colnames':None,
+    'astr_corr_colnames':None,
+
+    'cart_main_colnames':None,
+    'cart_error_colnames':None,
+    'cart_corr_colnames':None,
+
+    'apply_cart_cuts':False,
+    'cut_on_region':False,
+    'cut_ref_table':None,
+    'convert_ref_table':False,
+    'cut_assoc_name':None,
+    'cut_colname':None,
+    'cut_on_bounds':False,
+    'cut_bound_min':None,
+    'cut_bound_max':None,
+
+    'calc_overlaps':False,
+    'bg_ref_table':'',
+    'bg_main_colnames':None,
+    'bg_col_name':'background_log_overlap',
+    'par_log_file':'data_pars.log',
+
+    'overwrite_datafile':False,
+    'output_file':None,
+
+    'return_data_table':True,
+}
+
 def get_region(ref_table, assoc_name=None,
                pos_margin=30., vel_margin=5.,
                scale_margin=None, mg_colname=None):
@@ -120,7 +154,7 @@ def get_region(ref_table, assoc_name=None,
     return box_lower_bound, box_upper_bound
 
 
-def prepare_data(data_pars):
+def prepare_data(custom_pars):
     """
     Entry point for complete data preparation.
 
@@ -156,11 +190,12 @@ def prepare_data(data_pars):
     TODO: Allow for checkpoint saves after each stage
     TODO: Add a logging.log output
     """
-    if type(data_pars) is str:
-        data_pars = readparam.readParam(data_pars)
+    if type(custom_pars) is str:
+        custom_pars = readparam.readParam(custom_pars, default_pars=DEFAULT_PARS)
+    data_pars = dict(DEFAULT_PARS)
+    data_pars.update(custom_pars)
 
-    data_pars = readparam.update_data_defaults(data_pars)
-    readparam.log_used_pars(data_pars)
+    readparam.log_used_pars(data_pars, default_pars=DEFAULT_PARS)
 
     # Input quality checks
     # --------------------------------------------------

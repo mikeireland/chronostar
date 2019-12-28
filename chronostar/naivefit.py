@@ -13,6 +13,7 @@ from . import epicyclic
 from . import readparam
 from . import tabletool
 from . import component
+from . import traceorbit
 
 def dummy_trace_orbit_func(loc, times=None):
     """
@@ -46,12 +47,43 @@ class NaiveFit(object):
     final_med_and_spans_file = 'final_med_and_spans.npy'
     final_memb_probs_file = 'final_membership.npy'
 
+    DEFAULT_FIT_PARS = {
+        'results_dir':'',
+
+        'data_table':None,
+        'init_comps':None,
+        'init_comps_file':None, # TODO: Merge these two
+        'skip_init_fit':False,
+
+        'component':'sphere',
+        'max_comp_count':20,
+        'max_em_iterations':200,
+        'mpi_threads':None,     # TODO: NOT IMPLEMENTED
+        'using_bg':True,
+        'include_background_distribution':True, # TODO: Redundant with 'using_bg'?
+
+        'overwrite_prev_run':False,
+        'burnin_steps':500,
+        'sampling_steps':1000,
+        'store_burnin_chains':False,
+        'ignore_stable_comps':True,
+        'trace_orbit_func':traceorbit.trace_cartesian_orbit,
+
+        'par_log_file':'fit_pars.log',
+        'return_results':False,
+
+        # REDUNDANT PARAMTERS
+        'epicyclic':False,
+    }
+
     def __init__(self, fit_pars):
 
         # Parse parameter file if required
         if type(fit_pars) is str:
-            fit_pars = readparam.readParam(fit_pars)
-        self.fit_pars = fit_pars
+            fit_pars = readparam.readParam(fit_pars, default_pars=self.DEFAULT_FIT_PARS)
+
+        # Make a new dictionary, with priority given to contents of fit_pars
+        self.fit_pars = {**self.DEFAULT_FIT_PARS, **fit_pars}
         assert type(self.fit_pars) is dict
 
         # Data prep should already have been completed, so we simply build
@@ -82,6 +114,9 @@ class NaiveFit(object):
         mkpath(self.rdir)
         assert os.access(self.rdir, os.W_OK)
 
+        # Log fit parameters,
+        readparam.log_used_pars(self.fit_pars, default_pars=self.DEFAULT_FIT_PARS)
+
         # Now that results directory is set up, can set up log file
         logging.basicConfig(filename=self.rdir + 'log.log', level=logging.INFO)
 
@@ -95,7 +130,7 @@ class NaiveFit(object):
 
         # Set a ceiling on how long code can run for
         log_message(msg='Component count cap set to {}'.format(
-                self.fit_pars['max_em_iterations']),
+                self.fit_pars['max_comp_count']),
                 symbol='+', surround=True)
         log_message(msg='Iteration count cap set to {}'.format(
                 self.fit_pars['max_em_iterations']),
@@ -106,25 +141,28 @@ class NaiveFit(object):
         # ------------------------------------------------------------
 
         # Set up trace_orbit_func
-        if self.fit_pars['dummy_trace_orbit_function']:
-            self.fit_pars['trace_orbit_function'] = dummy_trace_orbit_func
+        if self.fit_pars['trace_orbit_func'] == 'dummy_trace_orbit_func':
+            self.fit_pars['trace_orbit_func'] = dummy_trace_orbit_func
+        elif self.fit_pars['trace_orbit_func'] == 'epicyclic':
+            self.fit_pars['trace_orbit_func'] = epicyclic.trace_cartesian_orbit_epicyclic
         else:
-            self.fit_pars['trace_orbit_func'] = None
-            self.trace_orbit_func = None
+            self.fit_pars['trace_orbit_func'] = traceorbit.trace_cartesian_orbit
 
+        # TODO: ensure this is redundant
         if self.fit_pars['epicyclic']:
-            self.trace_orbit_func = epicyclic.trace_cartesian_orbit_epicyclic
+            self.fit_pars['trace_orbit_func'] =  epicyclic.trace_cartesian_orbit_epicyclic
             log_message('trace_orbit: epicyclic')
 
 
+        # TODO: replace init_comps_file with just init_comps and check if file
         if self.fit_pars['init_comps_file'] is not None:
-            init_comps = self.Component.load_raw_components(
+            self.fit_pars['init_comps'] = self.Component.load_raw_components(
                     self.fit_pars['init_comps_file'])
-            self.ncomps = len(init_comps)
+            self.ncomps = len(self.fit_pars['init_comps'])
             # prev_comps = init_comps  # MZ: I think that's correct
             print('Managed to load in init_comps from file')
         else:
-            init_comps = None
+            self.fit_pars['init_comps'] = None
             print("'Init comps' is initialised as none")
 
 
@@ -321,8 +359,8 @@ class NaiveFit(object):
 
                         raise UserWarning('This has not been tested, probs broken, '
                                           'safer to just cancel for now')
-
-                        prev_comps = self.ncomps * [None]
+                        # TODO port this bug fix to run_chronostar on master
+                        comps = self.ncomps * [None]
                         for j in range(self.ncomps):
                             final_cdir = run_dir + 'final/comp{}/'.format(j)
                             chain = np.load(final_cdir + 'final_chain.npy')
@@ -422,7 +460,6 @@ class NaiveFit(object):
                 logging.info("... saving previous fit as best fit to data")
                 self.Component.store_raw_components(self.rdir + self.final_comps_file,
                                                     prev_comps)
-                # np.save(self.rdir + final_comps_file, prev_comps)
                 np.save(self.rdir + self.final_med_and_spans_file, prev_med_and_spans)
                 np.save(self.rdir + self.final_memb_probs_file, prev_memb_probs)
                 np.save(self.rdir + 'final_likelihood_post_and_bic',
@@ -457,3 +494,7 @@ class NaiveFit(object):
         #         pool.close()
         # except:
         #     pass
+
+        if self.fit_pars['return_results']:
+            return prev_comps, prev_med_and_spans, prev_memb_probs, \
+                    prev_lnlike, prev_lnpost, prev_bic

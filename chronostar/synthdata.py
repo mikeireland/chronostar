@@ -172,7 +172,10 @@ class SynthData():
                                            size=(int(round(bg_starcount)),6))
         bg_init_xyzuvw += box_centre
         self.bg_starcount = bg_starcount
-        self.append_init_cartesian(bg_init_xyzuvw, component_name='bg')
+        if bg_starcount > 0:
+            self.append_init_cartesian(bg_init_xyzuvw, component_name='bg')
+        else:
+            print('WARNING: No synthetic background stars generated')
 
     def generate_all_init_cartesian(self):
         self.table = Table(names=self.DEFAULT_NAMES,
