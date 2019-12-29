@@ -51,9 +51,12 @@ class NaiveFit(object):
         'results_dir':'',
 
         'data_table':None,
-        'init_comps':None,
-        'init_comps_file':None, # TODO: Merge these two
+        'init_comps_file':None, # TODO: Merge these two ?
         'skip_init_fit':False,
+
+        # One of these two are required if initialising a run with ncomps != 1
+        'init_comps':None,
+        'init_memb_probs':None,
 
         'component':'sphere',
         'max_comp_count':20,
@@ -197,8 +200,24 @@ class NaiveFit(object):
         logging.info("lnlike: {} | {}".format(new['lnlike'], prev['lnlike']))
         logging.info("lnpost: {} | {}".format(new['lnpost'], prev['lnpost']))
 
+    def build_init_comps(self, prev_comps, comp_ix, prev_med_and_spans):
+        target_comp = prev_comps[comp_ix]
 
-    def run_em_unless_loadable(self, run_dir, init_memb_probs=None):
+        assert isinstance(target_comp, self.Component)
+        # Decompose and replace the ith component with two new components
+        # by using the 16th and 84th percentile ages from previous run
+        split_comps = target_comp.splitGroup(
+            lo_age=prev_med_and_spans[comp_ix, -1, 1],
+            hi_age=prev_med_and_spans[comp_ix, -1, 2])
+        init_comps = list(prev_comps)
+        init_comps.pop(comp_ix)
+        init_comps.insert(comp_ix, split_comps[1])
+        init_comps.insert(comp_ix, split_comps[0])
+
+        # Insert init_comps into parameter dicitonary
+        self.fit_pars['init_comps'] = init_comps
+
+    def run_em_unless_loadable(self, run_dir):
         """
         Run and EM fit, but only if not loadable from a previous run
         """
@@ -222,9 +241,77 @@ class NaiveFit(object):
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
-                                         init_memb_probs=init_memb_probs,
                                          **self.fit_pars)
-        return comps, med_and_spans, memb_probs
+
+        # Since init_comps and init_memb_probs are only meant for one time uses
+        # we clear them to avoid any future usage
+        self.fit_pars['init_comps'] = None
+        self.fit_pars['init_memb_probs'] = None
+
+        return {'comps':comps, 'med_and_spans':med_and_spans, 'memb_probs':memb_probs}
+
+
+    def iter_end_log(self, best_split_ix, prev_result, new_result):
+        logging.info("Selected {} as best decomposition".format(
+                chr(ord('A') + best_split_ix)))
+        logging.info(
+                "Turned\n{}".format(prev_result['comps'][best_split_ix].get_pars()))
+        logging.info('with {} members'.format(
+                prev_result['memb_probs'].sum(axis=0)[best_split_ix]))
+        logging.info("into\n{}\n&\n{}".format(
+                new_result['comps'][best_split_ix].get_pars(),
+                new_result['comps'][best_split_ix + 1].get_pars(),
+        ))
+        logging.info('with {} and {} members'.format(
+                new_result['memb_probs'].sum(axis=0)[best_split_ix],
+                new_result['memb_probs'].sum(axis=0)[best_split_ix + 1],
+        ))
+        logging.info("for an overall membership breakdown\n{}".format(
+                new_result['memb_probs'].sum(axis=0)
+        ))
+
+
+    def log_final_log(self, prev_result, prev_score):
+        logging.info('Final best fits:')
+        [logging.info(c.get_pars()) for c in prev_result['comps']]
+        logging.info('Final age med and span:')
+        [logging.info(row[-1]) for row in prev_result['med_and_spans']]
+        logging.info('Membership distribution: {}'.format(
+                prev_result['memb_probs'].sum(axis=0)))
+        logging.info('Final membership:')
+        logging.info('\n{}'.format(np.round(prev_result['memb_probs'] * 100)))
+        logging.info('Final lnlikelihood: {}'.format(prev_score['lnlike']))
+        logging.info('Final lnposterior:  {}'.format(prev_score['lnpost']))
+        logging.info('Final BIC: {}'.format(prev_score['bic']))
+
+
+    def calc_score(self, comps, memb_probs):
+        """
+        Calculate global score of fit for comparison with future fits with different
+        component counts
+
+        Parameters
+        ----------
+        :param comps:
+        :param memb_probs:
+        :return:
+
+        TODO: Establish relevance of bg_ln_ols
+        """
+        lnlike = expectmax.get_overall_lnlikelihood(self.data_dict,
+                                                         comps,
+                                                         # bg_ln_ols=bg_ln_ols,
+                                                         )
+        lnpost = expectmax.get_overall_lnlikelihood(self.data_dict,
+                                                         comps,
+                                                         # bg_ln_ols=bg_ln_ols,
+                                                         inc_posterior=True)
+
+        bic = expectmax.calc_bic(self.data_dict, self.ncomps, lnlike,
+                                      memb_probs=memb_probs,
+                                      Component=self.Component)
+
+        return {'bic':bic, 'lnlike':lnlike, 'lnpost':lnpost}
 
 
     def run_fit(self):
@@ -261,7 +348,7 @@ class NaiveFit(object):
                     symbol='_', surround=True)
 
         # ------------------------------------------------------------
-        # -----  EXECUTE RUN  ----------------------------------------
+        # -----  RXECUTE RUN  ----------------------------------------
         # ------------------------------------------------------------
 
         if self.fit_pars['store_burnin_chains']:
@@ -276,308 +363,100 @@ class NaiveFit(object):
             init_memb_probs = np.zeros((len(self.data_dict['means']),
                                         self.ncomps + self.fit_pars['use_background']))
             init_memb_probs[:, 0] = 1.
-
+        # Otherwise, we must have been given an init_comps, or an init_memb_probs
+        #  to start things with
+        else:
+            assert self.fit_pars['init_comps'] is not None or self.fit_pars['init_memb_probs'] is not None
         log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
                     symbol='*', surround=True)
         run_dir = self.rdir + '{}/'.format(self.ncomps)
 
-        # Initialise all stars in dataset to be full members of first component
-        # use_background = self.fit_pars['use_background']
-        # init_memb_probs = np.zeros((len(self.data_dict['means']),
-        #                             self.ncomps + use_background))
-        # init_memb_probs[:, 0] = 1.
-
-        prev_comps, prev_med_and_spans, prev_memb_probs =\
-        self.run_em_unless_loadable(run_dir, init_memb_probs)
-        #
-        # try:
-        #     prev_med_and_spans = np.load(run_dir + 'final/'
-        #                                  + self.final_med_and_spans_file)
-        #     prev_memb_probs = np.load(run_dir + 'final/' + self.final_memb_probs_file)
-        #     prev_comps = self.Component.load_raw_components(
-        #             str(run_dir + 'final/' + self.final_comps_file))
-        #     logging.info('Loaded from previous run')
-        #
-        # # Final comps are there, they just can't be read by current module
-        # # so quickly fit them based on fixed prev membership probabilities
-        # # TODO: Work this try outside of prev try context
-        #
-        # # Handle case where Component class has been modified and can't
-        # # load the raw components
-        # except AttributeError:
-        #     prev_comps = self.build_comps_from_chains(run_dir)
-        #
-        # # Handle the case where files are missing, which means we must perform
-        # # the fit.
-        # except IOError:
-        #     prev_comps, prev_med_and_spans, prev_memb_probs = \
-        #         expectmax.fit_many_comps(data=self.data_dict,
-        #                                  ncomps=self.ncomps, rdir=run_dir,
-        #                                  init_memb_probs=init_memb_probs,
-        #                                  **self.fit_pars,
-        #                                  )
-        #                                  # init_comps=self.fit_pars[
-        #                                  #     'init_comps'],
-        #                                  # burnin=self.fit_pars[
-        #                                  #     'burnin'],
-        #                                  # sampling_steps=self.fit_pars[
-        #                                  #     'sampling_steps'],
-        #                                  # Component=self.Component,
-        #                                  # trace_orbit_func=self.fit_pars[
-        #                                  #     'trace_orbit_func'],
-        #                                  # use_background=self.fit_pars[
-        #                                  #     'include_background_distribution'],
-        #                                  # store_burnin_chains=self.fit_pars[
-        #                                  #     'store_burnin_chains'],
-        #                                  # ignore_stable_comps=self.fit_pars[
-        #                                  #     'ignore_stable_comps'],
-        #                                  # max_em_iterations=self.fit_pars[
-        #                                  #     'max_em_iterations'])
-
-
-
+        prev_result = self.run_em_unless_loadable(run_dir)
+        prev_score = self.calc_score(prev_result['comps'], prev_result['memb_probs'])
         self.ncomps += 1
-        #
-        # if self.fit_pars['init_comps'] is not None and len(self.fit_pars[
-        #                                                        'init_comps'])\
-        #         > 1:
-        #     # fit with ncomps until convergence
-        #     # Note: might
-        #     run_dir = self.rdir + '{}/'.format(self.ncomps)
-        #     # TODO: VVV This is bugged, results need to be stored into 'prev_comps' etc. TC 2019.12.28
-        #     prev_comps, prev_med_and_spans, prev_memb_probs = \
-        #         expectmax.fit_many_comps(data=self.data_dict,
-        #                                  ncomps=self.ncomps, rdir=run_dir,
-        #                                  **self.fit_pars,
-        #                                  )
-        #                                  # init_comps=self.fit_pars['init_comps'],
-        #                                  # burnin=self.fit_pars['burnin'],
-        #                                  # sampling_steps=self.fit_pars[
-        #                                  #     'sampling_steps'],
-        #                                  # Component=self.Component,
-        #                                  # trace_orbit_func=self.fit_pars[
-        #                                  #     'trace_orbit_func'],
-        #                                  # use_background=self.fit_pars[
-        #                                  #     'include_background_distribution'],
-        #                                  # store_burnin_chains=self.fit_pars[
-        #                                  #     'store_burnin_chains'],
-        #                                  # ignore_stable_comps=self.fit_pars[
-        #                                  #     'ignore_stable_comps'],
-        #                                  # max_em_iterations=self.fit_pars[
-        #                                  #     'max_em_iterations'])
-        #     self.ncomps += 1
+
+        # ------------------------------------------------------------
+        # -----  EXPLORE EXTRA COMPONENT BY DECOMPOSITION  -----------
+        # ------------------------------------------------------------
 
         # Calculate global score of fit for comparison with future fits with different
         # component counts
-        prev_lnlike = expectmax.get_overall_lnlikelihood(self.data_dict,
-                                                         prev_comps,
-                                                         # bg_ln_ols=bg_ln_ols,
-                                                         )
-        prev_lnpost = expectmax.get_overall_lnlikelihood(self.data_dict,
-                                                         prev_comps,
-                                                         # bg_ln_ols=bg_ln_ols,
-                                                         inc_posterior=True)
-        prev_bic = expectmax.calc_bic(self.data_dict, self.ncomps, prev_lnlike,
-                                      memb_probs=prev_memb_probs,
-                                      Component=self.Component)
 
         # Begin iterative loop, each time trialing the incorporation of a new component
         while self.ncomps <= self.fit_pars['max_comp_count']:
             log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
                         symbol='*', surround=True)
 
-            best_fits = []
-            lnlikes = []
-            lnposts = []
-            bics = []
-            all_med_and_spans = []
-            all_memb_probs = []
+            all_results = []
+            all_scores = []
 
             # Iteratively try subdividing each previous component
-            for i, target_comp in enumerate(prev_comps):
+            for i, target_comp in enumerate(prev_result['comps']):
                 div_label = chr(ord('A') + i)
                 run_dir = self.rdir + '{}/{}/'.format(self.ncomps, div_label)
                 log_message(msg='Subdividing stage {}'.format(div_label),
                             symbol='+', surround=True)
                 mkpath(run_dir)
 
-                assert isinstance(target_comp, self.Component)
-                # Decompose and replace the ith component with two new components
-                # by using the 16th and 84th percentile ages from previous run
-                split_comps = target_comp.splitGroup(
-                    lo_age=prev_med_and_spans[i, -1, 1],
-                    hi_age=prev_med_and_spans[i, -1, 2])
-                init_comps = list(prev_comps)
-                init_comps.pop(i)
-                init_comps.insert(i, split_comps[1])
-                init_comps.insert(i, split_comps[0])
+                self.build_init_comps(prev_result['comps'], comp_ix=i,
+                                      prev_med_and_spans=prev_result['med_and_spans'])
 
-                # Insert init_comps into parameter dicitonary
-                self.fit_pars['init_comps'] = init_comps
+                result = self.run_em_unless_loadable(run_dir)
+                all_results.append(result)
 
-                comps, med_and_spans, memb_probs = \
-                        self.run_em_unless_loadable(run_dir)
-                #
-                # # Run em fit
-                # # First try and find any previous runs
-                # try:
-                #     med_and_spans = np.load(run_dir + 'final/'
-                #                             + self.final_med_and_spans_file)
-                #     memb_probs = np.load(
-                #         run_dir + 'final/' + self.final_memb_probs_file)
-                #     try:
-                #         comps = self.Component.load_raw_components(run_dir + 'final/'
-                #                                               + self.final_comps_file)
-                #     # Final comps are there, they just can't be read by current module
-                #     # so quickly retrieve them from the sample chain
-                #     except AttributeError:
-                #         logging.info(
-                #                 'Component class has been modified, '
-                #                 'reconstructing from'
-                #                 'chain.')
-                #
-                #         # raise UserWarning('This has not been tested, '
-                #         #                   'probs broken, '
-                #         #                   'safer to just cancel for now')
-                #         prev_comps = self.build_comps_from_chains(run_dir)
-                #         # comps = self.ncomps * [None]
-                #         # for j in range(self.ncomps):
-                #         #     final_cdir = run_dir + 'final/comp{}/'.format(j)
-                #         #     chain = np.load(final_cdir + 'final_chain.npy')
-                #         #     lnprob = np.load(final_cdir + 'final_lnprob.npy')
-                #         #     npars = len(self.Component.PARAMETER_FORMAT)
-                #         #     best_ix = np.argmax(lnprob)
-                #         #     best_pars = chain.reshape(-1, npars)[best_ix]
-                #         #     prev_comps[j] = self.Component(emcee_pars=best_pars)
-                #         # self.Component.store_raw_components(
-                #         #     str(run_dir + 'final/' + self.final_comps_file),
-                #         #     prev_comps)
-                #         # np.save(str(run_dir + 'final/' + final_comps_file), prev_comps)
-                #
-                #     logging.info('Fit loaded from previous run')
-                # except IOError:
-                #     comps, med_and_spans, memb_probs = \
-                #         expectmax.fit_many_comps(data=self.data_dict,
-                #                                  ncomps=self.ncomps,
-                #                                  rdir=run_dir,
-                #                                  # init_comps=init_comps,  # This is in fit_pars now
-                #                                  **self.fit_pars,
-                #                                  )
-                #                                  # burnin=self.fit_pars['burnin'],
-                #                                  # sampling_steps=self.fit_pars[
-                #                                  #     'sampling_steps'],
-                #                                  # Component=self.Component,
-                #                                  # trace_orbit_func=self.fit_pars[
-                #                                  #     'trace_orbit_func'],
-                #                                  # use_background=self.fit_pars[
-                #                                  #     'include_background_distribution'],
-                #                                  # store_burnin_chains=
-                #                                  # self.fit_pars[
-                #                                  #     'store_burnin_chains'],
-                #                                  # ignore_stable_comps=
-                #                                  # self.fit_pars[
-                #                                  #     'ignore_stable_comps'],
-                #                                  # max_em_iterations=
-                #                                  # self.fit_pars[
-                #                                  #     'max_em_iterations'])
-                # # fit_many_comps(**fit_dict)
+                ### APPEND TO MASTER RESULTS TRACKER
+                # TODO: merge into one data structure
+                # TODO: two lists of dicts: results, and scores
 
-                best_fits.append(comps)
-                all_med_and_spans.append(med_and_spans)
-                all_memb_probs.append(memb_probs)
-                lnlikes.append(
-                    expectmax.get_overall_lnlikelihood(self.data_dict, comps))
-                lnposts.append(
-                        expectmax.get_overall_lnlikelihood(self.data_dict, comps,
-                                                           inc_posterior=True)
-                )
-                bics.append(expectmax.calc_bic(self.data_dict, self.ncomps, lnlikes[-1],
-                                               memb_probs=memb_probs,
-                                               Component=self.Component))
+                score = self.calc_score(result['comps'], result['memb_probs'])
+                all_scores.append(score)
+
                 logging.info(
                         'Decomposition {} finished with \nBIC: {}\nlnlike: {}\n'
                         'lnpost: {}'.format(
-                                div_label, bics[-1], lnlikes[-1], lnposts[-1],
+                                div_label, all_scores[-1]['bic'],
+                                all_scores[-1]['lnlike'], all_scores[-1]['lnpost'],
                         ))
 
             # identify the best performing decomposition
-            # best_split_ix = np.argmax(lnposts)
-            best_split_ix = np.argmin(bics)
-            new_comps, new_meds, new_z, new_lnlike, new_lnpost, new_bic = \
-                list(zip(best_fits, all_med_and_spans, all_memb_probs,
-                         lnlikes, lnposts, bics))[best_split_ix]
-            logging.info("Selected {} as best decomposition".format(
-                    chr(ord('A') + best_split_ix)))
-            logging.info(
-                "Turned\n{}".format(prev_comps[best_split_ix].get_pars()))
-            logging.info('with {} members'.format(
-                    prev_memb_probs.sum(axis=0)[best_split_ix]))
-            logging.info("into\n{}\n&\n{}".format(
-                    new_comps[best_split_ix].get_pars(),
-                    new_comps[best_split_ix + 1].get_pars(),
-            ))
-            logging.info('with {} and {} members'.format(
-                    new_z.sum(axis=0)[best_split_ix],
-                    new_z.sum(axis=0)[best_split_ix + 1],
-            ))
-            logging.info("for an overall membership breakdown\n{}".format(
-                    new_z.sum(axis=0)
-            ))
+            all_bics = [score['bic'] for score in all_scores]
+            best_split_ix = np.argmin(all_bics)
+
+            new_result = all_results[best_split_ix]
+            new_score = all_scores[best_split_ix]
+
+            self.iter_end_log(best_split_ix, prev_result=prev_result, new_result=new_result)
 
             # Check if the fit has improved
-            self.log_score_comparison(new={'bic':new_bic, 'lnlike':new_lnlike, 'lnpost':new_lnpost},
-                                      prev={'bic':prev_bic, 'lnlike':prev_lnlike, 'lnpost':prev_lnpost})
-            if new_bic < prev_bic:
-                # logging.info("Extra component has improved BIC...")
-                # logging.info(
-                #     "New BIC: {} < Old BIC: {}".format(new_bic, prev_bic))
-                # logging.info("lnlike: {} | {}".format(new_lnlike, prev_lnlike))
-                # logging.info("lnpost: {} | {}".format(new_lnpost, prev_lnpost))
-                prev_comps, prev_med_and_spans, prev_memb_probs, prev_lnlike, prev_lnpost, \
-                prev_bic = \
-                    (
-                    new_comps, new_meds, new_z, new_lnlike, new_lnpost, new_bic)
+            self.log_score_comparison(new=new_score,
+                                      prev=prev_score)
+            if new_score['bic'] < prev_score['bic']:
+                prev_score = new_score
+                prev_result = new_result
+
                 self.ncomps += 1
                 log_message(msg="Commencing {} component fit on {}{}".format(
                         self.ncomps, self.ncomps - 1,
                         chr(ord('A') + best_split_ix)), symbol='+'
                 )
             else:
-                # logging.info("Extra component has worsened BIC...")
-                # logging.info(
-                #     "New BIC: {} > Old BIC: {}".format(new_bic, prev_bic))
-                # logging.info("lnlike: {} | {}".format(new_lnlike, prev_lnlike))
-                # logging.info("lnpost: {} | {}".format(new_lnpost, prev_lnpost))
-
                 logging.info("... saving previous fit as best fit to data")
                 self.Component.store_raw_components(self.rdir + self.final_comps_file,
-                                                    prev_comps)
-                np.save(self.rdir + self.final_med_and_spans_file, prev_med_and_spans)
-                np.save(self.rdir + self.final_memb_probs_file, prev_memb_probs)
+                                                    prev_result['comps'])
+                np.save(self.rdir + self.final_med_and_spans_file, prev_result['med_and_spans'])
+                np.save(self.rdir + self.final_memb_probs_file, prev_result['memb_probs'])
                 np.save(self.rdir + 'final_likelihood_post_and_bic',
-                        [prev_lnlike, prev_lnpost,
-                         prev_bic])
-                logging.info('Final best fits:')
-                [logging.info(c.get_pars()) for c in prev_comps]
-                logging.info('Final age med and span:')
-                [logging.info(row[-1]) for row in prev_med_and_spans]
-                logging.info('Membership distribution: {}'.format(
-                    prev_memb_probs.sum(axis=0)))
-                logging.info('Final membership:')
-                logging.info('\n{}'.format(np.round(prev_memb_probs * 100)))
-                logging.info('Final lnlikelihood: {}'.format(prev_lnlike))
-                logging.info('Final lnposterior:  {}'.format(prev_lnpost))
-                logging.info('Final BIC: {}'.format(prev_bic))
+                        prev_score)
+
+                self.log_final_log(prev_result, prev_score)
                 break
 
             logging.info("Best fit:\n{}".format(
-                    [group.get_pars() for group in prev_comps]))
-
+                    [group.get_pars() for group in prev_result['comps']]))
 
         if self.ncomps >= self.fit_pars['max_comp_count']:
             log_message(msg='REACHED MAX COMP LIMIT', symbol='+',
                         surround=True)
-
 
         # # TODO: using_mpi is not defined if you don't use MPI.
         # #  Try-except is not the best thing here but will do for now.
@@ -588,5 +467,4 @@ class NaiveFit(object):
         #     pass
 
         if self.fit_pars['return_results']:
-            return prev_comps, prev_med_and_spans, prev_memb_probs, \
-                    prev_lnlike, prev_lnpost, prev_bic
+            return prev_result, prev_score

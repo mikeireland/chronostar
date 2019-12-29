@@ -74,7 +74,6 @@ def test_galpy2chron2galpy_moving():
     time = np.pi/4
     galpy_stat_start = np.array([1., 0., 1., 0., 0., time])
     xyzuvw_start = torb.convert_galpycoords2cart(galpy_stat_start)
-    import pdb; pdb.set_trace()
     galpy_start = torb.convert_cart2galpycoords(xyzuvw_start, bovy_times=time)
     xyzuvw_res = torb.convert_galpycoords2cart(galpy_start, ts=time)
     assert np.allclose(xyzuvw_start, xyzuvw_res)
