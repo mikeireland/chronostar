@@ -43,7 +43,8 @@ def test_2comps_and_background():
      parameters
 
      Takes a while... maybe this belongs in integration unit_tests
-     """
+    """
+    using_bg = True
 
     run_name = '2comps_and_background'
 
@@ -64,13 +65,17 @@ def test_2comps_and_background():
     ### INITIALISE SYNTHETIC DATA ###
 
     uniform_age = 1e-10
+    # Warning: if peaks are too far apart, it will be difficult for
+    # chronostar to identify the 2nd when moving from a 1-component
+    # to a 2-component fit.
     sphere_comp_pars = np.array([
         #   X,  Y,  Z, U, V, W, dX, dV,  age,
-        [-20, -20,  0, 0, 0, 0, 2., 2, uniform_age],
-        [ 20,  20,  0, 0, 0, 0, 2., 2, uniform_age],
+        [-20, -20,  0, 0, 0, 0, 10., 5, uniform_age],
+        [ 20,  20,  0, 0, 0, 0, 10., 5, uniform_age],
     ])
     starcounts = [20, 50]
     ncomps = sphere_comp_pars.shape[0]
+    nstars = np.sum(starcounts)
 
     background_density = 1e-9
 
@@ -86,22 +91,25 @@ def test_2comps_and_background():
     # init_memb_probs = np.random.rand(np.sum(starcounts), ncomps)
     # init_memb_probs = (init_memb_probs.T / init_memb_probs.sum(axis=1)).T
 
-    synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,
-                           Components=SphereComponent,
-                           background_density=background_density,
-                           )
-    synth_data.synthesise_everything()
+    try:
+        data_dict = tabletool.build_data_dict_from_table(data_filename)
+    except:
+        synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,
+                               Components=SphereComponent,
+                               background_density=background_density,
+                               )
+        synth_data.synthesise_everything()
 
-    tabletool.convert_table_astro2cart(synth_data.table,
-                                       write_table=True,
-                                       filename=data_filename)
+        tabletool.convert_table_astro2cart(synth_data.table,
+                                           write_table=True,
+                                           filename=data_filename)
 
-    background_count = len(synth_data.table) - np.sum(starcounts)
-    # insert background densities
-    synth_data.table['background_log_overlap'] =\
-        len(synth_data.table) * [np.log(background_density)]
+        background_count = len(synth_data.table) - np.sum(starcounts)
+        # insert background densities
+        synth_data.table['background_log_overlap'] =\
+            len(synth_data.table) * [np.log(background_density)]
 
-    synth_data.table.write(data_filename, overwrite=True)
+        synth_data.table.write(data_filename, overwrite=True)
 
     origins = [SphereComponent(pars) for pars in sphere_comp_pars]
 
@@ -123,11 +131,18 @@ def test_2comps_and_background():
 
     ### CHECK RESULT ###
     # No guarantee of order, so check if result is permutated
-    perm = expectmax.get_best_permutation(memb_probs, true_memb_probs)
+    #  also we drop the bg memberships for permutation reasons
+    perm = expectmax.get_best_permutation(memb_probs[:nstars,:ncomps], true_memb_probs)
+
+    memb_probs = memb_probs[:nstars]
 
     logging.info('Best permutation is: {}'.format(perm))
 
-    assert np.allclose(true_memb_probs, memb_probs[:, perm])
+    import pdb; pdb.set_trace()
+    n_misclassified_stars = np.sum(np.abs(true_memb_probs - np.round(memb_probs[:,perm])))
+
+    # Check fewer than 5% of association stars are misclassified
+    assert n_misclassified_stars / nstars * 100 < 5
 
     for origin, best_comp in zip(origins, np.array(best_comps)[perm,]):
         assert (isinstance(origin, SphereComponent) and

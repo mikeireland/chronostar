@@ -363,19 +363,20 @@ if ncomps == 1:
         logging.info('Loaded from previous run')
     except IOError:
         prev_comps, prev_med_and_spans, prev_memb_probs = \
-            expectmax.fit_many_comps(data=data_dict, ncomps=ncomps, rdir=run_dir,
-                                     trace_orbit_func=trace_orbit_func,
-                                     burnin=config.advanced['burnin_steps'],
-                                     sampling_steps=config.advanced['sampling_steps'],
-                                     use_background=config.config[
-                                        'include_background_distribution'],
+            expectmax.fit_many_comps(data=data_dict, ncomps=ncomps,
+                                     rdir=run_dir,
                                      init_memb_probs=init_memb_probs,
                                      init_comps=init_comps,
-                                     Component=Component,
+                                     burnin=config.advanced['burnin_steps'],
+                                     sampling_steps=config.advanced[
+                                         'sampling_steps'], Component=Component,
+                                     trace_orbit_func=trace_orbit_func,
+                                     use_background=config.config[
+                                         'include_background_distribution'],
                                      store_burnin_chains=store_burnin_chains,
-                                     max_iters=MAX_ITERS,
-                                     ignore_stable_comps=config.advanced['ignore_stable_comps'],
-                                     )
+                                     ignore_stable_comps=config.advanced[
+                                         'ignore_stable_comps'],
+                                     max_em_iterations=MAX_ITERS)
 
 
 
@@ -398,18 +399,18 @@ if init_comps is not None and len(init_comps) > 1:
     # Note: might
     run_dir = rdir + '{}/'.format(ncomps)
     comps, med_and_spans, memb_probs = \
-        expectmax.fit_many_comps(
-            data=data_dict, ncomps=ncomps, rdir=run_dir,
-            init_comps=init_comps, trace_orbit_func=trace_orbit_func,
-            use_background=config.config[
-                'include_background_distribution'],
-            burnin=config.advanced['burnin_steps'],
-            sampling_steps=config.advanced['sampling_steps'],
-            Component=Component,
-            store_burnin_chains=store_burnin_chains,
-            max_iters=MAX_ITERS,
-            ignore_stable_comps=config.advanced['ignore_stable_comps'],
-        )
+        expectmax.fit_many_comps(data=data_dict, ncomps=ncomps, rdir=run_dir,
+                                 init_comps=init_comps,
+                                 burnin=config.advanced['burnin_steps'],
+                                 sampling_steps=config.advanced[
+                                     'sampling_steps'], Component=Component,
+                                 trace_orbit_func=trace_orbit_func,
+                                 use_background=config.config[
+                                     'include_background_distribution'],
+                                 store_burnin_chains=store_burnin_chains,
+                                 ignore_stable_comps=config.advanced[
+                                     'ignore_stable_comps'],
+                                 max_em_iterations=MAX_ITERS)
     ncomps += 1
 
 # Begin iterative loop, each time trialing the incorporation of a new component
@@ -477,18 +478,19 @@ while ncomps <= MAX_COMPS:
             logging.info('Fit loaded from previous run')
         except IOError:
             comps, med_and_spans, memb_probs = \
-            expectmax.fit_many_comps(
-                    data=data_dict, ncomps=ncomps, rdir=run_dir,
-                    init_comps=init_comps, trace_orbit_func=trace_orbit_func,
-                    use_background=config.config[
-                        'include_background_distribution'],
-                    burnin=config.advanced['burnin_steps'],
-                    sampling_steps=config.advanced['sampling_steps'],
-                    Component=Component,
-                    store_burnin_chains=store_burnin_chains,
-                    max_iters=MAX_ITERS,
-                    ignore_stable_comps=config.advanced['ignore_stable_comps'],
-            )
+                expectmax.fit_many_comps(data=data_dict, ncomps=ncomps,
+                                         rdir=run_dir, init_comps=init_comps,
+                                         burnin=config.advanced['burnin_steps'],
+                                         sampling_steps=config.advanced[
+                                             'sampling_steps'],
+                                         Component=Component,
+                                         trace_orbit_func=trace_orbit_func,
+                                         use_background=config.config[
+                                             'include_background_distribution'],
+                                         store_burnin_chains=store_burnin_chains,
+                                         ignore_stable_comps=config.advanced[
+                                             'ignore_stable_comps'],
+                                         max_em_iterations=MAX_ITERS)
 
         best_fits.append(comps)
         all_med_and_spans.append(med_and_spans)

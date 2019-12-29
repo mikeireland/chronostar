@@ -59,11 +59,10 @@ class NaiveFit(object):
         'max_comp_count':20,
         'max_em_iterations':200,
         'mpi_threads':None,     # TODO: NOT IMPLEMENTED
-        'using_bg':True,
-        'include_background_distribution':True, # TODO: Redundant with 'using_bg'?
+        'use_background':True,
 
         'overwrite_prev_run':False,
-        'burnin_steps':500,
+        'burnin':500,
         'sampling_steps':1000,
         'store_burnin_chains':False,
         'ignore_stable_comps':True,
@@ -165,6 +164,67 @@ class NaiveFit(object):
             self.fit_pars['init_comps'] = None
             print("'Init comps' is initialised as none")
 
+    def build_comps_from_chains(self, run_dir):
+        logging.info('Component class has been modified, reconstructing '
+                     'from chain')
+
+        comps = self.ncomps * [None]
+        for i in range(self.ncomps):
+            final_cdir = run_dir + 'final/comp{}/'.format(i)
+            chain = np.load(final_cdir + 'final_chain.npy')
+            lnprob = np.load(final_cdir + 'final_lnprob.npy')
+            npars = len(self.Component.PARAMETER_FORMAT)
+            best_ix = np.argmax(lnprob)
+            best_pars = chain.reshape(-1, npars)[best_ix]
+            comps[i] = self.Component(emcee_pars=best_pars)
+        self.Component.store_raw_components(
+                str(run_dir + 'final/' + self.final_comps_file),
+                comps)
+
+        return comps
+
+
+    def log_score_comparison(self, prev, new):
+        if new['bic'] > prev['bic']:
+            logging.info("Extra component has improved BIC...")
+            logging.info(
+                    "New BIC: {} < Old BIC: {}".format(new['bic'], prev['bic']))
+        else:
+            logging.info("Extra component has worsened BIC...")
+            logging.info(
+                    "New BIC: {} > Old BIC: {}".format(new['bic'], prev['bic']))
+
+        logging.info("lnlike: {} | {}".format(new['lnlike'], prev['lnlike']))
+        logging.info("lnpost: {} | {}".format(new['lnpost'], prev['lnpost']))
+
+
+    def run_em_unless_loadable(self, run_dir, init_memb_probs=None):
+        """
+        Run and EM fit, but only if not loadable from a previous run
+        """
+        try:
+            med_and_spans = np.load(run_dir + 'final/'
+                                         + self.final_med_and_spans_file)
+            memb_probs = np.load(
+                run_dir + 'final/' + self.final_memb_probs_file)
+            comps = self.Component.load_raw_components(
+                    str(run_dir + 'final/' + self.final_comps_file))
+            logging.info('Loaded from previous run')
+
+            # Handle case where Component class has been modified and can't
+            # load the raw components
+        except AttributeError:
+            comps = self.build_comps_from_chains(run_dir)
+
+            # Handle the case where files are missing, which means we must
+            # perform the fit.
+        except IOError:
+            comps, med_and_spans, memb_probs = \
+                expectmax.fit_many_comps(data=self.data_dict,
+                                         ncomps=self.ncomps, rdir=run_dir,
+                                         init_memb_probs=init_memb_probs,
+                                         **self.fit_pars)
+        return comps, med_and_spans, memb_probs
 
 
     def run_fit(self):
@@ -207,93 +267,105 @@ class NaiveFit(object):
         if self.fit_pars['store_burnin_chains']:
             log_message(msg='Storing burnin chains', symbol='-')
 
-        if self.ncomps == 1:
-            # Fit the first component
-            log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
-                        symbol='*', surround=True)
-            run_dir = self.rdir + '{}/'.format(self.ncomps)
+        # Handle special case of very first run
+        # Either by fitting one component (default) or by using `init_comps`
+        # to initialise the EM fit.
 
-            # Initialise all stars in dataset to be full members of first component
-            using_bg = self.fit_pars['include_background_distribution']
-            init_memb_probs = np.zeros((len(self.data_dict['means']), 1 + using_bg))
+        # If beginning with 1 component, assume all stars are members
+        if self.ncomps == 1:
+            init_memb_probs = np.zeros((len(self.data_dict['means']),
+                                        self.ncomps + self.fit_pars['use_background']))
             init_memb_probs[:, 0] = 1.
 
-            # Try and recover any results from previous run
-            try:
-                prev_med_and_spans = np.load(run_dir + 'final/'
-                                             + self.final_med_and_spans_file)
-                prev_memb_probs = np.load(
-                    run_dir + 'final/' + self.final_memb_probs_file)
-                try:
-                    prev_comps = self.Component.load_raw_components(
-                            str(run_dir + 'final/' + self.final_comps_file))
+        log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
+                    symbol='*', surround=True)
+        run_dir = self.rdir + '{}/'.format(self.ncomps)
 
-                # Final comps are there, they just can't be read by current module
-                # so quickly fit them based on fixed prev membership probabilities
-                except AttributeError:
-                    logging.info(
-                        'Component class has been modified, reconstructing '
-                        'from chain')
-                    prev_comps = self.ncomps * [None]
-                    for i in range(self.ncomps):
-                        final_cdir = run_dir + 'final/comp{}/'.format(i)
-                        chain = np.load(final_cdir + 'final_chain.npy')
-                        lnprob = np.load(final_cdir + 'final_lnprob.npy')
-                        npars = len(self.Component.PARAMETER_FORMAT)
-                        best_ix = np.argmax(lnprob)
-                        best_pars = chain.reshape(-1, npars)[best_ix]
-                        prev_comps[i] = self.Component(emcee_pars=best_pars)
-                    self.Component.store_raw_components(
-                        str(run_dir + 'final/' + self.final_comps_file),
-                        prev_comps)
-                    # np.save(str(run_dir+'final/'+final_comps_file), prev_comps)
+        # Initialise all stars in dataset to be full members of first component
+        # use_background = self.fit_pars['use_background']
+        # init_memb_probs = np.zeros((len(self.data_dict['means']),
+        #                             self.ncomps + use_background))
+        # init_memb_probs[:, 0] = 1.
 
-                logging.info('Loaded from previous run')
-            except IOError:
-                prev_comps, prev_med_and_spans, prev_memb_probs = \
-                    expectmax.fit_many_comps(data=self.data_dict, ncomps=self.ncomps,
-                                             rdir=run_dir,
-                                             trace_orbit_func=self.fit_pars['trace_orbit_func'],
-                                             burnin=self.fit_pars[
-                                                 'burnin_steps'],
-                                             sampling_steps=self.fit_pars[
-                                                 'sampling_steps'],
-                                             use_background=self.fit_pars[
-                                                 'include_background_distribution'],
-                                             init_memb_probs=init_memb_probs,
-                                             init_comps=self.fit_pars['init_comps'],
-                                             Component=self.Component,
-                                             store_burnin_chains=self.fit_pars['store_burnin_chains'],
-                                             max_iters=self.fit_pars['max_em_iterations'],
-                                             ignore_stable_comps=
-                                             self.fit_pars[
-                                                 'ignore_stable_comps'],
-                                             )
+        prev_comps, prev_med_and_spans, prev_memb_probs =\
+        self.run_em_unless_loadable(run_dir, init_memb_probs)
+        #
+        # try:
+        #     prev_med_and_spans = np.load(run_dir + 'final/'
+        #                                  + self.final_med_and_spans_file)
+        #     prev_memb_probs = np.load(run_dir + 'final/' + self.final_memb_probs_file)
+        #     prev_comps = self.Component.load_raw_components(
+        #             str(run_dir + 'final/' + self.final_comps_file))
+        #     logging.info('Loaded from previous run')
+        #
+        # # Final comps are there, they just can't be read by current module
+        # # so quickly fit them based on fixed prev membership probabilities
+        # # TODO: Work this try outside of prev try context
+        #
+        # # Handle case where Component class has been modified and can't
+        # # load the raw components
+        # except AttributeError:
+        #     prev_comps = self.build_comps_from_chains(run_dir)
+        #
+        # # Handle the case where files are missing, which means we must perform
+        # # the fit.
+        # except IOError:
+        #     prev_comps, prev_med_and_spans, prev_memb_probs = \
+        #         expectmax.fit_many_comps(data=self.data_dict,
+        #                                  ncomps=self.ncomps, rdir=run_dir,
+        #                                  init_memb_probs=init_memb_probs,
+        #                                  **self.fit_pars,
+        #                                  )
+        #                                  # init_comps=self.fit_pars[
+        #                                  #     'init_comps'],
+        #                                  # burnin=self.fit_pars[
+        #                                  #     'burnin'],
+        #                                  # sampling_steps=self.fit_pars[
+        #                                  #     'sampling_steps'],
+        #                                  # Component=self.Component,
+        #                                  # trace_orbit_func=self.fit_pars[
+        #                                  #     'trace_orbit_func'],
+        #                                  # use_background=self.fit_pars[
+        #                                  #     'include_background_distribution'],
+        #                                  # store_burnin_chains=self.fit_pars[
+        #                                  #     'store_burnin_chains'],
+        #                                  # ignore_stable_comps=self.fit_pars[
+        #                                  #     'ignore_stable_comps'],
+        #                                  # max_em_iterations=self.fit_pars[
+        #                                  #     'max_em_iterations'])
 
 
-            self.ncomps += 1
 
-        if self.fit_pars['init_comps'] is not None and len(self.fit_pars['init_comps']) > 1:
-            # fit with ncomps until convergence
-            # Note: might
-            run_dir = self.rdir + '{}/'.format(self.ncomps)
-            # TODO: VVV This is bugged, results need to be stored into 'prev_comps' etc. TC 2019.12.28
-            prev_comps, prev_med_and_spans, prev_memb_probs = \
-                expectmax.fit_many_comps(
-                        data=self.data_dict, ncomps=self.ncomps, rdir=run_dir,
-                        init_comps=self.fit_pars['init_comps'],
-                        trace_orbit_func=self.fit_pars['trace_orbit_func'],
-                        use_background=self.fit_pars[
-                            'include_background_distribution'],
-                        burnin=self.fit_pars['burnin_steps'],
-                        sampling_steps=self.fit_pars['sampling_steps'],
-                        Component=self.Component,
-                        store_burnin_chains=self.fit_pars['store_burnin_chains'],
-                        max_iters=self.fit_pars['max_em_iterations'],
-                        ignore_stable_comps=self.fit_pars[
-                            'ignore_stable_comps'],
-                )
-            self.ncomps += 1
+        self.ncomps += 1
+        #
+        # if self.fit_pars['init_comps'] is not None and len(self.fit_pars[
+        #                                                        'init_comps'])\
+        #         > 1:
+        #     # fit with ncomps until convergence
+        #     # Note: might
+        #     run_dir = self.rdir + '{}/'.format(self.ncomps)
+        #     # TODO: VVV This is bugged, results need to be stored into 'prev_comps' etc. TC 2019.12.28
+        #     prev_comps, prev_med_and_spans, prev_memb_probs = \
+        #         expectmax.fit_many_comps(data=self.data_dict,
+        #                                  ncomps=self.ncomps, rdir=run_dir,
+        #                                  **self.fit_pars,
+        #                                  )
+        #                                  # init_comps=self.fit_pars['init_comps'],
+        #                                  # burnin=self.fit_pars['burnin'],
+        #                                  # sampling_steps=self.fit_pars[
+        #                                  #     'sampling_steps'],
+        #                                  # Component=self.Component,
+        #                                  # trace_orbit_func=self.fit_pars[
+        #                                  #     'trace_orbit_func'],
+        #                                  # use_background=self.fit_pars[
+        #                                  #     'include_background_distribution'],
+        #                                  # store_burnin_chains=self.fit_pars[
+        #                                  #     'store_burnin_chains'],
+        #                                  # ignore_stable_comps=self.fit_pars[
+        #                                  #     'ignore_stable_comps'],
+        #                                  # max_em_iterations=self.fit_pars[
+        #                                  #     'max_em_iterations'])
+        #     self.ncomps += 1
 
         # Calculate global score of fit for comparison with future fits with different
         # component counts
@@ -310,7 +382,7 @@ class NaiveFit(object):
                                       Component=self.Component)
 
         # Begin iterative loop, each time trialing the incorporation of a new component
-        while self.ncomps <= self.fit_pars['max_component_count']:
+        while self.ncomps <= self.fit_pars['max_comp_count']:
             log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
                         symbol='*', surround=True)
 
@@ -340,58 +412,75 @@ class NaiveFit(object):
                 init_comps.insert(i, split_comps[1])
                 init_comps.insert(i, split_comps[0])
 
-                # Run em fit
-                # First try and find any previous runs
-                try:
-                    med_and_spans = np.load(run_dir + 'final/'
-                                            + self.final_med_and_spans_file)
-                    memb_probs = np.load(
-                        run_dir + 'final/' + self.final_memb_probs_file)
-                    try:
-                        comps = self.Component.load_raw_components(run_dir + 'final/'
-                                                              + self.final_comps_file)
-                    # Final comps are there, they just can't be read by current module
-                    # so quickly retrieve them from the sample chain
-                    except AttributeError:
-                        logging.info(
-                                'Component class has been modified, reconstructing from'
-                                'chain.')
+                # Insert init_comps into parameter dicitonary
+                self.fit_pars['init_comps'] = init_comps
 
-                        raise UserWarning('This has not been tested, probs broken, '
-                                          'safer to just cancel for now')
-                        # TODO port this bug fix to run_chronostar on master
-                        comps = self.ncomps * [None]
-                        for j in range(self.ncomps):
-                            final_cdir = run_dir + 'final/comp{}/'.format(j)
-                            chain = np.load(final_cdir + 'final_chain.npy')
-                            lnprob = np.load(final_cdir + 'final_lnprob.npy')
-                            npars = len(self.Component.PARAMETER_FORMAT)
-                            best_ix = np.argmax(lnprob)
-                            best_pars = chain.reshape(-1, npars)[best_ix]
-                            prev_comps[j] = self.Component(emcee_pars=best_pars)
-                        self.Component.store_raw_components(
-                            str(run_dir + 'final/' + self.final_comps_file),
-                            prev_comps)
-                        # np.save(str(run_dir + 'final/' + final_comps_file), prev_comps)
-
-                    logging.info('Fit loaded from previous run')
-                except IOError:
-                    comps, med_and_spans, memb_probs = \
-                        expectmax.fit_many_comps(
-                                data=self.data_dict, ncomps=self.ncomps, rdir=run_dir,
-                                init_comps=init_comps,
-                                trace_orbit_func=self.fit_pars['trace_orbit_func'],
-                                use_background=self.fit_pars[
-                                    'include_background_distribution'],
-                                burnin=self.fit_pars['burnin_steps'],
-                                sampling_steps=self.fit_pars[
-                                    'sampling_steps'],
-                                Component=self.Component,
-                                store_burnin_chains=self.fit_pars['store_burnin_chains'],
-                                max_iters=self.fit_pars['max_em_iterations'],
-                                ignore_stable_comps=self.fit_pars[
-                                    'ignore_stable_comps'],
-                        )
+                comps, med_and_spans, memb_probs = \
+                        self.run_em_unless_loadable(run_dir)
+                #
+                # # Run em fit
+                # # First try and find any previous runs
+                # try:
+                #     med_and_spans = np.load(run_dir + 'final/'
+                #                             + self.final_med_and_spans_file)
+                #     memb_probs = np.load(
+                #         run_dir + 'final/' + self.final_memb_probs_file)
+                #     try:
+                #         comps = self.Component.load_raw_components(run_dir + 'final/'
+                #                                               + self.final_comps_file)
+                #     # Final comps are there, they just can't be read by current module
+                #     # so quickly retrieve them from the sample chain
+                #     except AttributeError:
+                #         logging.info(
+                #                 'Component class has been modified, '
+                #                 'reconstructing from'
+                #                 'chain.')
+                #
+                #         # raise UserWarning('This has not been tested, '
+                #         #                   'probs broken, '
+                #         #                   'safer to just cancel for now')
+                #         prev_comps = self.build_comps_from_chains(run_dir)
+                #         # comps = self.ncomps * [None]
+                #         # for j in range(self.ncomps):
+                #         #     final_cdir = run_dir + 'final/comp{}/'.format(j)
+                #         #     chain = np.load(final_cdir + 'final_chain.npy')
+                #         #     lnprob = np.load(final_cdir + 'final_lnprob.npy')
+                #         #     npars = len(self.Component.PARAMETER_FORMAT)
+                #         #     best_ix = np.argmax(lnprob)
+                #         #     best_pars = chain.reshape(-1, npars)[best_ix]
+                #         #     prev_comps[j] = self.Component(emcee_pars=best_pars)
+                #         # self.Component.store_raw_components(
+                #         #     str(run_dir + 'final/' + self.final_comps_file),
+                #         #     prev_comps)
+                #         # np.save(str(run_dir + 'final/' + final_comps_file), prev_comps)
+                #
+                #     logging.info('Fit loaded from previous run')
+                # except IOError:
+                #     comps, med_and_spans, memb_probs = \
+                #         expectmax.fit_many_comps(data=self.data_dict,
+                #                                  ncomps=self.ncomps,
+                #                                  rdir=run_dir,
+                #                                  # init_comps=init_comps,  # This is in fit_pars now
+                #                                  **self.fit_pars,
+                #                                  )
+                #                                  # burnin=self.fit_pars['burnin'],
+                #                                  # sampling_steps=self.fit_pars[
+                #                                  #     'sampling_steps'],
+                #                                  # Component=self.Component,
+                #                                  # trace_orbit_func=self.fit_pars[
+                #                                  #     'trace_orbit_func'],
+                #                                  # use_background=self.fit_pars[
+                #                                  #     'include_background_distribution'],
+                #                                  # store_burnin_chains=
+                #                                  # self.fit_pars[
+                #                                  #     'store_burnin_chains'],
+                #                                  # ignore_stable_comps=
+                #                                  # self.fit_pars[
+                #                                  #     'ignore_stable_comps'],
+                #                                  # max_em_iterations=
+                #                                  # self.fit_pars[
+                #                                  #     'max_em_iterations'])
+                # # fit_many_comps(**fit_dict)
 
                 best_fits.append(comps)
                 all_med_and_spans.append(med_and_spans)
@@ -436,12 +525,14 @@ class NaiveFit(object):
             ))
 
             # Check if the fit has improved
+            self.log_score_comparison(new={'bic':new_bic, 'lnlike':new_lnlike, 'lnpost':new_lnpost},
+                                      prev={'bic':prev_bic, 'lnlike':prev_lnlike, 'lnpost':prev_lnpost})
             if new_bic < prev_bic:
-                logging.info("Extra component has improved BIC...")
-                logging.info(
-                    "New BIC: {} < Old BIC: {}".format(new_bic, prev_bic))
-                logging.info("lnlike: {} | {}".format(new_lnlike, prev_lnlike))
-                logging.info("lnpost: {} | {}".format(new_lnpost, prev_lnpost))
+                # logging.info("Extra component has improved BIC...")
+                # logging.info(
+                #     "New BIC: {} < Old BIC: {}".format(new_bic, prev_bic))
+                # logging.info("lnlike: {} | {}".format(new_lnlike, prev_lnlike))
+                # logging.info("lnpost: {} | {}".format(new_lnpost, prev_lnpost))
                 prev_comps, prev_med_and_spans, prev_memb_probs, prev_lnlike, prev_lnpost, \
                 prev_bic = \
                     (
@@ -452,11 +543,12 @@ class NaiveFit(object):
                         chr(ord('A') + best_split_ix)), symbol='+'
                 )
             else:
-                logging.info("Extra component has worsened BIC...")
-                logging.info(
-                    "New BIC: {} > Old BIC: {}".format(new_bic, prev_bic))
-                logging.info("lnlike: {} | {}".format(new_lnlike, prev_lnlike))
-                logging.info("lnpost: {} | {}".format(new_lnpost, prev_lnpost))
+                # logging.info("Extra component has worsened BIC...")
+                # logging.info(
+                #     "New BIC: {} > Old BIC: {}".format(new_bic, prev_bic))
+                # logging.info("lnlike: {} | {}".format(new_lnlike, prev_lnlike))
+                # logging.info("lnpost: {} | {}".format(new_lnpost, prev_lnpost))
+
                 logging.info("... saving previous fit as best fit to data")
                 self.Component.store_raw_components(self.rdir + self.final_comps_file,
                                                     prev_comps)
@@ -482,7 +574,7 @@ class NaiveFit(object):
                     [group.get_pars() for group in prev_comps]))
 
 
-        if self.ncomps >= self.fit_pars['max_component_count']:
+        if self.ncomps >= self.fit_pars['max_comp_count']:
             log_message(msg='REACHED MAX COMP LIMIT', symbol='+',
                         surround=True)
 

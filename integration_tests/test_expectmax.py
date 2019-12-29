@@ -82,16 +82,11 @@ def test_execution_simple_fit():
     origins = [SphereComponent(pars) for pars in sphere_comp_pars]
 
     best_comps, med_and_spans, memb_probs = \
-        expectmax.fit_many_comps(data=synth_data.table,
-                                 ncomps=ncomps,
-                                 rdir=savedir,
+        expectmax.fit_many_comps(data=synth_data.table, ncomps=ncomps,
+                                 rdir=savedir, burnin=10, sampling_steps=10,
                                  trace_orbit_func=dummy_trace_orbit_func,
-                                 use_background=True,
-                                 burnin=10,
-                                 sampling_steps=10,
-                                 max_iters=200,
-                                 ignore_stable_comps=False,
-                                 )
+                                 use_background=True, ignore_stable_comps=False,
+                                 max_em_iterations=200)
 
 @pytest.mark.skip
 def test_fit_one_comp_with_background():
@@ -152,16 +147,11 @@ def test_fit_one_comp_with_background():
     origins = [SphereComponent(pars) for pars in sphere_comp_pars]
 
     best_comps, med_and_spans, memb_probs = \
-        expectmax.fit_many_comps(data=synth_data.table,
-                                 ncomps=ncomps,
-                                 rdir=savedir,
+        expectmax.fit_many_comps(data=synth_data.table, ncomps=ncomps,
+                                 rdir=savedir, burnin=500, sampling_steps=5000,
                                  trace_orbit_func=dummy_trace_orbit_func,
-                                 burnin=500,
-                                 sampling_steps=5000,
-                                 use_background=True,
-                                 max_iters=200,
-                                 ignore_stable_comps=False,
-                                 )
+                                 use_background=True, ignore_stable_comps=False,
+                                 max_em_iterations=200)
 
     # return best_comps, med_and_spans, memb_probs
 
@@ -243,13 +233,10 @@ def test_fit_many_comps():
     origins = [SphereComponent(pars) for pars in sphere_comp_pars]
 
     best_comps, med_and_spans, memb_probs = \
-        expectmax.fit_many_comps(data=synth_data.table,
-                                 ncomps=ncomps,
-                                 rdir=savedir,
-                                 init_memb_probs=init_memb_probs,
+        expectmax.fit_many_comps(data=synth_data.table, ncomps=ncomps,
+                                 rdir=savedir, init_memb_probs=init_memb_probs,
                                  trace_orbit_func=dummy_trace_orbit_func,
-                                 ignore_stable_comps=False,
-                                 )
+                                 ignore_stable_comps=False)
 
     perm = expectmax.get_best_permutation(memb_probs, true_memb_probs)
 
@@ -361,13 +348,10 @@ def test_fit_stability_mixed_comps():
     SphereComponent.store_raw_components(savedir + 'origins.npy', origins)
 
     best_comps, med_and_spans, memb_probs = \
-        expectmax.fit_many_comps(data=synth_data.table,
-                                 ncomps=ncomps,
-                                 rdir=savedir,
-                                 init_memb_probs=init_memb_probs,
+        expectmax.fit_many_comps(data=synth_data.table, ncomps=ncomps,
+                                 rdir=savedir, init_memb_probs=init_memb_probs,
                                  trace_orbit_func=dummy_trace_orbit_func,
-                                 ignore_stable_comps=True,
-                                 )
+                                 ignore_stable_comps=True)
 
     perm = expectmax.get_best_permutation(memb_probs, true_memb_probs)
 

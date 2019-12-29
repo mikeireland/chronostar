@@ -865,7 +865,7 @@ def check_stability(data, best_comps, memb_probs):
     return True
 
 
-def check_comps_stability(z, unstable_flags_old, ref_counts, thresh=0.02):
+def check_comps_stability(z, unstable_flags_old, ref_counts, using_bg, thresh=0.02):
     """
     Compares current total member count of each component with those
     from the last time it was deemed stable, and see if membership has
@@ -882,7 +882,7 @@ def check_comps_stability(z, unstable_flags_old, ref_counts, thresh=0.02):
         The threshold fractional difference within which the component
         is considered stable
     """
-    ncomps = z.shape[1]
+    ncomps = z.shape[1] - using_bg
 
     memb_counts = z.sum(axis=0)
     # Handle first call
@@ -893,6 +893,9 @@ def check_comps_stability(z, unstable_flags_old, ref_counts, thresh=0.02):
     else:
         # Update instability flag
         unstable_flags = np.abs((memb_counts - ref_counts)/ref_counts) > thresh
+        # Disregard column for background memberships
+        if using_bg:
+            unstable_flags = unstable_flags[:-1]
 
         # Only update reference counts for components that have just been
         # refitted
@@ -911,8 +914,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    sampling_steps=5000, ignore_dead_comps=False,
                    Component=SphereComponent, trace_orbit_func=None,
                    use_background=False, store_burnin_chains=False,
-                   ignore_stable_comps=False,
-                   max_iters=100, record_len=30, bic_conv_tol=0.1):
+                   ignore_stable_comps=False, max_em_iterations=100,
+                   record_len=30, bic_conv_tol=0.1, **kwargs):
     """
 
     Entry point: Fit multiple Gaussians to data set
@@ -1006,12 +1009,10 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
     # setting up some constants
     nstars = data['means'].shape[0]
-    BURNIN_STEPS = burnin
-    SAMPLING_STEPS = sampling_steps
     C_TOL = 0.5
 
     logging.info("Fitting {} groups with {} burnin steps with cap "
-                 "of {} iterations".format(ncomps, BURNIN_STEPS, max_iters))
+                 "of {} iterations".format(ncomps, burnin, max_em_iterations))
 
     # INITIALISE RUN PARAMETERS
 
@@ -1146,7 +1147,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # the Expecation and Maximisation stages
 
     # TODO: put convergence checking at the start of the loop so restarting doesn't repeat an iteration
-    while not all_converged and stable_state and iter_count < max_iters:
+    while not all_converged and stable_state and iter_count < max_em_iterations:
         ignore_stable_comps_iter = ignore_stable_comps and (iter_count % 5 != 0)
 
         # for iter_count in range(10):
@@ -1157,10 +1158,11 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                     symbol='-', surround=True)
         if not ignore_stable_comps_iter:
             log_message('Fitting all {} components'.format(ncomps))
-            unstable_comps = np.array(ncomps * [True])
+            unstable_comps = np.where(np.array(ncomps * [True]))
         else:
             log_message('Fitting the following unstable comps:')
-            #log_message(str(np.arange(ncomps)[unstable_comps]))
+            log_message('TC: maybe fixed?')
+            log_message(str(np.arange(ncomps)[unstable_comps]))
             log_message('MZ: removed this line due to index error (unstable_comps too big number)')
             log_message(str(unstable_comps))
 
@@ -1187,7 +1189,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         # MAXIMISE
         new_comps, all_samples, _, all_init_pos, success_mask =\
             maximisation(data, ncomps=ncomps,
-                         burnin_steps=BURNIN_STEPS,
+                         burnin_steps=burnin,
                          plot_it=True, pool=pool, convergence_tol=C_TOL,
                          memb_probs=memb_probs_new, idir=idir,
                          all_init_pars=all_init_pars,
@@ -1320,9 +1322,11 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             memb_probs_new = expectation(data, new_comps, memb_probs_new,
                                          inc_posterior=inc_posterior)
             log_message('Orig ref_counts {}'.format(ref_counts))
+
             unstable_comps, ref_counts = check_comps_stability(memb_probs_new,
                                                                unstable_comps,
-                                                               ref_counts)
+                                                               ref_counts,
+                                                               using_bg=use_background)
             log_message('New memb counts: {}'.format(memb_probs_new.sum(axis=0)))
             log_message('Unstable comps: {}'.format(unstable_comps))
             log_message('New ref_counts {}'.format(ref_counts))
@@ -1367,18 +1371,17 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
   File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/artist.py", line 881, in _update_property
     raise AttributeError('Unknown property %s' % k)
 AttributeError: Unknown property ls
-    
-    
+    """
+
     
     plt.plot(range(start_ix, iter_count), list_prev_bics,
              label='Final {} BICs'.format(len(list_prev_bics)))
-    plt.vlines(start_ix + np.argmin(list_prev_bics), ls='--', color='red',
+    plt.vlines(start_ix + np.argmin(list_prev_bics), linestyle='--', color='red',
                ymin=plt.ylim()[0], ymax=plt.ylim()[1],
                label='best BIC {:.2f} | iter {}'.format(np.min(list_prev_bics),
                                                         start_ix+np.argmin(list_prev_bics)))
     plt.legend(loc='best')
     plt.savefig(rdir + 'bics.pdf')
-    """
 
     best_bic_ix = np.argmin(list_prev_bics)
     # Since len(list_prev_bics) is capped, need to count backwards form iter_count
@@ -1416,7 +1419,7 @@ AttributeError: Unknown property ls
             # best_comp, chain, lnprob = compfitter.fit_comp(
             #         data=data,
             #         memb_probs=final_memb_probs[:, i],
-            #         burnin_steps=BURNIN_STEPS,
+            #         burnin_steps=burnin,
             #         plot_it=True, pool=pool, convergence_tol=C_TOL,
             #         plot_dir=final_gdir, save_dir=final_gdir,
             #         init_pos=best_all_init_pos[i],
@@ -1471,7 +1474,17 @@ AttributeError: Unknown property ls
         return final_best_comps, np.array(final_med_and_spans), final_memb_probs
 
     # Handle the case where the run was not stable
+    # Should this even return something....?
     else:
         log_message('BAD RUN TERMINATED', symbol='*', surround=True)
-        return final_best_comps, np.array(final_med_and_spans), final_memb_probs
+
+        # Store the bad results anyway, just in case.
+        final_dir = rdir+'failed_final/'
+        mkpath(final_dir)
+        np.save(final_dir+'final_membership.npy', final_memb_probs)
+        Component.store_raw_components(final_dir+'final_comps.npy', final_best_comps)
+        np.save(final_dir+'final_comps_bak.npy', final_best_comps)
+        np.save(final_dir+'final_med_and_spans.npy', final_med_and_spans)
+        raise UserWarning('Was unable to reach convergence within given iterations')
+        # return final_best_comps, np.array(final_med_and_spans), final_memb_probs
 
