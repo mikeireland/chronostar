@@ -1399,92 +1399,97 @@ AttributeError: Unknown property ls
     # PERFORM FINAL EXPLORATION OF PARAMETER SPACE AND SAVE RESULTS
     # No longer need to do characterisation... waste of time and source of
     # inconsistencies
-    if stable_state:
-        log_message('Storing final result', symbol='-', surround=True)
-        final_dir = rdir+'final/'
-        mkpath(final_dir)
+    # if stable_state:
+    log_message('Storing final result', symbol='-', surround=True)
+    final_dir = rdir+'final/'
+    mkpath(final_dir)
 
 #         memb_probs_final = expectation(data, best_comps, best_memb_probs,
 #                                        inc_posterior=inc_posterior)
-        np.save(final_dir+'final_membership.npy', final_memb_probs)
-        logging.info('Membership distribution:\n{}'.format(
+    np.save(final_dir+'final_membership.npy', final_memb_probs)
+    logging.info('Membership distribution:\n{}'.format(
+        final_memb_probs.sum(axis=0)
+    ))
+
+    # for i in range(ncomps):
+        # logging.info('Characterising comp {}'.format(i))
+        # final_gdir = final_dir + 'comp{}/'.format(i)
+        # mkpath(final_gdir)
+
+        # best_comp, chain, lnprob = compfitter.fit_comp(
+        #         data=data,
+        #         memb_probs=final_memb_probs[:, i],
+        #         burnin_steps=burnin,
+        #         plot_it=True, pool=pool, convergence_tol=C_TOL,
+        #         plot_dir=final_gdir, save_dir=final_gdir,
+        #         init_pos=best_all_init_pos[i],
+        #         sampling_steps=SAMPLING_STEPS,
+        #         trace_orbit_func=trace_orbit_func,
+        #         store_burnin_chains=False,
+        # )
+        # logging.info("Finished fit")
+        # final_best_comps[i] = best_comp
+        # final_med_and_spans[i] = compfitter.calc_med_and_span(
+        #         chain, intern_to_extern=True, Component=Component,
+        # )
+        # np.save(final_gdir + 'final_chain.npy', chain)
+        # np.save(final_gdir + 'final_lnprob.npy', lnprob)
+        #
+        # all_init_pos[i] = chain[:, -1, :]
+
+    # SAVE FINAL RESULTS IN MAIN SAVE DIRECTORY
+    Component.store_raw_components(final_dir+'final_comps.npy', final_best_comps)
+    np.save(final_dir+'final_comps_bak.npy', final_best_comps)
+    np.save(final_dir+'final_med_and_spans.npy', final_med_and_spans)
+
+    overall_lnlike = get_overall_lnlikelihood(
+            data, final_best_comps, inc_posterior=False
+    )
+    overall_lnposterior = get_overall_lnlikelihood(
+            data, final_best_comps, inc_posterior=True
+    )
+    bic = calc_bic(data, ncomps, overall_lnlike,
+                   memb_probs=final_memb_probs, Component=Component)
+    logging.info("Final overall lnlikelihood: {}".format(overall_lnlike))
+    logging.info("Final overall lnposterior:  {}".format(overall_lnposterior))
+    logging.info("Final BIC: {}".format(bic))
+
+    np.save(final_dir+'likelihood_post_and_bic.npy', (overall_lnlike,
+                                                      overall_lnposterior,
+                                                      bic))
+
+    logging.info("FINISHED SAVING")
+    logging.info("Best fits:\n{}".format(
+        [fc.get_pars() for fc in final_best_comps]
+    ))
+    logging.info("Stars per component:\n{}".format(
             final_memb_probs.sum(axis=0)
-        ))
+    ))
+    logging.info("Memberships: \n{}".format(
+            (final_memb_probs*100).astype(np.int)
+    ))
 
-        # for i in range(ncomps):
-            # logging.info('Characterising comp {}'.format(i))
-            # final_gdir = final_dir + 'comp{}/'.format(i)
-            # mkpath(final_gdir)
-
-            # best_comp, chain, lnprob = compfitter.fit_comp(
-            #         data=data,
-            #         memb_probs=final_memb_probs[:, i],
-            #         burnin_steps=burnin,
-            #         plot_it=True, pool=pool, convergence_tol=C_TOL,
-            #         plot_dir=final_gdir, save_dir=final_gdir,
-            #         init_pos=best_all_init_pos[i],
-            #         sampling_steps=SAMPLING_STEPS,
-            #         trace_orbit_func=trace_orbit_func,
-            #         store_burnin_chains=False,
-            # )
-            # logging.info("Finished fit")
-            # final_best_comps[i] = best_comp
-            # final_med_and_spans[i] = compfitter.calc_med_and_span(
-            #         chain, intern_to_extern=True, Component=Component,
-            # )
-            # np.save(final_gdir + 'final_chain.npy', chain)
-            # np.save(final_gdir + 'final_lnprob.npy', lnprob)
-            #
-            # all_init_pos[i] = chain[:, -1, :]
-
-        # SAVE FINAL RESULTS IN MAIN SAVE DIRECTORY
-        Component.store_raw_components(final_dir+'final_comps.npy', final_best_comps)
-        np.save(final_dir+'final_comps_bak.npy', final_best_comps)
-        np.save(final_dir+'final_med_and_spans.npy', final_med_and_spans)
-
-        overall_lnlike = get_overall_lnlikelihood(
-                data, final_best_comps, inc_posterior=False
-        )
-        overall_lnposterior = get_overall_lnlikelihood(
-                data, final_best_comps, inc_posterior=True
-        )
-        bic = calc_bic(data, ncomps, overall_lnlike,
-                       memb_probs=final_memb_probs, Component=Component)
-        logging.info("Final overall lnlikelihood: {}".format(overall_lnlike))
-        logging.info("Final overall lnposterior:  {}".format(overall_lnposterior))
-        logging.info("Final BIC: {}".format(bic))
-
-        np.save(final_dir+'likelihood_post_and_bic.npy', (overall_lnlike,
-                                                          overall_lnposterior,
-                                                          bic))
-
-        logging.info("FINISHED SAVING")
-        logging.info("Best fits:\n{}".format(
-            [fc.get_pars() for fc in final_best_comps]
-        ))
-        logging.info("Stars per component:\n{}".format(
-                final_memb_probs.sum(axis=0)
-        ))
-        logging.info("Memberships: \n{}".format(
-                (final_memb_probs*100).astype(np.int)
-        ))
-
-        logging.info(50*'=')
-
-        return final_best_comps, np.array(final_med_and_spans), final_memb_probs
-
-    # Handle the case where the run was not stable
-    # Should this even return something....?
-    else:
+    # If compoents aren't super great, log a message, but return whatever we
+    # get.
+    if stable_state:
         log_message('BAD RUN TERMINATED', symbol='*', surround=True)
 
-        # Store the bad results anyway, just in case.
-        final_dir = rdir+'failed_final/'
-        mkpath(final_dir)
-        np.save(final_dir+'final_membership.npy', final_memb_probs)
-        Component.store_raw_components(final_dir+'final_comps.npy', final_best_comps)
-        np.save(final_dir+'final_comps_bak.npy', final_best_comps)
-        np.save(final_dir+'final_med_and_spans.npy', final_med_and_spans)
-        raise UserWarning('Was unable to reach convergence within given iterations')
-        # return final_best_comps, np.array(final_med_and_spans), final_memb_probs
+    logging.info(50*'=')
+
+    return final_best_comps, np.array(final_med_and_spans), final_memb_probs
+
+    # # Handle the case where the run was not stable
+    # # Should this even return something....?
+    # else:
+    #     log_message('BAD RUN TERMINATED', symbol='*', surround=True)
+    #
+    #     # Store the bad results anyway, just in case.
+    #     final_dir = rdir+'failed_final/'
+    #     mkpath(final_dir)
+    #     np.save(final_dir+'final_membership.npy', final_memb_probs)
+    #     Component.store_raw_components(final_dir+'final_comps.npy', final_best_comps)
+    #     np.save(final_dir+'final_comps_bak.npy', final_best_comps)
+    #     np.save(final_dir+'final_med_and_spans.npy', final_med_and_spans)
+    #     raise UserWarning('Was unable to reach convergence within given iterations')
+    #     # return final_best_comps, np.array(final_med_and_spans), final_memb_probs
 
