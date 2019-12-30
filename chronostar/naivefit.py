@@ -64,7 +64,7 @@ class NaiveFit(object):
         #  - 'some/prev/fit/2/A/final_comps.npy
         # Alternatively, if you already have the list of components, just
         # provide them to `init_comps`. Don't do both.
-        'init_comps_file':None, # TODO: Is this redundant with 'init_comps'
+        # 'init_comps_file':None, # TODO: Is this redundant with 'init_comps'
         'init_comps':None,
 
         # One of these two are required if initialising a run with ncomps != 1
@@ -168,9 +168,11 @@ class NaiveFit(object):
 
 
         # TODO: replace init_comps_file with just init_comps and check if file
-        if self.fit_pars['init_comps_file'] is not None:
+        # if self.fit_pars['init_comps_file'] is not None:
+        if self.fit_pars['init_comps'] is str:
             self.fit_pars['init_comps'] = self.Component.load_raw_components(
-                    self.fit_pars['init_comps_file'])
+                    self.fit_pars['init_comps'])
+                    # self.fit_pars['init_comps_file'])
             self.ncomps = len(self.fit_pars['init_comps'])
             print('Managed to load in init_comps from file')
         else:
@@ -257,7 +259,6 @@ class NaiveFit(object):
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
-                                         burnin=self.fit_pars['burnin_steps'],
                                          **self.fit_pars)
 
         # Since init_comps and init_memb_probs are only meant for one time uses

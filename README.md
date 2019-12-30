@@ -108,8 +108,8 @@ preparation where, for example, astrometric data are converted into the
 Chronostar Cartesian based coordinate system. The second is the actual
 fitting to the data.
 
-The entry points for these are chronostar.datatoo.prepare_data()
-and chronostar.chronostar.NaiveFit().
+The entry points for these are chronostar.datatool.prepare_data()
+and chronostar.naivefit.NaiveFit().
 
 In both cases, runnable scripts are provided which takes as a single 
 commandline argument the path to a parameter file. Alternatively,
@@ -141,8 +141,8 @@ cut_bound_max = [ 100., 50.,  20., 5., 5., 5,]
  
 ### Data Preparation
 A list of viable parameters (with defaults) is listed in
-`readparam.update_data_defaults`
-An non-exhaustive list of data preparation parameters are listed here:
+`datatool.DEFAULT_PARS`
+A non-exhaustive list of data preparation parameters are listed here:
   - input_file: string or astropy table [default = ''] [required]
     
     (path to) an astropy table (stored as a fits file) with, at a
@@ -338,6 +338,89 @@ An non-exhaustive list of data preparation parameters are listed here:
      If true, `prepare_data` will return the resulting table. This is useful
      if working in a script.
      
+### Run NaiveFit
+A list of viable parameters (with defaults) is listed in
+`naivefit.DEFAULT_PARS`
+A non-exhaustive list of data preparation parameters are listed here:
+  - results_dir: string [default = ''] [required]
+    
+    A file path to the directory where you want results to be stored. If
+    this directory does not exist it will be created. If you do not have
+    write access, Chronostar will throw an error before any computation is
+    begun.
+    
+  - data_table: string or astroby table [required]
+  
+    Output from dataprep, XYZUVW data, plus background overlaps.
+    Can be a filename to a astropy table, or an actual table.
+    
+  - init_comps: string or list of Component objects [default = None] [optional]
+    
+    A list of Component objects that will be used to initialise the first
+    EM. Alternatively you may provide the path to a list of components stored
+    by `Component.store_raw_components()`
+   
+  - component: string [default = 'sphere'] [optional]
+    
+    Provide a string name that corresponds to a ComponentClass. Current
+    available options are 'sphere', and 'ellip'.
+    
+  - max_comp_count: int [default = 20] [optional]
+  
+    The maximum components NaiveFit will increment up to.
+    
+  - max_em_iterations: int [default = 200] [optional]
+  
+    The maximum iterations an EM fit will go up to.
+    
+  - mpi_threads: int [default = None] [optional] [!!!UNIMPLEMENTED!!!]
+  
+    How many threads to let `emcee` use.
+    
+    This should not exceed 19 when using `SphereComponent' to model the origins.
+    This is because the thread count
+    should not exceed the number of walkers + 1, because they will have nothing
+    to do. The number of walkers is set to be double the number of parameters
+    used to model a component.
+    
+  - use_background: boolean [default = True] [optional]
+  
+    Set this to True if stars can be considered to be part of the background.
+    Note that, in this case, data_table must have a column with `bg_ln_ols`.
+    
+  - burnin: int [default = 500] [optional]
+  
+    The number of `emcee` steps to burn in for
+   
+  - sampling_steps: int [default = 1000] [optional] [!!!UNIMPLEMENTED!!!]
+  
+    The nubmer of `emcee` steps to sample for.
+    Due to the current algorithm though, we don't bother doing a dedicated
+    sampling, but rather use... "steady" burnin stages as sampling.
+    This isn't really important though. Ask Tim if you really want to know.
+    
+  - trace_orbit_func: string or function [default = chronostar.traceorbit.trace_cartesian_orbit] [optional]
+  
+    The function used to calculate orbits. A string keyword can also be
+    provided: 'epicyclic', or 'dummy_trace_orbit_func'
+    
+    Advanced:
+    A custom function may be provided, as long as the signature matches:
+        trace_orbit_func(xyzuvw_start, times)
+    Where xyzuvw_start is a [6] np.array, and the result is also a [6] np.array.
+    Also where xyzuvw_start is the first positional argument, times can be
+    either the second positional argument or can be a keyword argument.
+    Extra arguments may exist in the signature, as long as they have 
+    default values.
+    
+  - par_log_file: string [default = 'fit_pars.log'] [optional]
+    
+    Filename to (over)write parameters used in run. It will state
+    the combination of default parameters and custom parameters, noting
+    which have been modified from their defaults. It will also state if
+    a provided parameter has no default, which is typically a sign of a
+    mistyped parameter name. 
+  
 
 [//]: # (# Outdated information)
 

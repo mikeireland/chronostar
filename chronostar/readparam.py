@@ -82,7 +82,7 @@ def log_used_pars(custom_pars, default_pars=None):
     if default_pars is None:
         default_pars = {}
 
-    # update defaults (no change if already peformed)
+    # update defaults (no change if already performed)
     combined_pars = dict(default_pars)
     combined_pars.update(custom_pars)
     # data_pars = update_data_defaults(data_pars, default)
