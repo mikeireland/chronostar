@@ -70,8 +70,8 @@ def test_2comps_and_background():
     # to a 2-component fit.
     sphere_comp_pars = np.array([
         #   X,  Y,  Z, U, V, W, dX, dV,  age,
-        [-20, -20,  0, 0, 0, 0, 10., 5, uniform_age],
-        [ 20,  20,  0, 0, 0, 0, 10., 5, uniform_age],
+        [-15, -15,  0, 0, 0, 0, 10., 5, uniform_age],
+        [ 15,  15,  0, 0, 0, 0, 10., 5, uniform_age],
     ])
     starcounts = [20, 50]
     ncomps = sphere_comp_pars.shape[0]
@@ -139,7 +139,6 @@ def test_2comps_and_background():
 
     logging.info('Best permutation is: {}'.format(perm))
 
-    import pdb; pdb.set_trace()
     n_misclassified_stars = np.sum(np.abs(true_memb_probs - np.round(memb_probs[:,perm])))
 
     # Check fewer than 15% of association stars are misclassified

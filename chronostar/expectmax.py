@@ -572,74 +572,6 @@ def expectation(data, comps, old_memb_probs=None,
     return memb_probs
 
 
-# def getPointsOnCircle(npoints, v_dist=20, offset=False):
-#     """
-#     Little tool to found coordinates of equidistant points around a circle
-#
-#     Used to initialise UV for the groups.
-#     :param npoints:
-#     :return:
-#     """
-#     us = np.zeros(npoints)
-#     vs = np.zeros(npoints)
-#     if offset:
-#         init_angle = np.pi / npoints
-#     else:
-#         init_angle = 0.
-#
-#     for i in range(npoints):
-#         us[i] = v_dist * np.cos(init_angle + 2 * np.pi * i / npoints)
-#         vs[i] = v_dist * np.sin(init_angle + 2 * np.pi * i / npoints)
-#
-#     return np.vstack((us, vs)).T
-
-
-# def getInitialGroups(ncomps, xyzuvw, offset=False, v_dist=10.,
-#                      Component=SphereComponent):
-#     """
-#     Generate the parameter list with which walkers will be initialised
-#
-#     TODO: replace hardcoding parameter generation with Component methods
-#
-#     Parameters
-#     ----------
-#     ncomps: int
-#         number of comps
-#     xyzuvw: [nstars, 6] array
-#         the mean measurement of stars
-#     offset : (boolean {False})
-#         If set, the gorups are initialised in the complementary angular
-#         positions
-#     v_dist: float
-#         Radius of circle in UV plane along which comps are initialsed
-#
-#     Returns
-#     -------
-#     comps: [ngroups] synthesiser.Group object list
-#         the parameters with which to initialise each comp's emcee run
-#     """
-#     if ncomps != 1:
-#         raise NotImplementedError, 'Unable to blindly initialise multiple' \
-#                                    'components'
-#     # Default initial values
-#     dx = 50.
-#     dv = 5.
-#     age = 0.5
-#
-#     # Initialise mean at mean of data
-#     mean = np.mean(xyzuvw, axis=0)[:6]
-#     logging.info("Mean is\n{}".format(mean))
-#
-#     covmatrix = np.identity(6)
-#     covmatrix[:3,:3] *= dx**2
-#     covmatrix[3:,3:] *= dv**2
-#
-#     init_comp = Component(attributes={'mean':mean,
-#                                       'covmatrix':covmatrix,
-#                                       'age':age})
-#     return np.array([init_comp])
-
-
 def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
                              inc_posterior=False):
     """
@@ -819,8 +751,6 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     # Component.store_raw_components(idir + 'best_comps.npy', new_comps)
     # np.save(idir + 'best_comps_bak.npy', new_comps)
 
-#    return np.array(new_comps), np.array(all_samples), np.array(all_lnprob),\
-#           np.array(all_final_pos), np.array(success_mask)
     return new_comps, all_samples, all_lnprob, \
            all_final_pos, success_mask
 
@@ -899,12 +829,7 @@ def check_comps_stability(z, unstable_flags_old, ref_counts, using_bg, thresh=0.
 
         # Only update reference counts for components that have just been
         # refitted
-        ref_counts[unstable_flags_old] = memb_counts[unstable_flags_old] # TODO: MZ: there is a bug here:
-        """
-        File "/home/marusa/chronostar/chronostar/expectmax.py", line 899, in check_comps_stability
         ref_counts[unstable_flags_old] = memb_counts[unstable_flags_old]
-        IndexError: boolean index did not match indexed array along dimension 0; dimension is 15 but corresponding boolean dimension is 14
-        """
 
     return unstable_flags, ref_counts
 
@@ -915,7 +840,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    Component=SphereComponent, trace_orbit_func=None,
                    use_background=False, store_burnin_chains=False,
                    ignore_stable_comps=False, max_em_iterations=100,
-                   record_len=30, bic_conv_tol=0.1, **kwargs):
+                   record_len=30, bic_conv_tol=0.1, min_em_iterations=30,
+                   **kwargs):
     """
 
     Entry point: Fit multiple Gaussians to data set
@@ -1061,7 +987,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     all_converged      = False
     stable_state       = True         # used to track issues
 
-    # Keep track of most recent `record_len` for convergence checking
+    # Keep track of all fits for convergence checking
     list_prev_comps        = []
     list_prev_memberships  = []
     list_all_init_pos      = []
@@ -1121,18 +1047,6 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                                            memb_probs=old_memb_probs))
 
             all_bics.append(list_prev_bics[-1])
-
-            # Ensure we don't exceed the maximum length of our record
-            if len(list_prev_bics) > record_len:
-                assert len(list_prev_comps)            == len(list_prev_bics)
-                assert len(list_prev_memberships)      == len(list_prev_bics)
-                assert len(list_all_init_pos)          == len(list_prev_bics)
-                assert len(list_all_med_and_spans)     == len(list_prev_bics)
-                list_prev_comps.pop(0)
-                list_prev_memberships.pop(0)
-                list_all_init_pos.pop(0)
-                list_all_med_and_spans.pop(0)
-                list_prev_bics.pop(0)
 
             iter_count += 1
             found_prev_iters = True
@@ -1218,21 +1132,6 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         Component.store_raw_components(idir + 'best_comps.npy', new_comps)
         np.save(idir + 'best_comps_bak.npy', new_comps)
 
-        ##!! This is left over code for handling dead components, success mask !!
-        ##!! has been repurposed for more efficient fitting                    !!
-        #
-        # # update number of comps to reflect any loss of dead components
-        # ncomps = len(success_mask)
-        # logging.info("The following components were fitted: {}".format(
-        #         success_mask
-        # ))
-        # # apply success mask to memb_probs, somewhat awkward cause need to preserve
-        # # final column (for background overlaps) if present
-        # if use_background:
-        #     memb_probs_new = np.hstack((memb_probs_new[:,success_mask],
-        #                             memb_probs_new[:,-1][:,np.newaxis]))
-        # else:
-        #     memb_probs_new = memb_probs_new[:,success_mask]
 
         logging.info('DEBUG: new_comps length: {}'.format(len(new_comps)))
 
@@ -1263,35 +1162,12 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
         all_bics.append(bic)
 
-        # Ensure we don't exceed the maximum length of our record
-        if len(list_prev_bics) > record_len:
-            assert len(list_prev_comps)        == len(list_prev_bics)
-            assert len(list_prev_memberships)  == len(list_prev_bics)
-            assert len(list_all_init_pos)      == len(list_prev_bics)
-            assert len(list_all_med_and_spans) == len(list_prev_bics)
-            list_prev_comps.pop(0)
-            list_prev_memberships.pop(0)
-            list_all_init_pos.pop(0)
-            list_all_med_and_spans.pop(0)
-            list_prev_bics.pop(0)
-
-        # Check status of convergence
-#         chains_converged = check_convergence(
-#                 old_best_comps=np.array(old_comps)[success_mask],
-#                 new_chains=all_samples
-#         )
-#         amplitudes_converged = np.allclose(memb_probs_new.sum(axis=0),
-#                                            memb_probs_old.sum(axis=0),
-#                                            atol=AMPLITUDE_TOL)
-#        likelihoods_converged = (old_overall_lnlike > overall_lnlike)
-#        all_converged = (chains_converged and amplitudes_converged and
-#                         likelihoods_converged)
-        if len(list_prev_bics) < record_len:
+        if len(list_prev_bics) < min_em_iterations:
             all_converged = False
         else:
             all_converged = compfitter.burnin_convergence(
-                    lnprob=np.expand_dims(list_prev_bics, axis=0),
-                    tol=bic_conv_tol, slice_size=int(record_len/2)
+                    lnprob=np.expand_dims(list_prev_bics[-min_em_iterations:], axis=0),
+                    tol=bic_conv_tol, slice_size=int(min_em_iterations/2)
             )
         old_overall_lnlike = overall_lnlike
         log_message('Convergence status: {}'.format(all_converged),
@@ -1310,12 +1186,6 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                                                                 np.argmin(all_bics)))
             plt.legend(loc='best')
             plt.savefig(rdir + 'all_bics.pdf')
-#             logging.info('Likelihoods converged: {}'. \
-#                          format(likelihoods_converged))
-#             logging.info('Chains converged: {}'.format(chains_converged))
-#             logging.info('Amplitudes converged: {}'.\
-#                 format(amplitudes_converged))
-
 
         # Check individual components stability
         if (iter_count % 5 == 0 and ignore_stable_comps):
@@ -1353,27 +1223,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     plt.clf()
     nbics = len(list_prev_bics)
     start_ix = iter_count - nbics
-    log_message('MZ: Temporary disabled plotting.') # TODO
-    """
-    MZ: Temporary disabled plotting for now because there is a bug here:
-      File "/home/marusa/chronostar/scripts/run_chronostar.py", line 409, in <module>
-    ignore_stable_comps=config.advanced['ignore_stable_comps'],
-  File "/home/marusa/chronostar/chronostar/expectmax.py", line 1352, in fit_many_comps
-    start_ix+np.argmin(list_prev_bics)))
-  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/pyplot.py", line 3759, in vlines
-    label=label, data=data, **kwargs)
-  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/__init__.py", line 1867, in inner
-    return func(ax, *args, **kwargs)
-  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/axes/_axes.py", line 1055, in vlines
-    lines.update(kwargs)
-  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/artist.py", line 888, in update
-    for k, v in props.items()]
-  File "/pkg/linux/anaconda/lib/python2.7/site-packages/matplotlib/artist.py", line 881, in _update_property
-    raise AttributeError('Unknown property %s' % k)
-AttributeError: Unknown property ls
-    """
 
-    
     plt.plot(range(start_ix, iter_count), list_prev_bics,
              label='Final {} BICs'.format(len(list_prev_bics)))
     plt.vlines(start_ix + np.argmin(list_prev_bics), linestyle='--', color='red',
@@ -1471,7 +1321,7 @@ AttributeError: Unknown property ls
 
     # If compoents aren't super great, log a message, but return whatever we
     # get.
-    if stable_state:
+    if not stable_state:
         log_message('BAD RUN TERMINATED', symbol='*', surround=True)
 
     logging.info(50*'=')

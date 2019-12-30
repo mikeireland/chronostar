@@ -51,6 +51,9 @@ class NaiveFit(object):
     final_med_and_spans_file = 'final_med_and_spans.npy'
     final_memb_probs_file = 'final_membership.npy'
 
+
+    # For detailed description of parameters, see the main README.md file
+    # in parent directory.
     DEFAULT_FIT_PARS = {
         'results_dir':'',
 
@@ -100,9 +103,14 @@ class NaiveFit(object):
 
     def __init__(self, fit_pars):
         """
-        fit_pars is either a string filename, or a dictionary
+        Parameters
+        ----------
+        fit_pars : str -or- dictionary
+            If a string, `fit_pars` should be a path to a parameter file which
+            can be parsed by readparam.readParam, to construct a dictionary.
+            Alternatively, an actual dictionary can be passed in. See README.md
+            for a description of parameters.
         """
-
         # Parse parameter file if required
         if type(fit_pars) is str:
             fit_pars = readparam.readParam(fit_pars, default_pars=self.DEFAULT_FIT_PARS)
@@ -168,11 +176,9 @@ class NaiveFit(object):
 
 
         # TODO: replace init_comps_file with just init_comps and check if file
-        # if self.fit_pars['init_comps_file'] is not None:
         if self.fit_pars['init_comps'] is str:
             self.fit_pars['init_comps'] = self.Component.load_raw_components(
                     self.fit_pars['init_comps'])
-                    # self.fit_pars['init_comps_file'])
             self.ncomps = len(self.fit_pars['init_comps'])
             print('Managed to load in init_comps from file')
         else:
@@ -183,7 +189,22 @@ class NaiveFit(object):
 
 
     def build_comps_from_chains(self, run_dir):
-        # TODO: check that the final chains looked for are guaranteed to be saved
+        """
+        Build compoennt objects from stored emcee chains and cooresponding
+        lnprobs.
+
+        Parameters
+        ----------
+        run_dir: str
+            Directory of an EM fit, which in the context of NaiveFit will be
+            e.g. 'myfit/1', or 'myfit/2/A'
+
+        Returns
+        -------
+        comps: [Component]
+            A list of components that correspond to the best fit from the
+            run in question.
+        """
         logging.info('Component class has been modified, reconstructing '
                      'from chain')
 
@@ -204,6 +225,25 @@ class NaiveFit(object):
 
 
     def log_score_comparison(self, prev, new):
+        """
+        Purely a logging helper function.
+        Log BIC comparisons.
+
+        Parameters
+        ----------
+        prev: dict
+            A dictinoary of scores from the previous run with the following entries
+            - bic: the Bayesian Information Criterion
+            - lnlike : the log likelihood
+            - lnpost : the log posterior
+        new: dict
+            A dictinoary of scores from the new run, with identical entries as
+            `prev`
+
+        Result
+        ------
+        None
+        """
         if new['bic'] > prev['bic']:
             logging.info("Extra component has improved BIC...")
             logging.info(
@@ -216,7 +256,33 @@ class NaiveFit(object):
         logging.info("lnlike: {} | {}".format(new['lnlike'], prev['lnlike']))
         logging.info("lnpost: {} | {}".format(new['lnpost'], prev['lnpost']))
 
+
     def build_init_comps(self, prev_comps, comp_ix, prev_med_and_spans):
+        """
+        Given a list of converged components from a N compoennt fit, generate
+        a list of N+1 components with which to intiailise an EM run.
+
+        This is done by taking the target component, `prev_comps[comp_ix]`,
+        replacing it in the list of comps, by splitting it into two components
+        with a lower and higher age,
+
+        Parameters
+        ----------
+        prev_comps : [N] list of Component objects
+            List of components from the N component fit
+        comp_ix : int
+            The index of component which is to be replaced
+        prev_med_and_spans : [ncomps,npars,3] np.array
+            The median and spans of
+
+        Return
+        ------
+        init_comps: [N+1] list of Component objects
+
+        Side effects
+        ------------
+        Updates self.fit_pars['init_comps'] with a [N+1] list of Component objects
+        """
         target_comp = prev_comps[comp_ix]
 
         assert isinstance(target_comp, self.Component)
@@ -230,8 +296,8 @@ class NaiveFit(object):
         init_comps.insert(comp_ix, split_comps[1])
         init_comps.insert(comp_ix, split_comps[0])
 
-        # Insert init_comps into parameter dicitonary
-        self.fit_pars['init_comps'] = init_comps
+        return init_comps
+
 
     def run_em_unless_loadable(self, run_dir):
         """
@@ -431,8 +497,10 @@ class NaiveFit(object):
                             symbol='+', surround=True)
                 mkpath(run_dir)
 
-                self.build_init_comps(prev_result['comps'], comp_ix=i,
-                                      prev_med_and_spans=prev_result['med_and_spans'])
+                self.fit_pars['init_comps'] = self.build_init_comps(
+                        prev_result['comps'], comp_ix=i,
+                        prev_med_and_spans=prev_result['med_and_spans']
+                )
 
                 result = self.run_em_unless_loadable(run_dir)
                 all_results.append(result)
