@@ -17,6 +17,8 @@ from . import traceorbit
 
 def dummy_trace_orbit_func(loc, times=None):
     """
+    Purely for testing purposes
+
     Dummy trace orbit func to skip irrelevant computation
     A little constraint on age (since otherwise its a free floating
     parameter)
@@ -37,12 +39,14 @@ def log_message(msg, symbol='.', surround=False):
 
 class NaiveFit(object):
     """
-    TODO: Build a argument dictionary for em.fit_many_comps
         Many arguments can be taken straight from the fit_pars dictionary,
         so no point explicitly looking for them.
+    TODO: Maybe put DEFAULT_PARS in some obvious place. Maybe a text file
     """
 
-    # Some default filenames
+    # Internal filestems that Chronostar uses to store results throughout a fit
+    # Should not be changed, otherwise Chronostar may struggle to retreive progress
+    # from previous fits.
     final_comps_file = 'final_comps.npy'
     final_med_and_spans_file = 'final_med_and_spans.npy'
     final_memb_probs_file = 'final_membership.npy'
@@ -50,14 +54,28 @@ class NaiveFit(object):
     DEFAULT_FIT_PARS = {
         'results_dir':'',
 
+        # Output from dataprep, XYZUVW data, plus background overlaps
+        # Can be a filename to a astropy table, or an actual table
         'data_table':None,
-        'init_comps_file':None, # TODO: Merge these two ?
-        'skip_init_fit':False,
+
+        # File name that points to a stored list of components, typically from
+        # a previous fit. Some example filenames could be:
+        #  - 'some/prev/fit/final_comps.npy
+        #  - 'some/prev/fit/2/A/final_comps.npy
+        # Alternatively, if you already have the list of components, just
+        # provide them to `init_comps`. Don't do both.
+        'init_comps_file':None, # TODO: Is this redundant with 'init_comps'
+        'init_comps':None,
 
         # One of these two are required if initialising a run with ncomps != 1
-        'init_comps':None,
-        'init_memb_probs':None,
 
+        # One can also initialise a Chronostar run with memberships.
+        # Array is [nstars, ncomps] float array
+        # Each row should sum to 1.
+        # Same as in 'final_membership.npy'
+        #'init_memb_probs':None,     # TODO: IMPLEMENT THIS
+
+        # Provide a string name that corresponds to a ComponentClass
         'component':'sphere',
         'max_comp_count':20,
         'max_em_iterations':200,
@@ -69,29 +87,34 @@ class NaiveFit(object):
         'sampling_steps':1000,
         'store_burnin_chains':False,
         'ignore_stable_comps':True,
+
+        # If loading parameters from text file, can provide strings:
+        #  - 'epicyclic' for epicyclic
+        #  - 'dummy_trace_orbit_func' for a trace orbit funciton that doens't do antyhing (for testing)
+        # Alternativley, if building up parameter dictionary in a script, can
+        # provide actual function.
         'trace_orbit_func':traceorbit.trace_cartesian_orbit,
 
         'par_log_file':'fit_pars.log',
-        'return_results':False,
-
-        # REDUNDANT PARAMTERS
-        'epicyclic':False,
     }
 
     def __init__(self, fit_pars):
+        """
+        fit_pars is either a string filename, or a dictionary
+        """
 
         # Parse parameter file if required
         if type(fit_pars) is str:
             fit_pars = readparam.readParam(fit_pars, default_pars=self.DEFAULT_FIT_PARS)
 
         # Make a new dictionary, with priority given to contents of fit_pars
-        self.fit_pars = {**self.DEFAULT_FIT_PARS, **fit_pars}
+        self.fit_pars = dict(self.DEFAULT_FIT_PARS)
+        self.fit_pars.update(fit_pars)
         assert type(self.fit_pars) is dict
 
         # Data prep should already have been completed, so we simply build
         # the dictionary of arrays from the astropy table
         self.data_dict = tabletool.build_data_dict_from_table(self.fit_pars['data_table'])
-
 
         # The NaiveFit approach is to assume staring with 1 component
         self.ncomps = 1
@@ -122,15 +145,7 @@ class NaiveFit(object):
         # Now that results directory is set up, can set up log file
         logging.basicConfig(filename=self.rdir + 'log.log', level=logging.INFO)
 
-
-    def setup(self):
-
-        # ------------------------------------------------------------
-        # -----  SETTING UP DEFAULT RUN VARS  ------------------------
-        # ------------------------------------------------------------
-        self.ncomps = 1
-
-        # Set a ceiling on how long code can run for
+        # Make some logs about how many iterations (+ other stuff) code can run for
         log_message(msg='Component count cap set to {}'.format(
                 self.fit_pars['max_comp_count']),
                 symbol='+', surround=True)
@@ -146,14 +161,10 @@ class NaiveFit(object):
         if self.fit_pars['trace_orbit_func'] == 'dummy_trace_orbit_func':
             self.fit_pars['trace_orbit_func'] = dummy_trace_orbit_func
         elif self.fit_pars['trace_orbit_func'] == 'epicyclic':
+            log_message('trace_orbit: epicyclic')
             self.fit_pars['trace_orbit_func'] = epicyclic.trace_cartesian_orbit_epicyclic
         else:
             self.fit_pars['trace_orbit_func'] = traceorbit.trace_cartesian_orbit
-
-        # TODO: ensure this is redundant
-        if self.fit_pars['epicyclic']:
-            self.fit_pars['trace_orbit_func'] =  epicyclic.trace_cartesian_orbit_epicyclic
-            log_message('trace_orbit: epicyclic')
 
 
         # TODO: replace init_comps_file with just init_comps and check if file
@@ -161,13 +172,16 @@ class NaiveFit(object):
             self.fit_pars['init_comps'] = self.Component.load_raw_components(
                     self.fit_pars['init_comps_file'])
             self.ncomps = len(self.fit_pars['init_comps'])
-            # prev_comps = init_comps  # MZ: I think that's correct
             print('Managed to load in init_comps from file')
         else:
             self.fit_pars['init_comps'] = None
             print("'Init comps' is initialised as none")
 
+        # TODO: If initialising with membership probabilities, adjust self.ncomps
+
+
     def build_comps_from_chains(self, run_dir):
+        # TODO: check that the final chains looked for are guaranteed to be saved
         logging.info('Component class has been modified, reconstructing '
                      'from chain')
 
@@ -220,6 +234,7 @@ class NaiveFit(object):
     def run_em_unless_loadable(self, run_dir):
         """
         Run and EM fit, but only if not loadable from a previous run
+
         """
         try:
             med_and_spans = np.load(run_dir + 'final/'
@@ -233,6 +248,7 @@ class NaiveFit(object):
             # Handle case where Component class has been modified and can't
             # load the raw components
         except AttributeError:
+            # TODO: check that the final chains looked for are guaranteed to be saved
             comps = self.build_comps_from_chains(run_dir)
 
             # Handle the case where files are missing, which means we must
@@ -241,6 +257,7 @@ class NaiveFit(object):
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
+                                         burnin=self.fit_pars['burnin_steps'],
                                          **self.fit_pars)
 
         # Since init_comps and init_memb_probs are only meant for one time uses
@@ -315,6 +332,17 @@ class NaiveFit(object):
 
 
     def run_fit(self):
+        """
+        Perform a fit (as described in Paper I) to a set of prepared data.
+
+        Results are outputted as two dictionaries
+        results = {'comps':best_fit, (list of components)
+                   'med_and_spans':median and spans of model parameters,
+                   'memb_probs': membership probability array (the standard one)}
+        scores  = {'bic': the bic,
+                   'lnlike': log likelihood of that run,
+                   'lnpost': log posterior of that run}
+        """
         # # ------------------------------------------------------------
         # # -----  BEGIN MPIRUN THING  ---------------------------------
         # # ------------------------------------------------------------
@@ -348,7 +376,7 @@ class NaiveFit(object):
                     symbol='_', surround=True)
 
         # ------------------------------------------------------------
-        # -----  RXECUTE RUN  ----------------------------------------
+        # -----  EXECUTE RUN  ----------------------------------------
         # ------------------------------------------------------------
 
         if self.fit_pars['store_burnin_chains']:
@@ -373,6 +401,7 @@ class NaiveFit(object):
 
         prev_result = self.run_em_unless_loadable(run_dir)
         prev_score = self.calc_score(prev_result['comps'], prev_result['memb_probs'])
+
         self.ncomps += 1
 
         # ------------------------------------------------------------
@@ -391,6 +420,9 @@ class NaiveFit(object):
             all_scores = []
 
             # Iteratively try subdividing each previous component
+            # target_comp is the component we will split into two.
+            # This will make a total of ncomps (the target comp split into 2,
+            # plus the remaining components from prev_result['comps']
             for i, target_comp in enumerate(prev_result['comps']):
                 div_label = chr(ord('A') + i)
                 run_dir = self.rdir + '{}/{}/'.format(self.ncomps, div_label)
@@ -403,10 +435,6 @@ class NaiveFit(object):
 
                 result = self.run_em_unless_loadable(run_dir)
                 all_results.append(result)
-
-                ### APPEND TO MASTER RESULTS TRACKER
-                # TODO: merge into one data structure
-                # TODO: two lists of dicts: results, and scores
 
                 score = self.calc_score(result['comps'], result['memb_probs'])
                 all_scores.append(score)
@@ -466,5 +494,4 @@ class NaiveFit(object):
         # except:
         #     pass
 
-        if self.fit_pars['return_results']:
-            return prev_result, prev_score
+        return prev_result, prev_score

@@ -125,7 +125,6 @@ def test_2comps_and_background():
 
     ### INITIALISE AND RUN A NAIVE FIT ###
     naivefit = NaiveFit(fit_pars=fit_pars)
-    naivefit.setup()
     result, score = naivefit.run_fit()
 
     best_comps = result['comps']

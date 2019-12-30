@@ -26,5 +26,4 @@ if not os.path.isfile(fit_par_file):
     raise UserWarning('Provided file does not exist')
 
 naivefit = NaiveFit(fit_pars=fit_par_file)
-naivefit.setup()
 naivefit.run_fit()
