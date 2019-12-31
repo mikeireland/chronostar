@@ -407,6 +407,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
                                       init_pars=init_pars, Component=Component,
                                       nwalkers=nwalkers)
+    os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
     sampler = emcee.EnsembleSampler(
             nwalkers, npars, lnprob_func,
             args=[data, memb_probs, trace_orbit_func],

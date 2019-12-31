@@ -37,7 +37,7 @@ PY_VERS = sys.version[0]
 #             return loc + 1000.
 #     return loc
 
-def test_2comps_and_background():
+def test_2comps_w_orbits():
     """
      Synthesise a file with negligible error, retrieve initial
      parameters
@@ -122,7 +122,7 @@ def test_2comps_and_background():
         'return_results':True,
         'par_log_file':savedir + 'fit_pars.log',
         'overwrite_prev_run':True,
-        'nthreads':3,
+        'nthreads':9,
         'use_background':False,
     }
 
@@ -169,3 +169,5 @@ def test_2comps_and_background():
                            atol=1.)
 
 
+if __name__ == '__main__':
+    test_2comps_w_orbits()

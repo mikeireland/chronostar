@@ -121,7 +121,7 @@ def test_2comps_and_background():
         'return_results':True,
         'par_log_file':savedir + 'fit_pars.log',
         'overwrite_prev_run':True,
-        'nthreads':3,
+        'nthreads':18,
     }
 
     ### INITIALISE AND RUN A NAIVE FIT ###
