@@ -30,9 +30,8 @@ print('Scale factor of {}'.format(scale))
 
 def log_prob(theta):
     t = time.time() + scale*np.random.uniform(0.005, 0.008)
-    while True:
-        if time.time() >= t:
-            break
+    while time.time() < t:
+        pass
     return -0.5*np.sum(theta**2)
 
 np.random.seed(42)
@@ -41,14 +40,15 @@ nwalkers, ndim = initial.shape
 nsteps = 100
 
 # with Pool() as pool: (not consistent with python2)
-pool = Pool(nthreads)
-sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob, pool=pool, threads=2)
+# pool = Pool(nthreads)
+pool = None
+sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob, pool=pool, threads=nthreads)
 start = time.time()
 sampler.run_mcmc(initial, nsteps)
 end = time.time()
 multi_time = end - start
 print("Multiprocessing took {0:.1f} seconds".format(multi_time))
-pool.close()
+# pool.close()
 
 
 sampler = emcee.EnsembleSampler(nwalkers, ndim, log_prob)

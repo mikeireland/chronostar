@@ -305,7 +305,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
              burnin_steps=1000, Component=SphereComponent, plot_it=False,
              pool=None, convergence_tol=0.25, plot_dir='', save_dir='',
              sampling_steps=None, max_iter=None, trace_orbit_func=None,
-             store_burnin_chains=False):
+             store_burnin_chains=False, nthreads=1,):
     """Fits a single 6D gaussian to a weighted set (by membership
     probabilities) of stellar phase-space positions.
 
@@ -411,6 +411,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             nwalkers, npars, lnprob_func,
             args=[data, memb_probs, trace_orbit_func],
             pool=pool,
+            threads=nthreads,
     )
 
     # PERFORM BURN IN

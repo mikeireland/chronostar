@@ -616,6 +616,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                  store_burnin_chains=False,
                  unstable_comps=None,
                  ignore_stable_comps=False,
+                 nthreads=1,
                  ):
     """
     Performs the 'maximisation' step of the EM algorithm
@@ -722,6 +723,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                     init_pars=all_init_pars[i], Component=Component,
                     trace_orbit_func=trace_orbit_func,
                     store_burnin_chains=store_burnin_chains,
+                    nthreads=nthreads,
             )
             logging.info("Finished fit")
             logging.info("Best comp pars:\n{}".format(
@@ -841,6 +843,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    use_background=False, store_burnin_chains=False,
                    ignore_stable_comps=False, max_em_iterations=100,
                    record_len=30, bic_conv_tol=0.1, min_em_iterations=30,
+                   nthreads=1,
                    **kwargs):
     """
 
@@ -1113,6 +1116,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                          store_burnin_chains=store_burnin_chains,
                          unstable_comps=unstable_comps,
                          ignore_stable_comps=ignore_stable_comps_iter,
+                         nthreads=nthreads,
                          )
 
         for i in range(ncomps):

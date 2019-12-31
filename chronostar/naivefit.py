@@ -7,6 +7,8 @@ import random
 
 from emcee.utils import MPIPool
 
+from multiprocessing import cpu_count
+
 sys.path.insert(0, os.path.abspath('..'))
 from . import expectmax
 from . import epicyclic
@@ -82,7 +84,7 @@ class NaiveFit(object):
         'component':'sphere',
         'max_comp_count':20,
         'max_em_iterations':200,
-        'mpi_threads':None,     # TODO: NOT IMPLEMENTED
+        'nthreads':1,     # TODO: NOT IMPLEMENTED
         'use_background':True,
 
         'overwrite_prev_run':False,
@@ -161,6 +163,11 @@ class NaiveFit(object):
                 self.fit_pars['max_em_iterations']),
                 symbol='+', surround=True)
 
+        # Check nthreads does not exceed hardware
+        if self.fit_pars['nthreads'] > cpu_count() - 1:
+            raise UserWarning('Provided nthreads exceeds cpu count on this machine. '
+                              'Rememeber to leave one cpu free for master thread!')
+
         # ------------------------------------------------------------
         # -----  SETTING UP RUN CUSTOMISATIONS  ----------------------
         # ------------------------------------------------------------
@@ -174,8 +181,6 @@ class NaiveFit(object):
         else:
             self.fit_pars['trace_orbit_func'] = traceorbit.trace_cartesian_orbit
 
-
-        # TODO: replace init_comps_file with just init_comps and check if file
         if self.fit_pars['init_comps'] is str:
             self.fit_pars['init_comps'] = self.Component.load_raw_components(
                     self.fit_pars['init_comps'])
@@ -257,7 +262,7 @@ class NaiveFit(object):
         logging.info("lnpost: {} | {}".format(new['lnpost'], prev['lnpost']))
 
 
-    def build_init_comps(self, prev_comps, comp_ix, prev_med_and_spans):
+    def build_init_comps(self, prev_comps, split_comp_ix, prev_med_and_spans):
         """
         Given a list of converged components from a N compoennt fit, generate
         a list of N+1 components with which to intiailise an EM run.
@@ -270,8 +275,8 @@ class NaiveFit(object):
         ----------
         prev_comps : [N] list of Component objects
             List of components from the N component fit
-        comp_ix : int
-            The index of component which is to be replaced
+        split_comp_ix : int
+            The index of component which is to be split into two
         prev_med_and_spans : [ncomps,npars,3] np.array
             The median and spans of
 
@@ -281,20 +286,21 @@ class NaiveFit(object):
 
         Side effects
         ------------
-        Updates self.fit_pars['init_comps'] with a [N+1] list of Component objects
+        Updates self.fit_pars['init_comps'] with a [N+1] list of Component
+        objects
         """
-        target_comp = prev_comps[comp_ix]
+        target_comp = prev_comps[split_comp_ix]
 
         assert isinstance(target_comp, self.Component)
         # Decompose and replace the ith component with two new components
         # by using the 16th and 84th percentile ages from previous run
         split_comps = target_comp.splitGroup(
-            lo_age=prev_med_and_spans[comp_ix, -1, 1],
-            hi_age=prev_med_and_spans[comp_ix, -1, 2])
+            lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
+            hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
         init_comps = list(prev_comps)
-        init_comps.pop(comp_ix)
-        init_comps.insert(comp_ix, split_comps[1])
-        init_comps.insert(comp_ix, split_comps[0])
+        init_comps.pop(split_comp_ix)
+        init_comps.insert(split_comp_ix, split_comps[1])
+        init_comps.insert(split_comp_ix, split_comps[0])
 
         return init_comps
 
@@ -410,34 +416,6 @@ class NaiveFit(object):
                    'lnlike': log likelihood of that run,
                    'lnpost': log posterior of that run}
         """
-        # # ------------------------------------------------------------
-        # # -----  BEGIN MPIRUN THING  ---------------------------------
-        # # ------------------------------------------------------------
-        #
-        # # Only even try to use MPI if config file says so
-        # using_mpi = self.fit_pars['run_with_mpi']
-        # if using_mpi:
-        #     try:
-        #         pool = MPIPool()
-        #         logging.info("Successfully initialised mpi pool")
-        #     except:
-        #         # print("MPI doesn't seem to be installed... maybe install it?")
-        #         logging.info(
-        #             "MPI doesn't seem to be installed... maybe install it?")
-        #         using_mpi = False
-        #         pool = None
-        #
-        # if using_mpi:
-        #     if not pool.is_master():
-        #         print("One thread is going to sleep")
-        #         # Wait for instructions from the master process.
-        #         pool.wait()
-        #         sys.exit(0)
-        #
-        # time.sleep(5)
-
-        print("Only one thread is master! (if not, maybe config "
-              "file is missing run_with_mpi=True)")
 
         log_message('Beginning Chronostar run',
                     symbol='_', surround=True)
@@ -498,9 +476,8 @@ class NaiveFit(object):
                 mkpath(run_dir)
 
                 self.fit_pars['init_comps'] = self.build_init_comps(
-                        prev_result['comps'], comp_ix=i,
-                        prev_med_and_spans=prev_result['med_and_spans']
-                )
+                        prev_result['comps'], split_comp_ix=i,
+                        prev_med_and_spans=prev_result['med_and_spans'])
 
                 result = self.run_em_unless_loadable(run_dir)
                 all_results.append(result)
@@ -554,13 +531,5 @@ class NaiveFit(object):
         if self.ncomps >= self.fit_pars['max_comp_count']:
             log_message(msg='REACHED MAX COMP LIMIT', symbol='+',
                         surround=True)
-
-        # # TODO: using_mpi is not defined if you don't use MPI.
-        # #  Try-except is not the best thing here but will do for now.
-        # try:
-        #     if using_mpi:
-        #         pool.close()
-        # except:
-        #     pass
 
         return prev_result, prev_score

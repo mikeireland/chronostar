@@ -420,6 +420,14 @@ A non-exhaustive list of data preparation parameters are listed here:
     which have been modified from their defaults. It will also state if
     a provided parameter has no default, which is typically a sign of a
     mistyped parameter name. 
+   
+  - nthreads: int [default = 1] [optional]
+  
+    Set this to a value higher than 1 to invoke parallel execution. `nthreads`
+    will be passed through to `emcee.EnsembleSampler` which will handle
+    the construction and destruction of an MPI Pool.
+  
+  
   
 
 [//]: # (# Outdated information)
