@@ -17,7 +17,7 @@ mp = MWPotential2014
 # mp = MiyamotoNagaiPotential(a=0.5,b=0.0375,amp=1.,normalize=1.) # Params from the example webpage. No idea if that's good or not.
 
 # from . import coordinate
-MIKES_IMP = True
+MIKES_IMP = False
 
 
 def convert_myr2bovytime(times):
@@ -49,7 +49,7 @@ def convert_bovytime2myr(times):
 
 
 def convert_cart2galpycoords(data, ts=None, ro=8., vo=220., debug=False,
-                             bovy_times=None):
+                             bovy_times=None, lsr_centered=True):
     """
     To build: construct this function so the treatment of galpy
     orbits can be debugged more easily.
@@ -70,6 +70,13 @@ def convert_cart2galpycoords(data, ts=None, ro=8., vo=220., debug=False,
         galpy coordinate system set up term
     vo: float [220.]
         galpy coordinate system set up term
+    lsr_centered: boolean {True}
+        If True, behaves as normal: each point in the star's orbit is rotated
+        backwards by the LSR's azimuthal change, with velocity vectors
+        rotated accordingly.
+        New addition. If false, orbits azimuthal positions aren't modified.
+        If this is false, you should also calculate the LSR's orbit, and
+        take the difference.
 
     Returns
     -------
@@ -87,7 +94,8 @@ def convert_cart2galpycoords(data, ts=None, ro=8., vo=220., debug=False,
         bovy_times = convert_myr2bovytime(ts)
     data = np.array(data)
 
-    phi_lsr = np.copy(bovy_times)
+    if lsr_centered:
+        phi_lsr = np.copy(bovy_times)
 
     Xs, Ys, Zs, Us, Vs, Ws = data.T
 
@@ -119,7 +127,8 @@ def convert_cart2galpycoords(data, ts=None, ro=8., vo=220., debug=False,
 
     # Finally, we offset the azimuthal position angle by the amount
     # travelled by the lsr
-    phis += phi_lsr
+    if lsr_centered:
+        phis += phi_lsr
 
     galpy_coords = np.vstack((Rs, vRs, vTs, zs, vzs, phis)).T
 
@@ -129,7 +138,7 @@ def convert_cart2galpycoords(data, ts=None, ro=8., vo=220., debug=False,
     return galpy_coords
 
 
-def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True):
+def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True, lsr_centered=True):
     """
     Converts orbits from galpy internal coords to chronostar coords
 
@@ -182,6 +191,11 @@ def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True):
     rc : boolean
         whether to calculate XYZUVW in a right handed coordinate system
         (X, U positive towards galactic centre)
+    lsr_centered: boolean {True}
+        New addition. If false, orbits azimuthal positions aren't modified.
+        If True, behaves as normal: each point in the star's orbit is rotated
+        backwards by the LSR's azimuthal change, with velocity vectors
+        rotated accordingly.
 
     Returns
     -------
@@ -193,14 +207,17 @@ def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True):
 
     TODO: This works for t=0, but not for other times
     """
-    if ts is not None:
+    if ts is not None and lsr_centered:
         phi_lsr = ts
     else:
         phi_lsr = 0.0
     R, vR, vT, z, vz, phi_s = data.T
 
     # This is the angular distance between the LSR and our star
-    phi = phi_s - phi_lsr
+    if lsr_centered:
+        phi = phi_s - phi_lsr
+    else:
+        phi = phi_s
 
     # Can convert to XYZUVW coordinate frame. See thesis for derivation
     # Need to scale values back into physical units with ro and vo.
@@ -232,6 +249,61 @@ def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True):
     if xyzuvw.shape == (1,6):
         xyzuvw = xyzuvw[0]
     return xyzuvw
+
+
+def trace_galpy_orbit(galpy_start, times=None, single_age=True,
+                      potential=MWPotential2014, ro=8, vo=220.,
+                      method='dopr54_c'):
+    """
+    An extra (potentially superfluous) function, currently only used
+    for testing.
+
+    Given a star's initial phase-space position in galpy coordinates,
+    project its orbit forward (or backward) to each of the times listed
+    in `times`.
+    Note: times should be in Myr
+    """
+    if single_age:
+        # replace 0 with some tiny number
+        try:
+            if times == 0.:
+                times = 1e-15
+            times = np.array([0., times])
+        except ValueError as err:
+            if not err.args:
+                err.args = ('',)
+            err.args = err.args + ('WARNING: comparing array to float? '
+                                   'Did you leave single_age as True?',)
+            raise
+
+    else:
+        times = np.array(times)
+
+    #Make sure we have a float array.
+    #MJI: Not sure why this is needed, as this isn't changed in-place anywhere.
+    #TC: Cause I kept passing in a lists of integers by accident, which would
+    # the crash things when converted to arrays.
+    galpy_start = np.copy(galpy_start).astype(np.float)
+
+    #Convert to to Galpy times, which go from 0 to 2\pi around the LSR orbit.
+    bovy_times = convert_myr2bovytime(times)
+
+    # since the LSR is constant in chron coordinates, the starting point
+    # is always treated as time 0
+    # galpy_coords = convert_cart2galpycoords(xyzuvw_start, ts=0.,
+    #                                         ro=ro, vo=vo)
+
+    o = Orbit(vxvv=galpy_start, ro=ro, vo=vo)
+    o.integrate(bovy_times, potential, method=method)
+    galpy_coords = o.getOrbit()
+
+    # galpy_coords = convert_galpycoords2cart(o.getOrbit(), bovy_times,
+                                            # ro=ro, vo=vo)
+    #import pdb; pdb.set_trace()
+    if single_age:
+        return galpy_coords[-1]
+    return galpy_coords
+
 
 def trace_cartesian_orbit(xyzuvw_start, times=None, single_age=True,
                           potential=MWPotential2014, ro=8., vo=220.,
