@@ -1,0 +1,35 @@
+# This is an example parameter file for new_run_chronostar.py
+# To see detailed description of each parameter, see the main README.md
+# document.
+# It is advised to not edit this file directly, but to copy it into
+# your working directory. Replace relevant file paths below with the
+# relative path from the working directory. Then perform data preparation
+# with:
+# > python /path/to/chronostar/new_.py your_data_prep.pars
+
+# Some filenames
+results_dir         = path/to/results/dir
+data_table          = path/to/data/file
+# Provide this if you wish to initialise based on some guessed/precalculated components
+init_comps          = path/to/stored_raw_components
+
+# Filename of log file, by default will appear in results_dir/`par_log_file`
+par_log_file        =
+
+# ComponentClass you wish to use
+component           =
+
+# The max components chronostar will try to fit
+max_comp_count      =
+
+# The max em iterations chronostar will go up to for each EM fit
+max_em_iterations   =
+
+use_background      =
+burnin              =
+trace_orbit_func    =
+
+
+
+
+

@@ -1,5 +1,5 @@
 """
-test_new_run_chronsotar.py
+test_run_chronostar.py
 
 Integration test, testing some simple scenarios for NaiveFit
 """
@@ -23,7 +23,7 @@ PY_VERS = sys.version[0]
 # if len(sys.argv) != 2:
 #     raise UserWarning('Incorrect usage. Path to parameter file is required'
 #                       ' as a single command line argument. e.g.\n'
-#                       '   > python new_run_chronostar.py path/to/parsfile.par')
+#                       '   > python run_chronostar.py path/to/parsfile.par')
 
 # fit_par_file = sys.argv[1]
 
@@ -121,7 +121,8 @@ def test_2comps_and_background():
         'return_results':True,
         'par_log_file':savedir + 'fit_pars.log',
         'overwrite_prev_run':True,
-        'nthreads':18,
+        # 'nthreads':18,
+        'nthreads':3,
     }
 
     ### INITIALISE AND RUN A NAIVE FIT ###
