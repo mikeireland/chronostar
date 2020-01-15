@@ -84,7 +84,7 @@ def test_2comps_and_background():
     sphere_comp_pars = np.array([
         #  X,  Y, Z, U, V, W, dX, dV,  age,
         [  0,  0, 0, 0, 0, 0, 10., 5, uniform_age],
-        [ 20,  0, 0, 0, 0, 0, 10., 5, uniform_age],
+        [ 30,  0, 0, 0, 5, 0, 10., 5, uniform_age],
     ])
     starcounts = [100, 150]
     ncomps = sphere_comp_pars.shape[0]
