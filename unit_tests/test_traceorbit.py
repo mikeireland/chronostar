@@ -90,6 +90,32 @@ def test_galpy2chron2galpy_moving():
         # import pdb; pdb.set_trace()
         assert np.allclose(xyzuvw_start, xyzuvw_res)
 
+def test_cart2curvilin2cart():
+    """
+
+    """
+    #xyzuvw_start = np.zeros(6)
+    xyzuvw_start = np.ones(6)*1000.0
+    #xyzuvw_start = np.array([133., -21., 48., -6., -17., -7])
+
+    curv = torb.convert_cart2curvilin(xyzuvw_start)
+    cart = torb.convert_curvilin2cart(curv)
+    print('curv', curv)
+    print('cart', cart)
+    print('diff', cart-xyzuvw_start)
+    assert np.allclose(xyzuvw_start, cart)
+
+def test_trace_epicyclic_orbit():
+    """
+    Take a point, trace it forward with epicyclic approx. and galpy and compare results.
+    """
+
+    xyzuvw_start = np.ones(6) * 1000.0
+    times = np.array([100]) # Myr
+    g = torb.trace_cartesian_orbit(xyzuvw_start, times=times)
+    e = torb.trace_epicyclic_orbit(xyzuvw_start, times=times)
+
+
 
 def test_LSR():
     """
