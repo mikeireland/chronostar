@@ -114,6 +114,7 @@ def transform_covmatrix(cov, trans_func, loc, dim=6, h=1e-3, args=None):
     loc : [dim] float array
         The position (in the initial coordinate frame)
         around which we are calculating the jacobian
+        (i.e. the mean, in the example of a Gaussian distribution)
     dim : integer {6}
         The dimensionality of the coordinate frame
     h : float {1e-3}

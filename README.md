@@ -373,6 +373,12 @@ A non-exhaustive list of data preparation parameters are listed here:
   
     The maximum iterations an EM fit will go up to.
     
+  - nthreads: int [default = 1] [optional]
+  
+    Set this to a value higher than 1 to invoke parallel execution. `nthreads`
+    will be passed through to `emcee.EnsembleSampler` which will handle
+    the construction and destruction of an MPI Pool.
+    
   - mpi_threads: int [default = None] [optional] [!!!UNIMPLEMENTED!!!]
   
     How many threads to let `emcee` use.
@@ -421,13 +427,8 @@ A non-exhaustive list of data preparation parameters are listed here:
     a provided parameter has no default, which is typically a sign of a
     mistyped parameter name. 
    
-  - nthreads: int [default = 1] [optional]
   
-    Set this to a value higher than 1 to invoke parallel execution. `nthreads`
-    will be passed through to `emcee.EnsembleSampler` which will handle
-    the construction and destruction of an MPI Pool.
-  
-  
+ ******** 
   
 
 [//]: # (# Outdated information)
