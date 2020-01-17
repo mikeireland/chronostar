@@ -177,7 +177,7 @@ class NaiveFit(object):
             self.fit_pars['trace_orbit_func'] = dummy_trace_orbit_func
         elif self.fit_pars['trace_orbit_func'] == 'epicyclic':
             log_message('trace_orbit: epicyclic')
-            self.fit_pars['trace_orbit_func'] = epicyclic.trace_cartesian_orbit_epicyclic
+            self.fit_pars['trace_orbit_func'] = traceorbit.trace_epicyclic_orbit
         else:
             self.fit_pars['trace_orbit_func'] = traceorbit.trace_cartesian_orbit
 
