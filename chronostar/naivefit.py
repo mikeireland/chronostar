@@ -181,7 +181,7 @@ class NaiveFit(object):
         else:
             self.fit_pars['trace_orbit_func'] = traceorbit.trace_cartesian_orbit
 
-        if self.fit_pars['init_comps'] is str:
+        if type(self.fit_pars['init_comps']) is str:
             self.fit_pars['init_comps'] = self.Component.load_raw_components(
                     self.fit_pars['init_comps'])
             self.ncomps = len(self.fit_pars['init_comps'])
