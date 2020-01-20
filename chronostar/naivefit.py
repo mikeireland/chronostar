@@ -514,6 +514,7 @@ class NaiveFit(object):
                         chr(ord('A') + best_split_ix)), symbol='+'
                 )
             else:
+                # WRITING THE FINAL RESULTS INTO FILES
                 logging.info("... saving previous fit as best fit to data")
                 self.Component.store_raw_components(self.rdir + self.final_comps_file,
                                                     prev_result['comps'])
