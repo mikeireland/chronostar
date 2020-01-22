@@ -879,6 +879,9 @@ class AbstractComponent(object):
 
         # Width and height are "full" widths, not radius
         width, height = 2 * nstd * np.sqrt(vals)
+        # MZ: just printing. Delete this
+        #print('width, height, angle', width, height, theta)
+        print(width, height, theta)
         ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
 
         if 'alpha' not in kwargs.keys():
@@ -938,6 +941,10 @@ class AbstractComponent(object):
         if type(dim2) is not int:
             dim2 = labels.index(dim2.upper())
 
+        # MZ added. Delete later
+        dim3 = labels.index('Z'.upper())
+        print(self.get_mean_now()[dim1], self.get_mean_now()[dim2], self.get_mean_now()[dim3])
+
         if comp_now:
             ax.scatter(self.get_mean_now()[dim1], self.get_mean_now()[dim2], color=color,
                        linewidth=0.0,
@@ -948,6 +955,9 @@ class AbstractComponent(object):
                                   linestyle='--',
                                   fill=False,
                                   color=color, **kwargs)
+        # MZ added. Delete later
+        #print(self.get_mean_now()[dim1], self.get_mean_now()[dim2])
+        print('')
         if comp_then:
             ax.scatter(self.get_mean()[dim1], self.get_mean()[dim2], color=color,
                        # linewidth=0.0,

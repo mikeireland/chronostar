@@ -338,7 +338,7 @@ def convert_curvilin2cart(data, ro=8., vo=220.,
 
     return cart_coordinates.T
 
-def epicyclic_approx(data, times=None, sA=1.0, sB=1.0, sR=1.0):
+def epicyclic_approx(data, times=None, sA=0.89, sB=1.15, sR=1.21):
     """
     MZ (2020 - 01 - 17)
 
@@ -370,6 +370,7 @@ def epicyclic_approx(data, times=None, sA=1.0, sB=1.0, sR=1.0):
     # Marusa's factors
     A0 = A0*sA # km/s/kpc
     B0 = B0*sB # km/s/kpc
+
 
     # Unit conversion: convert from km/s/kpc to Myr-1
     A = A0 * 0.0010227121650537077  # Myr-1

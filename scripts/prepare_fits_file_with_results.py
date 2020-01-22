@@ -26,9 +26,9 @@ import sys
 sys.path.insert(0, '../')
 import readparam
 
-filename_components = 'final_comps.npy'
+filename_components = 'final_comps.npy' # The best step of walkers. Lnprob can oscillate when converged.
 filename_membership = 'final_membership.npy'
-fit_pars = readparam.readParam('/data/mash/marusa/chronostar_projects/scocen/epifit/fit_pars.log')
+fit_pars = readparam.readParam('/data/mash/marusa/chronostar_projects/scocen/epifit/fit_pars.log') # TODO: hardcoded...
 filename_raw_input_data = fit_pars['data_table'] # Star IDs
 
 
@@ -40,7 +40,7 @@ ncomps = len(comp)
 
 # Compnames
 abc=string.ascii_uppercase
-compnames = ['comp'+abc[i] for i in range(ncomps)]
+compnames = [abc[i] for i in range(ncomps)]
 
 tabcomps = Table([compnames, comp[:,0], comp[:,1], comp[:,2], comp[:,3], comp[:,4], comp[:,5], comp[:,6], comp[:,7], comp[:,8]], names=('comp_ID', 'X', 'Y', 'Z', 'U', 'V', 'W', 'dX', 'dV', 'Age'))
 tabcomps['X'].unit = u.pc
