@@ -400,7 +400,7 @@ def epicyclic_approx(data, times=None, sA=0.89, sB=1.15, sR=1.21):
     new_position = new_position.T
     return new_position
 
-def trace_epicyclic_orbit(xyzuvw_start, times=None, sA=1.0, sB=1.0, sR=1.0, single_age=True,
+def trace_epicyclic_orbit(xyzuvw_start, times=None, sA=0.89, sB=1.15, sR=1.21, single_age=True,
                           ro=8., vo=220.):
     """
     MZ (2020 - 01 - 17)
