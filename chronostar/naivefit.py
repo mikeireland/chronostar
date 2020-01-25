@@ -122,6 +122,9 @@ class NaiveFit(object):
         self.fit_pars.update(fit_pars)
         assert type(self.fit_pars) is dict
 
+        # MZ: Make sure 'par_log_file' is written into the results folder
+        self.fit_pars['par_log_file'] = os.path.join(self.fit_pars['results_dir'], self.fit_pars['par_log_file'])
+
         # Data prep should already have been completed, so we simply build
         # the dictionary of arrays from the astropy table
         self.data_dict = tabletool.build_data_dict_from_table(self.fit_pars['data_table'])
