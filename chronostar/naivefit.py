@@ -168,6 +168,12 @@ class NaiveFit(object):
             raise UserWarning('Provided nthreads exceeds cpu count on this machine. '
                               'Rememeber to leave one cpu free for master thread!')
 
+        # MZ: If nthreads>1: create an MPIPool
+        if self.fit_pars['nthreads']>1:
+            self.pool = MPIPool()
+        else:
+            self.pool = None
+
         # ------------------------------------------------------------
         # -----  SETTING UP RUN CUSTOMISATIONS  ----------------------
         # ------------------------------------------------------------
@@ -294,7 +300,8 @@ class NaiveFit(object):
         assert isinstance(target_comp, self.Component)
         # Decompose and replace the ith component with two new components
         # by using the 16th and 84th percentile ages from previous run
-        split_comps = target_comp.splitGroup(
+        split_comps = target_comp.spli
+        tGroup(
             lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
             hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
         init_comps = list(prev_comps)
@@ -331,7 +338,7 @@ class NaiveFit(object):
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
-                                         **self.fit_pars)
+                                         pool=self.pool, **self.fit_pars)
 
         # Since init_comps and init_memb_probs are only meant for one time uses
         # we clear them to avoid any future usage

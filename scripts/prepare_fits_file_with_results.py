@@ -23,7 +23,8 @@ from astropy import units as u
 import string
 
 import sys
-sys.path.insert(0, '../')
+#sys.path.insert(0, '../')
+sys.path.insert(0, '/home/marusa/chronostar/chronostar/') # TODO: hardcoded
 import readparam
 
 filename_components = 'final_comps.npy' # The best step of walkers. Lnprob can oscillate when converged.
