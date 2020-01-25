@@ -6,6 +6,7 @@ from distutils.dir_util import mkpath
 import random
 
 from emcee.utils import MPIPool
+from multiprocessing import Pool
 
 from multiprocessing import cpu_count
 
@@ -173,7 +174,9 @@ class NaiveFit(object):
 
         # MZ: If nthreads>1: create an MPIPool
         if self.fit_pars['nthreads']>1:
-            self.pool = MPIPool()
+            #self.pool = MPIPool()
+            log_message('pool = Pool(nthreads) = pool(%d)'%self.fit_pars['nthreads'])
+            self.fit_pars['pool']=Pool(self.fit_pars['nthreads'])
         else:
             self.pool = None
 
@@ -303,8 +306,7 @@ class NaiveFit(object):
         assert isinstance(target_comp, self.Component)
         # Decompose and replace the ith component with two new components
         # by using the 16th and 84th percentile ages from previous run
-        split_comps = target_comp.spli
-        tGroup(
+        split_comps = target_comp.splitGroup(
             lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
             hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
         init_comps = list(prev_comps)
@@ -341,7 +343,7 @@ class NaiveFit(object):
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
-                                         pool=self.pool, **self.fit_pars)
+                                         **self.fit_pars)
 
         # Since init_comps and init_memb_probs are only meant for one time uses
         # we clear them to avoid any future usage
