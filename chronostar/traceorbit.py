@@ -16,10 +16,6 @@ from galpy.util import bovy_conversion
 mp = MWPotential2014
 # mp = MiyamotoNagaiPotential(a=0.5,b=0.0375,amp=1.,normalize=1.) # Params from the example webpage. No idea if that's good or not.
 
-# from . import coordinate
-MIKES_IMP = False
-
-
 def convert_myr2bovytime(times):
     """
     Convert times provided in Myr into times in bovy internal units.
@@ -111,19 +107,10 @@ def convert_cart2galpycoords(data, ts=None, ro=8., vo=220., debug=False,
         import pdb; pdb.set_trace()
     phis = np.arctan2(Ys/1000., ro - Xs/1000.)
 
-    if MIKES_IMP:
-        ## This is Mike's new implementation (2019.12.24)
-        # Calculate planar velocities. Note that we need to incorporate
-        # The velocity of the LSR in V
-        vTs = (220*Rs + Vs * np.cos(phis) + Us*np.sin(phis))/vo
-        vRs = (Vs * np.sin(phis) - Us * np.cos(phis))/vo
-    else:
-        # ## This was Tim's original implementation
-        # # Calculate planar velocities. Note that we need to incorporate
-        # # The velocity of the LSR in V
-        vTs = ((Vs+220) * np.cos(phis) + Us*np.sin(phis))/vo
-        vRs = ((Vs+220) * np.sin(phis) - Us * np.cos(phis))/vo
-
+    # Calculate planar velocities. Note that we need to incorporate
+    # The velocity of the LSR in V
+    vTs = ((Vs+220) * np.cos(phis) + Us*np.sin(phis))/vo
+    vRs = ((Vs+220) * np.sin(phis) - Us * np.cos(phis))/vo
 
     # Finally, we offset the azimuthal position angle by the amount
     # travelled by the lsr
@@ -227,16 +214,10 @@ def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True, lsr_centere
     Y = 1000 * ro * R * np.sin(phi)
     Z = 1000 * ro * z
 
-    if MIKES_IMP:
-        ## This is Tim's attempt to apply the inverse of Mike's implementation (2019.12.24)
-        vT -= 1.*R
-        U = vo * (-vR*np.cos(phi) + vT*np.sin(phi))
-        V = vo * ( vT*np.cos(phi) + vR*np.sin(phi))
-    else:
-        # ## This was Tim's original implementation
-        U = vo * (-vR*np.cos(phi) + vT*np.sin(phi))
-        V = vo * ( vT*np.cos(phi) + vR*np.sin(phi) - 1.)
-
+    # Ensure that -at the origin- U points towards the galactic centre (like X),
+    # and V points in direction of circular rotation (like Y).
+    U = vo * (-vR*np.cos(phi) + vT*np.sin(phi))
+    V = vo * ( vT*np.cos(phi) + vR*np.sin(phi) - 1.)
     W = vo * vz
 
     if not rc:
@@ -261,17 +242,21 @@ def convert_cart2curvilin(data, ro=8., vo=220.,
     towards the galactic center.
     Coordinates in the curvilinear system are [xi, eta, zeta, xidot, etadot, zetadot]
 
-    array:
+    Parameters
+    ----------
+    data: [6, (npoints)] float np.array
+        [pc, pc, pc, km/s,km/s,km/s]
+        [X,  Y,  Z,  U,   V,   W]
+
+    Returns
+    -------
+    curvilin_coordinates: [6, (npoints)] float np.array
         xi     : radial distance from the origin in LSR
         eta    :
         zeta   : vertical distance from plane
         xidot  :
         etadot :
         zetadot:
-
-
-    Returns
-    -------
 
     """
 
@@ -416,7 +401,7 @@ def trace_epicyclic_orbit(xyzuvw_start, times=None, sA=0.89, sB=1.15, sR=1.21, s
     ----------
     xyzuvw : [pc,pc,pc,km/s,km/s,km/s]
     times : (float) or ([ntimes] float array)
-        Myr - time of 0.0 must be present in the array. Times need not be #TODO: time 0.0 really?
+        Myr - time of 0.0 must be present in the array. Times need not be #TODO: time 0.0 really? [TC: this was true for galpy]
         spread linearly.
     single_age: (bool) {True}
         Set this flag if only providing a single age to trace to

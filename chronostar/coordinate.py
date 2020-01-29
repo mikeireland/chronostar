@@ -1,4 +1,6 @@
 """
+coordinate.py
+
 Module to handle various coordinate transformations.
 
 TODO: Update docstrings to reflect the removal of astropy

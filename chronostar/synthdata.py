@@ -1,4 +1,6 @@
 """
+synthdata.py
+
 synthesiser
 
 Used to generate realistic data for one (or many) synthetic association(s)
