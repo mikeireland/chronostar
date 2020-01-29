@@ -1,4 +1,6 @@
 """
+compfitter.py
+
 Fit a single component to a set of stellar 6D phase-space data, along
 with an optional membership probability array. The fitting uses a
 monte carlo markov chain approach (emcee by Dan Foreman-Mackay(?))
@@ -21,7 +23,7 @@ import logging
 import os
 
 from .component import SphereComponent
-from .likelihood import lnprob_func
+from . import likelihood
 from . import tabletool
 
 try:
@@ -135,30 +137,13 @@ def no_stuck_walkers(lnprob):
     Returns
     -------
     res: boolean
-        True if no walkers have flatlined far from the pack
-
-    Notes
-    -----
-    TODO: rewrite this using 'percentile' to set some range
-          i.e. no walker should be more than 3*D from mean where
-          D is np.perc(final_pos, 50) - np.perc(final_pos, 16)
+        True if no walkers have flat-lined far from the pack
     """
 
     stuck_walker_checks = []
     for walker_lnprob in lnprob:
         stuck_walker_checks.append(stuck_walker(walker_lnprob))
 
-#     final_pos = lnprob[:,-1]
-#
-#     # Get a proxy for the standard deviation
-#     rough_std = np.percentile(final_pos, 50) -\
-#                  np.percentile(final_pos, 16)
-#
-#     # Ensure the final lnprob of the worst walker (lowest lnprob) is
-#     # not more than three "standard deviations" away from the 50th
-#     # percentile.
-#     worst_walker = np.min(final_pos)
-#     res = worst_walker > np.percentile(final_pos, 50) - 6*rough_std
     res = not np.any(stuck_walker_checks)
     logging.info("No stuck walkers? {}".format(res))
     return res
@@ -409,7 +394,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
                                       nwalkers=nwalkers)
     os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
     sampler = emcee.EnsembleSampler(
-            nwalkers, npars, lnprob_func,
+            nwalkers, npars, likelihood.lnprob_func,
             args=[data, memb_probs, trace_orbit_func],
             pool=pool,
             threads=nthreads,
@@ -490,9 +475,6 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
     # Identify the best component
     best_component = get_best_component(sampler.chain, sampler.lnprobability)
-    # final_best_ix = np.argmax(sampler.lnprobability)
-    # best_sample = sampler.flatchain[final_best_ix]
-    # best_component = Component(emcee_pars=best_sample)
 
     # Determining the median and span of each parameter
     med_and_span = calc_med_and_span(sampler.chain)

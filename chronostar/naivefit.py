@@ -1,3 +1,25 @@
+"""
+naivefit.py
+
+
+A NaiveFit follows the approach described in Crundall et al. (2019).
+
+NaiveFit begins with an initial guess provided by user of an N component fit.
+If no guess is provided, all provided stars are assumed to be members of one
+component.
+
+NaiveFit will perform an Expectation Maximisation on this N component fit until
+converged.
+
+Then NaiveFit will test increasing the compoennt count to N+1. This is done by
+for each component out of the N existing, substituting it for 2 similar
+components with slight age offsets, and running an EM fit. The result
+is N separate "N+1 component" fits. The best one will be compared to the
+"N component" fit using the Bayesian Information Criterion (BIC). If the
+BIC has improved, this "N+1 component fit" will be taken as the best fit so far.
+
+This process iterates until adding a component fails to yield a better fit.
+"""
 import numpy as np
 import os
 import sys
@@ -44,7 +66,9 @@ class NaiveFit(object):
     """
         Many arguments can be taken straight from the fit_pars dictionary,
         so no point explicitly looking for them.
-    TODO: Maybe put DEFAULT_PARS in some obvious place. Maybe a text file
+
+        Description of parameters can be found in README.md along with their
+        default values and whether they are required.
     """
 
     # Internal filestems that Chronostar uses to store results throughout a fit

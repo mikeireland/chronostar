@@ -1,4 +1,6 @@
 """
+expectmax.py
+
 Implementation of the expectation-maximisation algorithm used to fit
 a multivariate gaussian mixture model of moving groups' origins
 to a data set of stars, measured in Cartesian space, centred on and
@@ -457,9 +459,9 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
             comp_lnpriors[i] = likelihood.ln_alpha_prior(
                     comp, memb_probs=old_memb_probs
             )
-        assoc_starcount = weights.sum()
+        comp_starcount = weights.sum()
         weights *= np.exp(comp_lnpriors)
-        weights = weights / weights.sum() * assoc_starcount
+        weights = weights / weights.sum() * comp_starcount
 
     # Optionally scale each weight such that the total expected stars
     # is equal to or greater than `amp_prior`
@@ -530,7 +532,7 @@ def expectation(data, comps, old_memb_probs=None,
     comps: [ncomps] Component list
         The best fit for each component from previous runs
     old_memb_probs: [nstars, ncomps (+1)] float array
-        Memberhsip probab ility of each star to each fromponent. Only used here
+        Memberhsip probability of each star to each component. Only used here
         to set amplitudes of each component.
     inc_posterior: bool {False}
         Whether to rebalance the weighting of each component by their
@@ -1250,10 +1252,6 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     best_all_init_pos   = list_all_init_pos[best_bic_ix]
     final_med_and_spans = list_all_med_and_spans[best_bic_ix]
 
-    # PERFORM FINAL EXPLORATION OF PARAMETER SPACE AND SAVE RESULTS
-    # No longer need to do characterisation... waste of time and source of
-    # inconsistencies
-    # if stable_state:
     log_message('Storing final result', symbol='-', surround=True)
     final_dir = rdir+'final/'
     mkpath(final_dir)
@@ -1264,32 +1262,6 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     logging.info('Membership distribution:\n{}'.format(
         final_memb_probs.sum(axis=0)
     ))
-
-    # for i in range(ncomps):
-        # logging.info('Characterising comp {}'.format(i))
-        # final_gdir = final_dir + 'comp{}/'.format(i)
-        # mkpath(final_gdir)
-
-        # best_comp, chain, lnprob = compfitter.fit_comp(
-        #         data=data,
-        #         memb_probs=final_memb_probs[:, i],
-        #         burnin_steps=burnin,
-        #         plot_it=True, pool=pool, convergence_tol=C_TOL,
-        #         plot_dir=final_gdir, save_dir=final_gdir,
-        #         init_pos=best_all_init_pos[i],
-        #         sampling_steps=SAMPLING_STEPS,
-        #         trace_orbit_func=trace_orbit_func,
-        #         store_burnin_chains=False,
-        # )
-        # logging.info("Finished fit")
-        # final_best_comps[i] = best_comp
-        # final_med_and_spans[i] = compfitter.calc_med_and_span(
-        #         chain, intern_to_extern=True, Component=Component,
-        # )
-        # np.save(final_gdir + 'final_chain.npy', chain)
-        # np.save(final_gdir + 'final_lnprob.npy', lnprob)
-        #
-        # all_init_pos[i] = chain[:, -1, :]
 
     # SAVE FINAL RESULTS IN MAIN SAVE DIRECTORY
     Component.store_raw_components(final_dir+'final_comps.npy', final_best_comps)
