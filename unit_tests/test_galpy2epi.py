@@ -1,10 +1,9 @@
 import numpy as np
 
-import pytest
 import sys
 sys.path.insert(0, '..')
 import chronostar.traceorbit as torb
-import chronostar.epicyclic_via_galpy as eg
+import chronostar.retired2.epicyclic_via_galpy as eg
 
 torb.MIKES_IMP = False
 

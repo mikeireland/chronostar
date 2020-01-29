@@ -107,10 +107,11 @@ def ln_alpha_prior(comp, memb_probs, sig=1.0):
     (AlphaPrior(alpha=1, sig=1.) =     AlphaPrior(alpha=11,sig=1.)
                                  = 0.5*AlphaPrior(alpha=3, sig=1.)
 
-    pars: [8] float array
-        X,Y,Z,U,V,W,log(dX),log(dV),age
-    data:
-        (retired)
+    Parameters
+    ----------
+    comp: Component object
+        An object from an implementation of the AbstractComponent class.
+        Encapsulates the parameters describing a component fit.
     memb_probs: [nstars] float array
         membership array
     """
@@ -126,13 +127,11 @@ def lnprior(comp, memb_probs):
 
     Parameters
     ----------
-    pars
-        Parameters describing the group model being fitted
-    data
-        traceback data being fitted to
-    memb_probs
-        array of weights [0.0 - 1.0] for each star, describing how likely
-        they are members of group to be fitted.
+    comp: Component object
+        Component object encapsulating the component model
+    memb_probs: [nstars] float array
+        array of weights [0.0 - 1.0] for each star, describing probabilty
+        of each star being a member of component beign fitted.
 
     Returns
     -------
@@ -174,10 +173,10 @@ def get_lnoverlaps(comp, data, star_mask=None):
         Parameters describing the origin of group
         typically [X,Y,Z,U,V,W,np.log(dX),np.log(dV),age]
     data: dict
-        traceback data being fitted to, stored as a dict:
-        'xyzuvw': [nstars,6] float array
+        stellar cartesian data being fitted to, stored as a dict:
+        'means': [nstars,6] float array
             the central estimates of each star in XYZUVW space
-        'xyzuvw_cov': [nstars,6,6] float array
+        'covs': [nstars,6,6] float array
             the covariance of each star in XYZUVW space
     star_mask: [len(data)] indices
         A mask that excludes stars that have negliglbe membership probablities
@@ -224,9 +223,9 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
         Parameters describing the group model being fitted
     data: dict
         traceback data being fitted to, stored as a dict:
-        'xyzuvw': [nstars,6] float array
+        'means': [nstars,6] float array
             the central estimates of each star in XYZUVW space
-        'xyzuvw_cov': [nstars,6,6] float array
+        'covs': [nstars,6,6] float array
             the covariance of each star in XYZUVW space
     memb_probs: [nstars] float array
         array of weights [0.0 - 1.0] for each star, describing how likely
@@ -275,7 +274,14 @@ def lnprob_func(pars, data, memb_probs=None,
             0,1,2,3,4,5,   6,   7,  8
             X,Y,Z,U,V,W,lndX,lndV,age
     data
-        data being fitted to
+    data: dict
+        'means': [nstars,6] float array_like
+            the central estimates of star phase-space properties
+        'covs': [nstars,6,6] float array_like
+            the phase-space covariance matrices of stars
+        'bg_lnols': [nstars] float array_like (opt.)
+            the log overlaps of stars with whatever pdf describes
+            the background distribution of stars.
     memb_probs
         array of weights [0.0 - 1.0] for each star, describing how likely
         they are members of group to be fitted.
@@ -301,7 +307,7 @@ def lnprob_func(pars, data, memb_probs=None,
         the logarithm of the posterior probability of the fit
     """
     if memb_probs is None:
-        memb_probs = np.ones(len(data))
+        memb_probs = np.ones(len(data['means']))
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
     lp = lnprior(comp, memb_probs)
     if not np.isfinite(lp):

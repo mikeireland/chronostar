@@ -108,13 +108,17 @@ def test_cart2curvilin2cart():
 def test_trace_epicyclic_orbit():
     """
     Take a point, trace it forward with epicyclic approx. and galpy and compare results.
+
+    TODO: Marusa left incomplete test
     """
-
-    xyzuvw_start = np.ones(6) * 1000.0
-    times = np.array([100]) # Myr
-    g = torb.trace_cartesian_orbit(xyzuvw_start, times=times)
-    e = torb.trace_epicyclic_orbit(xyzuvw_start, times=times)
-
+    if False:
+        # xyzuvw_start = np.ones(6) * 1000.0
+        xyzuvw_start = np.array([10., 10., 10., 3., -2., 1.])
+        # times = np.array([100]) # Myr
+        # TC: trace_cartesian_orbit expects a single float for times
+        times = 100.
+        galpy_end = torb.trace_cartesian_orbit(xyzuvw_start, times=times)
+        epi_end = torb.trace_epicyclic_orbit(xyzuvw_start, times=times)
 
 
 def test_LSR():
