@@ -29,6 +29,7 @@ import random
 
 from emcee.utils import MPIPool
 from multiprocessing import Pool
+from schwimmbad import MPIPool
 
 from multiprocessing import cpu_count
 
@@ -146,6 +147,21 @@ class NaiveFit(object):
         self.fit_pars.update(fit_pars)
         assert type(self.fit_pars) is dict
 
+        #################################
+        # Check nthreads does not exceed hardware
+        if self.fit_pars['nthreads'] > cpu_count() - 1:
+            raise UserWarning('Provided nthreads exceeds cpu count on this machine. '
+                              'Rememeber to leave one cpu free for master thread!')
+
+        # MZ: If nthreads>1: create an MPIPool
+        if self.fit_pars['nthreads']>1:
+            #self.pool = MPIPool()
+            log_message('pool = Pool(nthreads) = pool(%d)'%self.fit_pars['nthreads'])
+            #self.fit_pars['pool']=Pool(self.fit_pars['nthreads'])
+        else:
+            self.pool = None
+        #################################
+
         # MZ: Make sure 'par_log_file' is written into the results folder
         self.fit_pars['par_log_file'] = os.path.join(self.fit_pars['results_dir'], self.fit_pars['par_log_file'])
 
@@ -190,6 +206,7 @@ class NaiveFit(object):
                 self.fit_pars['max_em_iterations']),
                 symbol='+', surround=True)
 
+        """
         # Check nthreads does not exceed hardware
         if self.fit_pars['nthreads'] > cpu_count() - 1:
             raise UserWarning('Provided nthreads exceeds cpu count on this machine. '
@@ -202,6 +219,7 @@ class NaiveFit(object):
             self.fit_pars['pool']=Pool(self.fit_pars['nthreads'])
         else:
             self.pool = None
+        """
 
         # ------------------------------------------------------------
         # -----  SETTING UP RUN CUSTOMISATIONS  ----------------------
