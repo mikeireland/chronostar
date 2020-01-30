@@ -31,13 +31,13 @@ import readparam
 if len(sys.argv)<3:
     print('Usage:')
     print('python prepare_fits_file_with_results.py path_to_the_results_folder component_folder')
-    print('E.g. python prepare_fits_file_with_results.py results/ 15/')
+    print('E.g. python prepare_fits_file_with_results.py results/ 15/K/')
 
 root = sys.argv[1]
 root_comp = sys.argv[2]
 
-filename_components = os.path.join(root, root_comp, 'final_comps.npy') # The best step of walkers. Lnprob can oscillate when converged.
-filename_membership =  os.path.join(root, root_comp, 'final_membership.npy')
+filename_components = os.path.join(root, root_comp, 'final/final_comps.npy') # The best step of walkers. Lnprob can oscillate when converged.
+filename_membership =  os.path.join(root, root_comp, 'final/final_membership.npy')
 fit_pars = readparam.readParam(os.path.join(root, 'fit_pars.log'))
 filename_raw_input_data = fit_pars['data_table'] # Star IDs
 
@@ -63,7 +63,7 @@ tabcomps['W'].unit = u.km/u.s
 tabcomps['dV'].unit = u.km/u.s
 tabcomps['Age'].unit = u.Myr
 
-tabcomps.write(os.path.join(root, root_comp, 'final_comps.fits'), format='fits')
+tabcomps.write(os.path.join(root, root_comp, 'final/final_comps.fits'), format='fits')
 
 ### MEMBERSHIPS
 # Raw data with IDs
@@ -76,7 +76,7 @@ memb = np.load(filename_membership)
 for i, c in enumerate(compnames):
     tab['membership%s'%c.replace('comp', '')] = memb[:,i]
 
-tab.write(os.path.join(root, root_comp, 'final_membership.fits'), format='fits')
+tab.write(os.path.join(root, root_comp, 'final/final_membership.fits'), format='fits')
 
 # TODO: what is this
 #final_comps_bak.npy # get some pickle error
