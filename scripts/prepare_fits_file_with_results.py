@@ -22,14 +22,23 @@ from astropy.table import Table
 from astropy import units as u
 import string
 
+import os
 import sys
 #sys.path.insert(0, '../')
 sys.path.insert(0, '/home/marusa/chronostar/chronostar/') # TODO: hardcoded
 import readparam
 
-filename_components = 'final_comps.npy' # The best step of walkers. Lnprob can oscillate when converged.
-filename_membership = 'final_membership.npy'
-fit_pars = readparam.readParam('/data/mash/marusa/chronostar_projects/scocen/epifit/fit_pars.log') # TODO: hardcoded...
+if len(sys.argv)<3:
+    print('Usage:')
+    print('python prepare_fits_file_with_results.py path_to_the_results_folder component_folder')
+    print('E.g. python prepare_fits_file_with_results.py results/ 15/')
+
+root = sys.argv[1]
+root_comp = sys.argv[2]
+
+filename_components = os.path.join(root, root_comp, 'final_comps.npy') # The best step of walkers. Lnprob can oscillate when converged.
+filename_membership =  os.path.join(root, root_comp, 'final_membership.npy')
+fit_pars = readparam.readParam(os.path.join(root, 'fit_pars.log'))
 filename_raw_input_data = fit_pars['data_table'] # Star IDs
 
 
