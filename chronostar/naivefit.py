@@ -566,6 +566,12 @@ class NaiveFit(object):
                         self.ncomps, self.ncomps - 1,
                         chr(ord('A') + best_split_ix)), symbol='+'
                 )
+
+                # Save info about the best split into a file.
+                pth = os.path.join(self.fit_pars['results_dir'], str(self.ncomps - 1), 'best_split.info')
+                np.savetxt(pth, np.array(["Best split: {}{}".format(
+                        self.ncomps - 1, chr(ord('A') + best_split_ix))]), fmt='%s')
+
             else:
                 # WRITING THE FINAL RESULTS INTO FILES
                 logging.info("... saving previous fit as best fit to data")
