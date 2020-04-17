@@ -580,7 +580,7 @@ class AbstractComponent(object):
     @staticmethod
     def load_components(filename):
         """
-        Load Component objects from a *.npy file.
+        Load Component objects from a *.npy file or *.fits file.
 
         Used to standardise result if loading a single component vs multiple
         components.
@@ -595,11 +595,17 @@ class AbstractComponent(object):
         res : [Component] list
             A list of Component objects
         """
-        res = np.load(filename)
-        if res.shape == ():
-            return np.array([res.item()])
-        else:
-            return res
+        # npy file
+        try:
+            res = np.load(filename)
+            if res.shape == ():
+                return np.array([res.item()])
+            else:
+                return res
+        except: # fits file
+            tab = Table.read(filename)
+            res = np.array([tab['X'], tab['Y'], tab['Z'], tab['U'], tab['V'], tab['W'], tab['dX'], tab['dV'], tab['Age']])
+            return res.T
 
     @classmethod
     def load_raw_components(cls, filename, use_emcee_pars=False):
