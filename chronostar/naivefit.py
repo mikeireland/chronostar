@@ -27,9 +27,8 @@ import logging
 from distutils.dir_util import mkpath
 import random
 
-from emcee.utils import MPIPool
-from multiprocessing import Pool
-from schwimmbad import MPIPool
+#~ from emcee.utils import MPIPool
+#~ from multiprocessing import Pool
 
 from multiprocessing import cpu_count
 
@@ -39,6 +38,9 @@ from . import readparam
 from . import tabletool
 from . import component
 from . import traceorbit
+
+# MZ: dev
+import line_profiler
 
 def dummy_trace_orbit_func(loc, times=None):
     """
@@ -128,6 +130,7 @@ class NaiveFit(object):
         'par_log_file':'fit_pars.log',
     }
 
+    #~ @profile
     def __init__(self, fit_pars):
         """
         Parameters
@@ -146,21 +149,6 @@ class NaiveFit(object):
         self.fit_pars = dict(self.DEFAULT_FIT_PARS)
         self.fit_pars.update(fit_pars)
         assert type(self.fit_pars) is dict
-
-        #################################
-        # Check nthreads does not exceed hardware
-        if self.fit_pars['nthreads'] > cpu_count() - 1:
-            raise UserWarning('Provided nthreads exceeds cpu count on this machine. '
-                              'Rememeber to leave one cpu free for master thread!')
-
-        # MZ: If nthreads>1: create an MPIPool
-        if self.fit_pars['nthreads']>1:
-            #self.pool = MPIPool()
-            log_message('pool = Pool(nthreads) = pool(%d)'%self.fit_pars['nthreads'])
-            #self.fit_pars['pool']=Pool(self.fit_pars['nthreads'])
-        else:
-            self.pool = None
-        #################################
 
         # MZ: Make sure 'par_log_file' is written into the results folder
         self.fit_pars['par_log_file'] = os.path.join(self.fit_pars['results_dir'], self.fit_pars['par_log_file'])
@@ -206,7 +194,6 @@ class NaiveFit(object):
                 self.fit_pars['max_em_iterations']),
                 symbol='+', surround=True)
 
-        """
         # Check nthreads does not exceed hardware
         if self.fit_pars['nthreads'] > cpu_count() - 1:
             raise UserWarning('Provided nthreads exceeds cpu count on this machine. '
@@ -219,7 +206,6 @@ class NaiveFit(object):
             self.fit_pars['pool']=Pool(self.fit_pars['nthreads'])
         else:
             self.pool = None
-        """
 
         # ------------------------------------------------------------
         # -----  SETTING UP RUN CUSTOMISATIONS  ----------------------
@@ -246,6 +232,7 @@ class NaiveFit(object):
         # TODO: If initialising with membership probabilities, adjust self.ncomps
 
 
+    #~ @profile
     def build_comps_from_chains(self, run_dir):
         """
         Build compoennt objects from stored emcee chains and cooresponding
@@ -282,6 +269,7 @@ class NaiveFit(object):
         return comps
 
 
+    #~ @profile
     def log_score_comparison(self, prev, new):
         """
         Purely a logging helper function.
@@ -357,7 +345,7 @@ class NaiveFit(object):
 
         return init_comps
 
-
+    #~ @profile
     def run_em_unless_loadable(self, run_dir):
         """
         Run and EM fit, but only if not loadable from a previous run
@@ -456,7 +444,26 @@ class NaiveFit(object):
 
         return {'bic':bic, 'lnlike':lnlike, 'lnpost':lnpost}
 
+    def convert_membership_results_into_astropy_table(self, memb_probs):
+        """
+        Prepare a fits file with star IDS and their component memberships.
+        Add background overlap as well.
+        
+        Returns:
+        astropy table
+        """
+        # Raw data with IDs
+        tab_raw = Table.read(filename_raw_input_data)
+        ids = list(tab_raw['source_id'])
+        tab = Table((ids,), names=('source_id',))
 
+        # Membership
+        for i, c in enumerate(compnames):
+            tab['membership%s'%c.replace('comp', '')] = memb_probs[:,i]
+    
+        return tab
+    
+    #~ @profile
     def run_fit(self):
         """
         Perform a fit (as described in Paper I) to a set of prepared data.
@@ -566,12 +573,6 @@ class NaiveFit(object):
                         self.ncomps, self.ncomps - 1,
                         chr(ord('A') + best_split_ix)), symbol='+'
                 )
-
-                # Save info about the best split into a file.
-                pth = os.path.join(self.fit_pars['results_dir'], str(self.ncomps - 1), 'best_split.info')
-                np.savetxt(pth, np.array(["Best split: {}{}".format(
-                        self.ncomps - 1, chr(ord('A') + best_split_ix))]), fmt='%s')
-
             else:
                 # WRITING THE FINAL RESULTS INTO FILES
                 logging.info("... saving previous fit as best fit to data")
@@ -581,6 +582,12 @@ class NaiveFit(object):
                 np.save(self.rdir + self.final_memb_probs_file, prev_result['memb_probs'])
                 np.save(self.rdir + 'final_likelihood_post_and_bic',
                         prev_score)
+
+                # Save fits files as well
+                TODO=True
+                tabcomps = self.Component.convert_components_array_into_astropy_table(prev_result['comps'])
+                tabcomps.write('tabcomps.fits', overwrite=True)
+                tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(table, memb_probs, comps, output_filename, get_background_overlaps=True)
 
                 self.log_final_log(prev_result, prev_score)
                 break

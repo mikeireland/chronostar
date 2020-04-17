@@ -10,7 +10,6 @@ This module is in desperate need of a tidy. The entry point
 `fit_many_comps` is particularly messy and clumsy.
 """
 from __future__ import print_function, division
-import mpi4py.MPI
 
 from distutils.dir_util import mkpath
 import itertools
@@ -610,7 +609,7 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     else:
         return np.sum(weighted_lnols)
 
-
+#~ @profile
 def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                  all_init_pars, all_init_pos=None, plot_it=False, pool=None,
                  convergence_tol=0.25, ignore_dead_comps=False,
@@ -682,49 +681,27 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
         If ignoring dead components, use this mask to indicate the components
         that didn't die
     """
+    # Set up some values
+    DEATH_THRESHOLD = 2.1       # The total expected stellar membership below
+                                # which a component is deemed 'dead' (if
+                                # `ignore_dead_comps` is True)
 
-    comm = MPI.COMM_WORLD
-    size = comm.Get_size()
-    rank = comm.Get_rank()
+    new_comps = []
+    all_samples = []
+    all_lnprob = []
+    success_mask = []
+    all_final_pos = ncomps * [None]
 
-    if rank == 0:
+    # Ensure None value inputs are still iterable
+    if all_init_pos is None:
+        all_init_pos = ncomps * [None]
+    if all_init_pars is None:
+        all_init_pars = ncomps * [None]
+    if unstable_comps is None:
+        unstable_comps = ncomps * [True]
 
-        # Set up some values
-        DEATH_THRESHOLD = 2.1       # The total expected stellar membership below
-                                    # which a component is deemed 'dead' (if
-                                    # `ignore_dead_comps` is True)
-
-
-
-
-
-        new_comps = []
-        all_samples = []
-        all_lnprob = []
-        success_mask = []
-        all_final_pos = ncomps * [None]
-
-        # Ensure None value inputs are still iterable
-        if all_init_pos is None:
-            all_init_pos = ncomps * [None]
-        if all_init_pars is None:
-            all_init_pars = ncomps * [None]
-        if unstable_comps is None:
-            unstable_comps = ncomps * [True]
-
-        log_message('Ignoring stable comps? {}'.format(ignore_stable_comps))
-        log_message('Unstable comps are {}'.format(unstable_comps))
-    else:
-        todo=True
-
-    # BROADCAST CONSTANTS
-    nstars = comm.bcast(nstars, root=0)
-    background_means = comm.bcast(background_means, root=0)
-    background_covs = comm.bcast(background_covs, root=0)
-
-    # SCATTER DATA
-    star_means = comm.scatter(star_means, root=0)
-    star_covs = comm.scatter(star_covs, root=0)
+    log_message('Ignoring stable comps? {}'.format(ignore_stable_comps))
+    log_message('Unstable comps are {}'.format(unstable_comps))
 
     for i in range(ncomps):
         log_message('Fitting comp {}'.format(i), symbol='.', surround=True)
@@ -860,7 +837,7 @@ def check_comps_stability(z, unstable_flags_old, ref_counts, using_bg, thresh=0.
 
     return unstable_flags, ref_counts
 
-
+#@profile
 def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    init_comps=None, inc_posterior=False, burnin=1000,
                    sampling_steps=5000, ignore_dead_comps=False,

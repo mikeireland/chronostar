@@ -33,6 +33,8 @@ except ImportError:
     plt_avail = False
 
 
+import line_profiler
+
 def calc_med_and_span(chain, perc=34, intern_to_extern=False,
                       Component=SphereComponent):
     """
@@ -285,7 +287,7 @@ def get_best_component(chain, lnprob, Component=SphereComponent):
     best_component = Component(emcee_pars=best_sample)
     return best_component
 
-
+#@profile
 def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
              burnin_steps=1000, Component=SphereComponent, plot_it=False,
              pool=None, convergence_tol=0.25, plot_dir='', save_dir='',
@@ -411,7 +413,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
     while (not converged) and cnt != max_iter:
         logging.info("Burning in cnt: {}".format(cnt))
         sampler.reset()
-        init_pos, lnprob, state = sampler.run_mcmc(init_pos, burnin_steps, state)
+        #~ init_pos, lnprob, state = sampler.run_mcmc(init_pos, burnin_steps, state)
+        init_pos, lnprob, state = sampler.run_mcmc(init_pos, burnin_steps) # MZ
         np.save(plot_dir+'lnprob_last.npy', sampler.lnprobability)
         stable = burnin_convergence(sampler.lnprobability, tol=convergence_tol)
         no_stuck = no_stuck_walkers(sampler.lnprobability)

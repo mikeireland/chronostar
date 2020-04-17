@@ -46,6 +46,8 @@ except:
 
 import numpy as np
 from scipy.stats.mstats import gmean
+from astropy.table import Table
+import string
 
 from . import transform
 from .traceorbit import trace_cartesian_orbit
@@ -595,11 +597,18 @@ class AbstractComponent(object):
         res : [Component] list
             A list of Component objects
         """
-        res = np.load(filename)
-        if res.shape == ():
-            return np.array([res.item()])
-        else:
-            return res
+        
+        # npy file
+        try:
+            res = np.load(filename)
+            if res.shape == ():
+                return np.array([res.item()])
+            else:
+                return res
+        except: # fits file
+            tab = Table.read(filename)
+            res = np.array([tab['X'], tab['Y'], tab['Z'], tab['U'], tab['V'], tab['W'], tab['dX'], tab['dV'], tab['Age']])
+            return res.T
 
     @classmethod
     def load_raw_components(cls, filename, use_emcee_pars=False):
@@ -638,6 +647,41 @@ class AbstractComponent(object):
             else:
                 comps.append(cls(pars=pars))
         return comps
+
+    def convert_components_array_into_astropy_table(self, comp):
+        """
+        Convert np.array with component parameters into an astropy table.
+
+        Parameters
+        ----------
+        comp: [Component] list
+            The list of components that we are saving
+
+        Returns
+        -------
+        astropy table with comps
+        
+        """
+
+        # Component names are uppercase letters. What if there are >26 comps?
+        ncomps = len(comp)
+        if ncomps>26:
+            print('*** number of components>26, cannot name them properly with letters.')
+        abc=string.ascii_uppercase
+        compnames = [abc[i] for i in range(ncomps)]
+
+        tabcomps = Table([compnames, comp[:,0], comp[:,1], comp[:,2], comp[:,3], comp[:,4], comp[:,5], comp[:,6], comp[:,7], comp[:,8]], names=('comp_ID', 'X', 'Y', 'Z', 'U', 'V', 'W', 'dX', 'dV', 'Age'))
+        tabcomps['X'].unit = u.pc
+        tabcomps['Y'].unit = u.pc
+        tabcomps['Z'].unit = u.pc
+        tabcomps['dX'].unit = u.pc
+        tabcomps['U'].unit = u.km/u.s
+        tabcomps['V'].unit = u.km/u.s
+        tabcomps['W'].unit = u.km/u.s
+        tabcomps['dV'].unit = u.km/u.s
+        tabcomps['Age'].unit = u.Myr
+        
+        return tabcomps
 
     def store_raw(self, filename, use_emcee_pars=False):
         """

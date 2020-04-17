@@ -255,6 +255,56 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
     else:
         return results_dict
 
+def construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(table, memb_probs, comps, output_filename, get_background_overlaps=True):
+    """
+    MZ 2020 - 04 - 16
+    Create an astropy table with Gaia DR2 ids and membership probabilities
+    for all components, including background.
+    
+    This shoul NOT append to the original table because the number of
+    components is increasing each iteration.
+
+
+    Parameters
+    ----------
+    table: astropy table -or- string
+        The table (or path to table) which holds the required data
+    get_background_overlaps: bool {True}
+        Set to True if after background overlaps too
+ 
+    Returns
+    -------
+    None
+    
+    """
+
+    # Read table
+    if isinstance(table, str):
+        table = Table.read(table)
+    
+    ids = table['source_id']
+    tab = Table((ids,), names=('source_id',))
+
+    # compnames
+    # TODO: This should be generated once in the component class!!
+    ncomps = len(comps)
+    if ncomps>26:
+        print('*** number of components>26, cannot name them properly with letters.')
+    abc=string.ascii_uppercase
+    compnames = [abc[i] for i in range(ncomps)]
+
+    # Membership
+    for i, c in enumerate(compnames):
+        tab['membership%s'%c.replace('comp', '')] = memb[:,i]
+
+    todo='background_log_overlap'
+
+    print(tab)
+    #tab.write(os.path.join(root, root_comp, 'final/final_membership.fits'), format='fits')
+    #add number of components in the file. and a timestamp or random number so nothing gets overwritten.
+    
+
+    
 
 def append_cart_cols_to_table(table, main_colnames=None, error_colnames=None,
                               corr_colnames=None):
