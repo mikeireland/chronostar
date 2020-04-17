@@ -46,6 +46,7 @@ except:
 
 import numpy as np
 from scipy.stats.mstats import gmean
+from astropy.table import Table
 
 from . import transform
 from .traceorbit import trace_cartesian_orbit
