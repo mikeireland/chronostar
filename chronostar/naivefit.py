@@ -1,3 +1,4 @@
+#%%cython
 """
 naivefit.py
 
@@ -463,7 +464,6 @@ class NaiveFit(object):
     
         return tab
     
-    #~ @profile
     def run_fit(self):
         """
         Perform a fit (as described in Paper I) to a set of prepared data.
@@ -600,3 +600,169 @@ class NaiveFit(object):
                         surround=True)
 
         return prev_result, prev_score
+
+    
+    def first_run_fit(self):
+        """
+        MZ: 2020 - 04 - 23
+        This is the first part of run_fit. run_fit is split into two parts
+        for the multiprocessing purposes.
+        
+        
+        Perform a fit (as described in Paper I) to a set of prepared data.
+
+        Results are outputted as two dictionaries
+        results = {'comps':best_fit, (list of components)
+                   'med_and_spans':median and spans of model parameters,
+                   'memb_probs': membership probability array (the standard one)}
+        scores  = {'bic': the bic,
+                   'lnlike': log likelihood of that run,
+                   'lnpost': log posterior of that run}
+        """
+
+        log_message('Beginning Chronostar run',
+                    symbol='_', surround=True)
+
+        # ------------------------------------------------------------
+        # -----  EXECUTE RUN  ----------------------------------------
+        # ------------------------------------------------------------
+
+        if self.fit_pars['store_burnin_chains']:
+            log_message(msg='Storing burnin chains', symbol='-')
+
+        # Handle special case of very first run
+        # Either by fitting one component (default) or by using `init_comps`
+        # to initialise the EM fit.
+
+        # If beginning with 1 component, assume all stars are members
+        if self.ncomps == 1:
+            init_memb_probs = np.zeros((len(self.data_dict['means']),
+                                        self.ncomps + self.fit_pars['use_background']))
+            init_memb_probs[:, 0] = 1.
+        # Otherwise, we must have been given an init_comps, or an init_memb_probs
+        #  to start things with
+        else:
+            assert self.fit_pars['init_comps'] is not None or self.fit_pars['init_memb_probs'] is not None
+        log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
+                    symbol='*', surround=True)
+        run_dir = self.rdir + '{}/'.format(self.ncomps)
+
+        prev_result = self.run_em_unless_loadable(run_dir)
+        prev_score = self.calc_score(prev_result['comps'], prev_result['memb_probs'])
+
+        self.ncomps += 1
+        
+        self.prev_result = prev_result
+        self.prev_score = prev_score
+
+    def run_split_for_one_comp_multiproc(self, i=0):
+        """
+        MZ: 2020 - 04 - 23
+        
+        Compute split of one component.
+        This is taken from the run_fit and is made for multiprocessing
+        purposes.
+        
+        Params:
+        -----------
+        i: int
+            Compute split for the i-th component
+            
+        Returns:
+        -----------
+        result:
+        score:
+        
+        """
+        # ------------------------------------------------------------
+        # -----  EXPLORE EXTRA COMPONENT BY DECOMPOSITION  -----------
+        # ------------------------------------------------------------
+
+        # Calculate global score of fit for comparison with future fits with different
+        # component counts
+
+        log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
+                    symbol='*', surround=True)
+
+
+        # Iteratively try subdividing each previous component
+        # target_comp is the component we will split into two.
+        # This will make a total of ncomps (the target comp split into 2,
+        # plus the remaining components from prev_result['comps']
+        print('$$$', i, self.prev_result['comps'])
+        target_comp = self.prev_result['comps'][i]
+        div_label = chr(ord('A') + i)
+        run_dir = self.rdir + '{}/{}/'.format(self.ncomps, div_label)
+        log_message(msg='Subdividing stage {}'.format(div_label),
+                    symbol='+', surround=True)
+        mkpath(run_dir)
+
+        self.fit_pars['init_comps'] = self.build_init_comps(
+                self.prev_result['comps'], split_comp_ix=i,
+                prev_med_and_spans=self.prev_result['med_and_spans'])
+
+        result = self.run_em_unless_loadable(run_dir)
+        score = self.calc_score(result['comps'], result['memb_probs'])
+        all_scores=[score]
+
+        logging.info(
+                'Decomposition {} finished with \nBIC: {}\nlnlike: {}\n'
+                'lnpost: {}'.format(
+                        div_label, all_scores[-1]['bic'],
+                        all_scores[-1]['lnlike'], all_scores[-1]['lnpost'],
+                ))
+
+        return result, score
+            
+    def run_fit_gather_results_multiproc(self, all_results, all_scores):
+        # identify the best performing decomposition
+        all_bics = [score['bic'] for score in all_scores]
+        best_split_ix = np.argmin(all_bics)
+
+        new_result = all_results[best_split_ix]
+        new_score = all_scores[best_split_ix]
+
+        self.iter_end_log(best_split_ix, prev_result=self.prev_result, new_result=new_result)
+
+        # Check if the fit has improved
+        self.log_score_comparison(new=new_score,
+                                  prev=self.prev_score)
+        if new_score['bic'] < self.prev_score['bic']:
+            prev_score = new_score
+            prev_result = new_result
+            self.prev_result = prev_result
+            self.prev_score = prev_score
+
+            self.ncomps += 1
+            log_message(msg="Commencing {} component fit on {}{}".format(
+                    self.ncomps, self.ncomps - 1,
+                    chr(ord('A') + best_split_ix)), symbol='+'
+            )
+            terminate=False
+            print('decide', terminate)
+        else:
+            # WRITING THE FINAL RESULTS INTO FILES
+            logging.info("... saving previous fit as best fit to data")
+            self.Component.store_raw_components(self.rdir + self.final_comps_file,
+                                                self.prev_result['comps'])
+            np.save(self.rdir + self.final_med_and_spans_file, self.prev_result['med_and_spans'])
+            np.save(self.rdir + self.final_memb_probs_file, self.prev_result['memb_probs'])
+            np.save(self.rdir + 'final_likelihood_post_and_bic',
+                    self.prev_score)
+
+            # Save fits files as well
+            TODO=True
+            #~ tabcomps = self.Component.convert_components_array_into_astropy_table(self.prev_result['comps'])
+            #~ tabcomps.write('tabcomps.fits', overwrite=True)
+            #~ tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(table, memb_probs, comps, output_filename, get_background_overlaps=True)
+
+            self.log_final_log(self.prev_result, self.prev_score)
+            terminate=True
+            print('decide', terminate)
+            #~ break
+
+        logging.info("Best fit:\n{}".format(
+                [group.get_pars() for group in self.prev_result['comps']]))
+
+
+        return terminate
