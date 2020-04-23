@@ -603,11 +603,19 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     # multiplies each log overlap by the star's membership probability
     # (In linear space, takes the star's overlap to the power of its
     # membership probability)
+    ### TODO: fix this so that I'm not assuming equal amplitudes
     weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
+
+    ### TODO: FIX BUG!!!
+    # Sum each star's log overlap in linear space
+    star_lnlikelihoods = logsumexp(weighted_lnols, axis=1)
+
+    lnlikelihood = np.sum(star_lnlikelihoods)
+
     if return_memb_probs:
-        return np.sum(weighted_lnols), memb_probs
+        return lnlikelihood, memb_probs
     else:
-        return np.sum(weighted_lnols)
+        return lnlikelihood
 
 
 def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
