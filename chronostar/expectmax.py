@@ -560,6 +560,9 @@ def expectation(data, comps, old_memb_probs=None,
     if old_memb_probs is None:
         old_memb_probs = np.ones((nstars, ncomps+using_bg)) / (ncomps+using_bg)
 
+    # TODO
+    # 
+
     # Calculate all log overlaps
     lnols = get_all_lnoverlaps(data, comps, old_memb_probs,
                                inc_posterior=inc_posterior, amp_prior=amp_prior)
