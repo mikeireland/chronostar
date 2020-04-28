@@ -281,7 +281,6 @@ def construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(table,
     # Read table
     if isinstance(table, str):
         table = Table.read(table)
-    
     ids = table['source_id']
     tab = Table((ids,), names=('source_id',))
 
@@ -300,11 +299,9 @@ def construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(table,
     todo='background_log_overlap'
 
     print(tab)
-    #tab.write(os.path.join(root, root_comp, 'final/final_membership.fits'), format='fits')
+    tab.write(output_filename, format='fits')
     #add number of components in the file. and a timestamp or random number so nothing gets overwritten.
-    
 
-    
 
 def append_cart_cols_to_table(table, main_colnames=None, error_colnames=None,
                               corr_colnames=None):

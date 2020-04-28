@@ -47,6 +47,7 @@ except:
 import numpy as np
 from scipy.stats.mstats import gmean
 from astropy.table import Table
+from astropy import units as u
 import string
 
 from . import transform
@@ -648,7 +649,8 @@ class AbstractComponent(object):
                 comps.append(cls(pars=pars))
         return comps
 
-    def convert_components_array_into_astropy_table(self, comp):
+    @staticmethod
+    def convert_components_array_into_astropy_table(components):
         """
         Convert np.array with component parameters into an astropy table.
 
@@ -662,13 +664,17 @@ class AbstractComponent(object):
         astropy table with comps
         
         """
-
         # Component names are uppercase letters. What if there are >26 comps?
-        ncomps = len(comp)
+        ncomps = len(components)
         if ncomps>26:
             print('*** number of components>26, cannot name them properly with letters.')
         abc=string.ascii_uppercase
         compnames = [abc[i] for i in range(ncomps)]
+        
+        # Convert comp from Object list to array
+        if (type(components) is not list) and (type(components) is not np.ndarray):
+            components = [components]
+        comp = np.array([c.get_pars() for c in components])
 
         tabcomps = Table([compnames, comp[:,0], comp[:,1], comp[:,2], comp[:,3], comp[:,4], comp[:,5], comp[:,6], comp[:,7], comp[:,8]], names=('comp_ID', 'X', 'Y', 'Z', 'U', 'V', 'W', 'dX', 'dV', 'Age'))
         tabcomps['X'].unit = u.pc

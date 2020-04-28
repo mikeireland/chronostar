@@ -291,7 +291,7 @@ class NaiveFit(object):
         ------
         None
         """
-        if new['bic'] > prev['bic']:
+        if new['bic'] < prev['bic']:
             logging.info("Extra component has improved BIC...")
             logging.info(
                     "New BIC: {} < Old BIC: {}".format(new['bic'], prev['bic']))
@@ -415,6 +415,9 @@ class NaiveFit(object):
         logging.info('Final lnlikelihood: {}'.format(prev_score['lnlike']))
         logging.info('Final lnposterior:  {}'.format(prev_score['lnpost']))
         logging.info('Final BIC: {}'.format(prev_score['bic']))
+        logging.info('##########################################')
+        logging.info('###### END ###############################')
+        logging.info('##########################################')
 
 
     def calc_score(self, comps, memb_probs):
@@ -584,10 +587,12 @@ class NaiveFit(object):
                         prev_score)
 
                 # Save fits files as well
-                TODO=True
                 tabcomps = self.Component.convert_components_array_into_astropy_table(prev_result['comps'])
-                tabcomps.write('tabcomps.fits', overwrite=True)
-                tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(table, memb_probs, comps, output_filename, get_background_overlaps=True)
+                tabcomps.write(os.path.join(self.rdir, 'final_comps_%d.fits'%(self.ncomps-1)), overwrite=True)
+                try:
+                    tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], prev_result['memb_probs'], prev_result['comps'], os.path.join(self.rdir, 'final_memberships_%d.fits'%(self.ncomps-1)), get_background_overlaps=True)
+                except:
+                    logging.info("[WARNING] Couldn't print membership.fits file. Is source_id available?")
 
                 self.log_final_log(prev_result, prev_score)
                 break
@@ -689,7 +694,7 @@ class NaiveFit(object):
         # target_comp is the component we will split into two.
         # This will make a total of ncomps (the target comp split into 2,
         # plus the remaining components from prev_result['comps']
-        print('$$$', i, self.prev_result['comps'])
+        #~ print('$$$', i, self.prev_result['comps'])
         target_comp = self.prev_result['comps'][i]
         div_label = chr(ord('A') + i)
         run_dir = self.rdir + '{}/{}/'.format(self.ncomps, div_label)
@@ -751,10 +756,12 @@ class NaiveFit(object):
                     self.prev_score)
 
             # Save fits files as well
-            TODO=True
-            #~ tabcomps = self.Component.convert_components_array_into_astropy_table(self.prev_result['comps'])
-            #~ tabcomps.write('tabcomps.fits', overwrite=True)
-            #~ tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(table, memb_probs, comps, output_filename, get_background_overlaps=True)
+            tabcomps = self.Component.convert_components_array_into_astropy_table(self.prev_result['comps'])
+            tabcomps.write(os.path.join(self.rdir, 'final_comps_%d.fits'%(self.ncomps-1)), overwrite=True)
+            try:
+                tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], self.prev_result['memb_probs'], self.prev_result['comps'], os.path.join(self.rdir, 'final_memberships_%d.fits'%(self.ncomps-1)), get_background_overlaps=True)
+            except:
+                logging.info("[WARNING] Couldn't print membership.fits file. Is source_id available?")
 
             self.log_final_log(self.prev_result, self.prev_score)
             terminate=True

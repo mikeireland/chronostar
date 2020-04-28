@@ -6,7 +6,7 @@ i.e. perform splitting simultaneously.
 
 
 run with
-mpirun -np 12 python run_chronostar_multiprocessing.py
+mpirun -np 4 python run_chronostar_multiprocessing.py example_runnaivefit_multiprocessing.pars
 """
 
 from __future__ import print_function, division

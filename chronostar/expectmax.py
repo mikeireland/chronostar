@@ -1262,6 +1262,13 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 #         memb_probs_final = expectation(data, best_comps, best_memb_probs,
 #                                        inc_posterior=inc_posterior)
     np.save(final_dir+'final_membership.npy', final_memb_probs)
+    
+    # Save membership fits file
+    try:
+        tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], final_memb_probs, final_best_comps, os.path.join(final_dir, 'final_memberships_%d.fits'%len(final_best_comps)), get_background_overlaps=True)
+    except:
+        logging.info("[WARNING] Couldn't print membership.fits file. Is source_id available?")
+    
     logging.info('Membership distribution:\n{}'.format(
         final_memb_probs.sum(axis=0)
     ))
@@ -1270,6 +1277,10 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     Component.store_raw_components(final_dir+'final_comps.npy', final_best_comps)
     np.save(final_dir+'final_comps_bak.npy', final_best_comps)
     np.save(final_dir+'final_med_and_spans.npy', final_med_and_spans)
+    
+    # Save components in fits file
+    tabcomps = Component.convert_components_array_into_astropy_table(final_best_comps)
+    tabcomps.write(os.path.join(final_dir, 'final_comps_%d.fits'%len(final_best_comps)), overwrite=True)
 
     overall_lnlike = get_overall_lnlikelihood(
             data, final_best_comps, inc_posterior=False
