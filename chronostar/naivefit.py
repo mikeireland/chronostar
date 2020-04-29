@@ -349,7 +349,11 @@ class NaiveFit(object):
     #~ @profile
     def run_em_unless_loadable(self, run_dir):
         """
-        Run and EM fit, but only if not loadable from a previous run
+        Run and EM fit, but only if not loadable from a previous run.
+        If you want to continue from the previous run, e.g. from '15', 
+        then find the best split of '15', e.g. '15/B' and copy '15/B/final'
+        to your new destination folder (new_folder/15/final/). This is where Chronostar reads
+        the previous results from and loads them in this module.
 
         """
         try:

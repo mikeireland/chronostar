@@ -4,9 +4,14 @@ author: Marusa Zerjal 2020 - 04 - 23
 Run naivefit in a multiprocessing mode. Fit components simultaneously,
 i.e. perform splitting simultaneously.
 
-
 run with
 mpirun -np 4 python run_chronostar_multiprocessing.py example_runnaivefit_multiprocessing.pars
+
+If you want to continue from the previous run, e.g. from '15', 
+then find the best split of '15', e.g. '15/B' and copy '15/B/final'
+to your new destination folder (new_folder/15/final/). This is where 
+Chronostar reads the previous results from and loads them into Chronostar.
+
 """
 
 from __future__ import print_function, division
@@ -97,16 +102,17 @@ while True:
         all_results_rank.append(result)
         all_scores_rank.append(score)
 
-    # GATHER DATA
+    # GATHER DATA AND UPDATE NAIVEFIT
     all_results_tmp = comm.gather(all_results_rank, root=0)
     all_scores_tmp = comm.gather(all_scores_rank, root=0)
     if rank == 0:
         all_results = list(itertools.chain.from_iterable(all_results_tmp))
         all_scores = list(itertools.chain.from_iterable(all_scores_tmp))
         
+        # 'terminate' tells the loop to terminate if the fit converged.
         terminate = naivefit.run_fit_gather_results_multiproc(all_results, all_scores)
-        print('TTTerminate', terminate)
-        # SPLIT DATA into multiple processes
+        
+        # Introduce a new component. Split comp fitting into multiple processes
         ncomps = len(naivefit.prev_result['comps'])
         comps = np.array_split(range(ncomps), size)
         
@@ -121,13 +127,11 @@ while True:
         comps=None
 
     terminate = comm.bcast(terminate, root=0)
-    
-    print('terminate', terminate)
-    
+
     if terminate:
         break
     
 
 if rank == 0:
     time_end = time.time()
-    print(rank, 'done', time_end - time_start)
+    print('DONE.', time_end - time_start)
