@@ -401,6 +401,15 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             pool=pool,
             threads=nthreads,
     )
+    
+    #~ likelihood.data=data
+    #~ likelihood.memb_probs=memb_probs
+    #~ sampler = emcee.EnsembleSampler(
+            #~ nwalkers, npars, likelihood.lnprob_func,
+            #~ args=[trace_orbit_func],
+            #~ pool=pool,
+            #~ threads=nthreads,
+    #~ )
 
     # PERFORM BURN IN
     state = None

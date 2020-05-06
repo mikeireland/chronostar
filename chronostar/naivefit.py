@@ -347,7 +347,7 @@ class NaiveFit(object):
         return init_comps
 
     #~ @profile
-    def run_em_unless_loadable(self, run_dir):
+    def run_em_unless_loadable(self, run_dir, pool=None):
         """
         Run and EM fit, but only if not loadable from a previous run.
         If you want to continue from the previous run, e.g. from '15', 
@@ -377,7 +377,7 @@ class NaiveFit(object):
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
-                                         **self.fit_pars)
+                                         pool=pool, **self.fit_pars)
 
         # Since init_comps and init_memb_probs are only meant for one time uses
         # we clear them to avoid any future usage
@@ -664,7 +664,7 @@ class NaiveFit(object):
         self.prev_result = prev_result
         self.prev_score = prev_score
 
-    def run_split_for_one_comp_multiproc(self, i=0):
+    def run_split_for_one_comp_multiproc(self, i=0, pool=None):
         """
         MZ: 2020 - 04 - 23
         
@@ -710,7 +710,7 @@ class NaiveFit(object):
                 self.prev_result['comps'], split_comp_ix=i,
                 prev_med_and_spans=self.prev_result['med_and_spans'])
 
-        result = self.run_em_unless_loadable(run_dir)
+        result = self.run_em_unless_loadable(run_dir, pool=pool)
         score = self.calc_score(result['comps'], result['memb_probs'])
         all_scores=[score]
 

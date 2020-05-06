@@ -260,10 +260,12 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     result = np.sum(lnols * memb_probs)
     return result
 
-
 def lnprob_func(pars, data, memb_probs=None,
                 trace_orbit_func=None,
                 Component=SphereComponent, **kwargs):
+#~ def lnprob_func(pars,
+                #~ trace_orbit_func=None,
+                #~ Component=SphereComponent, **kwargs):
     """Computes the log-probability for a fit to a group.
 
     Parameters
@@ -306,6 +308,13 @@ def lnprob_func(pars, data, memb_probs=None,
     logprob
         the logarithm of the posterior probability of the fit
     """
+    
+    # (MZ) These two variables are set in compfitter as global variables
+    # in likelihood so that emcee doesn't need to pickle it 
+    # every single time.
+    #~ global data
+    #~ global memb_probs
+    
     if memb_probs is None:
         memb_probs = np.ones(len(data['means']))
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)

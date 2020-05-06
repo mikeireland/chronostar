@@ -32,6 +32,9 @@ import time
 import itertools
 import logging
 
+#~ from schwimmbad import MPIPool
+from multiprocessing import Pool
+
 from mpi4py import MPI
 
 comm = MPI.COMM_WORLD
@@ -87,6 +90,15 @@ else:
     naivefit = None
     comps = None
 
+#~ with MPIPool() as pool:
+    #~ if not pool.is_master():
+        #~ pool.wait()
+        #~ sys.exit(0)
+
+pool=Pool(10)
+
+ #~ MPI.COMM_SELF.Intracomm.Spawn()
+
 while True:
     # BROADCAST CONSTANTS
     naivefit = comm.bcast(naivefit, root=0)  # updated ncomps, prev_results, prev_score
@@ -98,7 +110,7 @@ while True:
     all_results_rank = []
     all_scores_rank = []
     for comp in comps:
-        result, score = naivefit.run_split_for_one_comp_multiproc(i=comp)
+        result, score = naivefit.run_split_for_one_comp_multiproc(i=comp) # , pool=pool
         all_results_rank.append(result)
         all_scores_rank.append(score)
 
@@ -131,7 +143,7 @@ while True:
     if terminate:
         break
     
-
+pool.close()
 if rank == 0:
     time_end = time.time()
     print('DONE.', time_end - time_start)
