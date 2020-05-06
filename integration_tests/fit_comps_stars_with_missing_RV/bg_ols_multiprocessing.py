@@ -144,8 +144,6 @@ if rank == 0:
     indices_chunks = np.array_split(range(len(star_means)), size)
     star_means = [star_means[i] for i in indices_chunks]
     star_covs = [star_covs[i] for i in indices_chunks]
-    
-    print('len starmeans', len(star_means))
 
     #TODO: delete the time line
     print('Start')
@@ -195,6 +193,7 @@ if rank == 0:
     
     print(len(tab), len(bg_ln_ols_result))
     
+    tab['background_log_overlap'] = [np.nan]*len(tab)
     tab['background_log_overlap'][good_row_mask] = bg_ln_ols_result
     tab.write(datafile, overwrite=True)
     print('%s written.'%datafile)
