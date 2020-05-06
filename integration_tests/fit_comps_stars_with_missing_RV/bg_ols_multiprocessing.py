@@ -189,6 +189,9 @@ if rank == 0:
     bg_ln_ols_result = list(itertools.chain.from_iterable(bg_ln_ols_result))
     
     tab = Table.read(datafile)
+    
+    print(len(tab), len(bg_ln_ols_result))
+    
     tab['background_log_overlap'] = bg_ln_ols_result
     tab.write(datafile, overwrite=True)
     print('%s written.'%datafile)
