@@ -111,10 +111,11 @@ if rank == 0:
     data_table=data_table[indices_chunks[NI]]
     """
 
-    data_dict = tabletool.build_data_dict_from_table(
+    data_dict, good_row_mask = tabletool.build_data_dict_from_table(
         data_table,
         get_background_overlaps=False, # bg overlap not available yet
         historical=historical,
+        return_good_row_mask=True,
     )
     star_means = data_dict['means']
     star_covs = data_dict['covs']
@@ -194,7 +195,7 @@ if rank == 0:
     
     print(len(tab), len(bg_ln_ols_result))
     
-    tab['background_log_overlap'] = bg_ln_ols_result
+    tab['background_log_overlap'][good_row_mask] = bg_ln_ols_result
     tab.write(datafile, overwrite=True)
     print('%s written.'%datafile)
     

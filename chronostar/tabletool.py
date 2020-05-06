@@ -102,7 +102,8 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
                                historical=False, only_means=False,
                                get_background_overlaps=True,
                                background_colname=None,
-                               return_table_ixs=False):
+                               return_table_ixs=False,
+                               return_good_row_mask=False):
     """
     Use data in tale columns to construct arrays of means and covariance
     matrices.
@@ -154,6 +155,10 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
 
         where `final_memb` is a [nstars, ncomps] array recording membership
         probabilities.
+    return_good_row_mask: boolean {False}
+        If set, return good_row_mask. This is for example useful when
+        computing background overlaps and you need to pair this with
+        star IDs that were actually used here.
 
     Returns
     -------
@@ -252,6 +257,8 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
 
     if return_table_ixs:
         return results_dict, np.where(good_row_mask)
+    elif return_good_row_mask:
+        return results_dict, good_row_mask
     else:
         return results_dict
 
