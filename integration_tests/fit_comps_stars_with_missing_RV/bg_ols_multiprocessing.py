@@ -143,6 +143,8 @@ if rank == 0:
     indices_chunks = np.array_split(range(len(star_means)), size)
     star_means = [star_means[i] for i in indices_chunks]
     star_covs = [star_covs[i] for i in indices_chunks]
+    
+    print('len starmeans', len(star_means))
 
     #TODO: delete the time line
     print('Start')
