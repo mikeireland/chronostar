@@ -32,7 +32,7 @@ import time
 import itertools
 import logging
 
-from schwimmbad import MPIPool
+#~ from schwimmbad import MPIPool
 #~ from multiprocessing import Pool
 
 from mpi4py import MPI
@@ -41,8 +41,8 @@ comm = MPI.COMM_WORLD
 size=comm.Get_size()
 rank=comm.Get_rank()
 
-pool = MPIPool()
-dir(pool)
+#~ pool = MPIPool()
+#~ dir(pool)
 
 def dummy_trace_orbit_func(loc, times=None):
     """
@@ -97,11 +97,11 @@ else:
         #~ pool.wait()
         #~ sys.exit(0)
 
-pool=Pool(10)
+#~ pool=Pool(10)
 
-if not pool.is_master():
-    pool.wait()
-    sys.exit(0)
+#~ if not pool.is_master():
+    #~ pool.wait()
+    #~ sys.exit(0)
 
  #~ MPI.COMM_SELF.Intracomm.Spawn()
 
@@ -116,7 +116,7 @@ while True:
     all_results_rank = []
     all_scores_rank = []
     for comp in comps:
-        result, score = naivefit.run_split_for_one_comp_multiproc(i=comp, pool=pool) # , pool=pool
+        result, score = naivefit.run_split_for_one_comp_multiproc(i=comp) # , pool=pool
         all_results_rank.append(result)
         all_scores_rank.append(score)
 
@@ -149,7 +149,7 @@ while True:
     if terminate:
         break
     
-pool.close()
+#~ pool.close()
 if rank == 0:
     time_end = time.time()
     print('DONE.', time_end - time_start)
