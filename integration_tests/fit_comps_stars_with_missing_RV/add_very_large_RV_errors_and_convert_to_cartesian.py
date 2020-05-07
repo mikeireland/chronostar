@@ -40,5 +40,5 @@ d['radial_velocity_error'][mask] = 1e+4
 print('Convert to cartesian')
 tabletool.convert_table_astro2cart(table=d, return_table=True)
 
-d.write('data/data_with_%d_percent_missing_rvs.fits'%(missingrv*100))
+d.write('data/data_with_%d_percent_missing_rvs.fits'%(missingrv*100), overwrite=True)
 print('Cartesian written.', len(d))

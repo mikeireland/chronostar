@@ -33,7 +33,7 @@ import numpy as np
 from .component import SphereComponent
 USE_C_IMPLEMENTATION = True
 try:
-    from ._overlap import get_lnoverlaps as c_get_lnoverlaps
+    from ._overlap import get_lnoverlaps as c_get_lnoverlaps # TODO: parallelise!!
 except ImportError:
     print("C IMPLEMENTATION OF GET_OVERLAP NOT IMPORTED")
     USE_C_IMPLEMENTATION = False

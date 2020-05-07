@@ -395,21 +395,21 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
                                       init_pars=init_pars, Component=Component,
                                       nwalkers=nwalkers)
     os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
-    sampler = emcee.EnsembleSampler(
-            nwalkers, npars, likelihood.lnprob_func,
-            args=[data, memb_probs, trace_orbit_func],
-            pool=pool,
-            threads=nthreads,
-    )
-    
-    #~ likelihood.data=data
-    #~ likelihood.memb_probs=memb_probs
     #~ sampler = emcee.EnsembleSampler(
             #~ nwalkers, npars, likelihood.lnprob_func,
-            #~ args=[trace_orbit_func],
+            #~ args=[data, memb_probs, trace_orbit_func],
             #~ pool=pool,
             #~ threads=nthreads,
     #~ )
+    
+    likelihood.data=data
+    likelihood.memb_probs=memb_probs
+    sampler = emcee.EnsembleSampler(
+            nwalkers, npars, likelihood.lnprob_func,
+            args=[trace_orbit_func],
+            pool=pool,
+            threads=nthreads,
+    )
 
     # PERFORM BURN IN
     state = None
