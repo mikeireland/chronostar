@@ -126,6 +126,8 @@ def readParam(param_file, default_pars=None, noCheck=False):
                 custom_pars[k] = True
             elif custom_pars[k].lower() == 'false':
                 custom_pars[k] = False
+            elif custom_pars[k].lower() == 'none':
+                custom_pars[k] = None
         except AttributeError:
             pass
 

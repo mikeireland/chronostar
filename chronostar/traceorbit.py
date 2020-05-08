@@ -16,6 +16,19 @@ from galpy.util import bovy_conversion
 mp = MWPotential2014
 # mp = MiyamotoNagaiPotential(a=0.5,b=0.0375,amp=1.,normalize=1.) # Params from the example webpage. No idea if that's good or not.
 
+def dummy_trace_orbit_func(loc, times=None):
+    """
+    Purely for testing purposes
+
+    Dummy trace orbit func to skip irrelevant computation
+    A little constraint on age (since otherwise its a free floating
+    parameter)
+    """
+    if times is not None:
+        if np.all(times > 1.):
+            return loc + 1000.
+    return loc
+
 def convert_myr2bovytime(times):
     """
     Convert times provided in Myr into times in bovy internal units.

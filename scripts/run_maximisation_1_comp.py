@@ -1,5 +1,5 @@
 """
-Performs the 'maximisation' step of the EM algorithm for 1 component
+Performs the maximisation step of the EM algorithm for 1 component
 only!
 
 all_init_pars must be given in 'internal' form, that is the standard
@@ -92,73 +92,6 @@ from chronostar.component import SphereComponent
 
 import logging
 
-print('Importing done.')
-
-def dummy_trace_orbit_func(loc, times=None):
-    """
-    Purely for testing purposes
-
-    Dummy trace orbit func to skip irrelevant computation
-    A little constraint on age (since otherwise its a free floating
-    parameter)
-    """
-    if times is not None:
-        if np.all(times > 1.):
-            return loc + 1000.
-    return loc
-
-
-
-# For detailed description of parameters, see the main README.md file
-# in parent directory.
-DEFAULT_FIT_PARS = {
-    'results_dir':'',
-
-    # Output from dataprep, XYZUVW data, plus background overlaps
-    # Can be a filename to a astropy table, or an actual table
-    'data_table':None,
-
-    # File name that points to a stored list of components, typically from
-    # a previous fit. Some example filenames could be:
-    #  - 'some/prev/fit/final_comps.npy
-    #  - 'some/prev/fit/2/A/final_comps.npy
-    # Alternatively, if you already have the list of components, just
-    # provide them to `init_comps`. Don't do both.
-    # 'init_comps_file':None, # TODO: Is this redundant with 'init_comps'
-    'init_comps':None,
-
-    # One of these two are required if initialising a run with ncomps != 1
-
-    # One can also initialise a Chronostar run with memberships.
-    # Array is [nstars, ncomps] float array
-    # Each row should sum to 1.
-    # Same as in 'final_membership.npy'
-    #'init_memb_probs':None,     # TODO: IMPLEMENT THIS
-
-    # Provide a string name that corresponds to a ComponentClass
-    'component':'sphere',
-    'max_comp_count':20,
-    'max_em_iterations':200,
-    'nthreads':1,     # TODO: NOT IMPLEMENTED
-    'use_background':True,
-
-    'overwrite_prev_run':False,
-    'burnin':500,
-    'sampling_steps':1000,
-    'store_burnin_chains':False,
-    'ignore_stable_comps':True,
-
-    # If loading parameters from text file, can provide strings:
-    #  - 'epicyclic' for epicyclic
-    #  - 'dummy_trace_orbit_func' for a trace orbit funciton that doens't do antyhing (for testing)
-    # Alternativley, if building up parameter dictionary in a script, can
-    # provide actual function.
-    'trace_orbit_func':traceorbit.trace_cartesian_orbit,
-
-    'par_log_file':'fit_pars.log',
-}
-
-
 def log_message(msg, symbol='.', surround=False):
     """Little formatting helper"""
     res = '{}{:^40}{}'.format(5*symbol, msg, 5*symbol)
@@ -166,117 +99,127 @@ def log_message(msg, symbol='.', surround=False):
         res = '\n{}\n{}\n{}'.format(50*symbol, res, 50*symbol)
     logging.info(res)
 
+#############################
+### PREPARE DATA ############
+#############################
+# Example: python run_maximisation_1_comp.py testing.pars run_maximisation_1_comp.pars
 
-def maximisation_for_1_component(data, ncomps, memb_probs, burnin_steps, idir,
-                 all_init_pars, all_init_pos=None, plot_it=False, pool=None,
-                 convergence_tol=0.25, ignore_dead_comps=False,
-                 Component=SphereComponent,
-                 trace_orbit_func=None,
-                 store_burnin_chains=False,
-                 unstable_comps=None,
-                 ignore_stable_comps=False,
-                 nthreads=1,
-                 icomp=None,
-                 DEATH_THRESHOLD = 2.1,
-                 ):
+# For detailed description of parameters, see the main README.md file
+# in parent directory.
+DEFAULT_FIT_PARS = readparam.readParam('default_fit.pars')
 
+# Read global parameters from the file
+fit_pars = readparam.readParam(sys.argv[1], default_pars=DEFAULT_FIT_PARS)
 
-    # Ensure None value inputs are still iterable
-    if all_init_pos is None:
-        all_init_pos = ncomps * [None]
-    if all_init_pars is None:
-        all_init_pars = ncomps * [None]
-    if unstable_comps is None:
-        unstable_comps = ncomps * [True]
+# Read local parameters from the file
+local_pars = readparam.readParam(sys.argv[2])
+ncomps = local_pars['ncomps']
+icomp = local_pars['icomp']
+burnin_steps = fit_pars['burnin']
+ignore_stable_comps = local_pars['ignore_stable_comps']
+ignore_dead_comps = local_pars['ignore_dead_comps']
 
-    log_message('Ignoring stable comps? {}'.format(ignore_stable_comps))
-    log_message('Unstable comps are {}'.format(unstable_comps))
+if local_pars['Component'].lower()=='spherecomponent':
+    component = SphereComponent
+else:
+    print('WARNING: Component not defined.')
+    component=None
 
-
-    log_message('Fitting comp {}'.format(icomp), symbol='.', surround=True)
-    gdir = idir + "comp{}/".format(icomp)
-    if not os.path.exists(gdir):
-        os.makedirs(gdir)
-
-    # If component has too few stars, skip fit, and use previous best walker
-    if ignore_dead_comps and (np.sum(memb_probs[:, icomp]) < DEATH_THRESHOLD):
-        logging.info("Skipped component {} with nstars {}".format(
-                icomp, np.sum(memb_probs[:, icomp])
-        ))
-    elif ignore_stable_comps and not unstable_comps[icomp]:
-        logging.info("Skipped stable component {}".format(icomp))
-    # Otherwise, run maximisation and sampling stage
-    else:
-        best_comp, chain, lnprob = compfitter.fit_comp(
-                data=data, memb_probs=memb_probs[:, icomp],
-                burnin_steps=burnin_steps, plot_it=plot_it,
-                pool=pool, convergence_tol=convergence_tol,
-                plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[icomp],
-                init_pars=all_init_pars[icomp], Component=Component,
-                trace_orbit_func=trace_orbit_func,
-                store_burnin_chains=store_burnin_chains,
-                nthreads=nthreads,
-        )
-        logging.info("Finished fit")
-        logging.info("Best comp pars:\n{}".format(
-                best_comp.get_pars()
-        ))
-        final_pos = chain[:, -1, :]
-        logging.info("With age of: {:.3} +- {:.3} Myr".
-                     format(np.median(chain[:,:,-1]),
-                            np.std(chain[:,:,-1])))
-
-        best_comp.store_raw(gdir + 'best_comp_fit.npy')
-        np.save(gdir + "best_comp_fit_bak.npy", best_comp) # can remove this line when working
-        np.save(gdir + 'final_chain.npy', chain)
-        np.save(gdir + 'final_lnprob.npy', lnprob)
-
-    return best_comp, chain, lnprob, final_pos, icomp # I don't really need to return icomp
+# Prepare data
+#~ import time
+#~ start = time.time()
+data_dict = tabletool.build_data_dict_from_table(fit_pars['data_table'])
+#~ end = time.time()
+#~ print('data_dict took ', end-start)
+nstars = data_dict['means'].shape[0]
+print('nstars', nstars)
 
 
-if __name__=='__main__':
-    # Test
+
+# memb_probs is what we get from the expectation step
+init_memb_probs = np.ones((nstars, ncomps)) / ncomps
+
+# Add background
+init_memb_probs = np.hstack((init_memb_probs, np.zeros((nstars,1))))
+memb_probs = init_memb_probs
+
+rdir = os.path.join(fit_pars['results_dir'], '{}/'.format(ncomps))
+idir = os.path.join(rdir, "iter{:02}/".format(local_pars['iter_count']))
     
-    icomp=0
-    
-    # Read fit parameters from the file
-    fit_pars = readparam.readParam(sys.argv[1], default_pars=DEFAULT_FIT_PARS)
-    
-    ncomps = int(sys.argv[2]) # Is this OK?
+all_init_pars = ncomps * [None] # Maybe I need to update this
+all_init_pos = ncomps * [None]
+pool=None
 
-    # Prepare data
-    data_dict = tabletool.build_data_dict_from_table(fit_pars['data_table'])
-    nstars = data_dict['means'].shape[0]
 
-    burnin_steps = fit_pars['burnin']
+ # Set up trace_orbit_func
+if fit_pars['trace_orbit_func'] == 'dummy_trace_orbit_func':
+    sfit_pars['trace_orbit_func'] = traceorbit.dummy_trace_orbit_func
+elif fit_pars['trace_orbit_func'] == 'epicyclic':
+    log_message('trace_orbit: epicyclic')
+    fit_pars['trace_orbit_func'] = traceorbit.trace_epicyclic_orbit
+else:
+    fit_pars['trace_orbit_func'] = traceorbit.trace_cartesian_orbit   
 
-    # memb_probs is what we get from the expectation step
-    init_memb_probs = np.ones((nstars, ncomps)) / ncomps
 
-    # Add background
-    init_memb_probs = np.hstack((init_memb_probs, np.zeros((nstars,1))))
-    memb_probs = init_memb_probs
-    
-    rdir = os.path.join(fit_pars['results_dir'], '{}/'.format(ncomps))
-    iter_count=0 # This is an external parameter
-    idir = os.path.join(rdir, "iter{:02}/".format(iter_count))
-        
-    all_init_pars = ncomps * [None] # Maybe I need to update this
+# Ensure None value inputs are still iterable
+if all_init_pos is None:
     all_init_pos = ncomps * [None]
-    pool=None
- 
- 
-     # Set up trace_orbit_func
-    if fit_pars['trace_orbit_func'] == 'dummy_trace_orbit_func':
-        sfit_pars['trace_orbit_func'] = dummy_trace_orbit_func
-    elif fit_pars['trace_orbit_func'] == 'epicyclic':
-        log_message('trace_orbit: epicyclic')
-        fit_pars['trace_orbit_func'] = traceorbit.trace_epicyclic_orbit
-    else:
-        fit_pars['trace_orbit_func'] = traceorbit.trace_cartesian_orbit   
-    
-    best_comp, chain, lnprob, final_pos, icomp = maximisation_for_1_component(
-        data_dict, ncomps, memb_probs, burnin_steps, idir,
-        all_init_pars, all_init_pos=all_init_pos, pool=pool,
-        nthreads=1,
-        icomp=icomp)
+if all_init_pars is None:
+    all_init_pars = ncomps * [None]
+unstable_comps = local_pars['unstable_comps']
+if unstable_comps is None:
+    unstable_comps = ncomps * [True]
+
+
+log_message('Ignoring stable comps? {}'.format(ignore_stable_comps))
+log_message('Unstable comps are {}'.format(unstable_comps))
+
+
+log_message('Fitting comp {}'.format(icomp), symbol='.', surround=True)
+gdir = idir + "comp{}/".format(icomp)
+if not os.path.exists(gdir):
+    os.makedirs(gdir)
+
+# If component has too few stars, skip fit, and use previous best walker
+if ignore_dead_comps and (np.sum(memb_probs[:, icomp]) < DEATH_THRESHOLD):
+    logging.info("Skipped component {} with nstars {}".format(
+            icomp, np.sum(memb_probs[:, icomp])
+    ))
+elif ignore_stable_comps and not unstable_comps[icomp]:
+    logging.info("Skipped stable component {}".format(icomp))
+# Otherwise, run maximisation and sampling stage
+else:
+    best_comp, chain, lnprob = compfitter.fit_comp(
+            data=data_dict, memb_probs=memb_probs[:, icomp],
+            burnin_steps=burnin_steps, plot_it=local_pars['plot_it'],
+            pool=pool, convergence_tol=local_pars['convergence_tol'],
+            plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[icomp],
+            init_pars=all_init_pars[icomp], Component=component,
+            trace_orbit_func=fit_pars['trace_orbit_func'],
+            store_burnin_chains=local_pars['store_burnin_chains'],
+            nthreads=local_pars['nthreads'],
+    )
+    logging.info("Finished fit")
+    logging.info("Best comp pars:\n{}".format(
+            best_comp.get_pars()
+    ))
+    final_pos = chain[:, -1, :]
+    logging.info("With age of: {:.3} +- {:.3} Myr".
+                 format(np.median(chain[:,:,-1]),
+                        np.std(chain[:,:,-1])))
+
+    #~ best_comp.store_raw(gdir + 'best_comp_fit.npy')
+    #~ np.save(gdir + "best_comp_fit_bak.npy", best_comp) # can remove this line when working
+    #~ np.save(gdir + 'final_chain.npy', chain)
+    #~ np.save(gdir + 'final_lnprob.npy', lnprob)
+
+    best_comp.store_raw(os.path.join(gdir, 'best_comp_fit.npy'))
+    np.save(os.path.join(gdir, 'best_comp_fit_bak.npy'), best_comp) # can remove this line when working
+    np.save(os.path.join(gdir, 'final_chain.npy'), chain)
+    np.save(os.path.join(gdir, 'final_lnprob.npy'), lnprob)
+
+
+#~ Don't return but print into a file
+#~ print(best_comp, chain, lnprob, final_pos, icomp # I don't really need to return icomp
+print(best_comp, chain, lnprob, final_pos)
+
