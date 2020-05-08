@@ -1,0 +1,15 @@
+results_dir         = 
+data_table          = None
+init_comps          = None
+component           = sphere
+max_comp_count      = 20
+max_em_iterations   = 200
+nthreads            = 1
+use_background      = True
+overwrite_prev_run  = False
+burnin              = 500
+sampling_steps      = 1000
+store_burnin_chains = False
+ignore_stable_comps = True
+trace_orbit_func    = trace_cartesian_orbit
+par_log_file        = fit_pars.log

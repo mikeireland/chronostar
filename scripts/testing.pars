@@ -1,0 +1,5 @@
+results_dir         = testresults
+data_table          = temp_data/2_naive_3comps_and_background/2_naive_3comps_and_background_data.fits
+trace_orbit_func    = epicyclic
+overwrite_prev_run  = True
+max_comp_count      = 50
