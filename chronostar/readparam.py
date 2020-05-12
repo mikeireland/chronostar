@@ -51,6 +51,13 @@ def log_used_pars(custom_pars, default_pars=None):
             line = '{:25} = {:45} {}\n'.format(k, str(combined_pars[k]), msg)
             fp.write(line.replace("'",''))
 
+def writeParam(param_file, params):
+    f=open(param_file, 'wb')
+    for k, v in params.iteritems():
+        line = k.ljust(30) + ' = ' + str(v)
+        f.write(line+'\n')
+    f.close()
+    print('%s written.'%param_file)
 
 def readParam(param_file, default_pars=None, noCheck=False):
     """

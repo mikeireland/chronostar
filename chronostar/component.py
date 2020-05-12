@@ -683,6 +683,7 @@ class AbstractComponent(object):
             pars = np.array([c.get_emcee_pars() for c in components])
         else:
             pars = np.array([c.get_pars() for c in components])
+        print('Start saving...', filename, pars)
         np.save(filename, pars)
 
     def store_attributes(self, filename):

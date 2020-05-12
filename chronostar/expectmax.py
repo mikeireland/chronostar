@@ -398,7 +398,8 @@ def calc_membership_probs(star_lnols):
 
 
 def get_all_lnoverlaps(data, comps, old_memb_probs=None,
-                       inc_posterior=False, amp_prior=None):
+                       inc_posterior=False, amp_prior=None,
+                       lnols_precomputed=None):
     """
     Get the log overlap integrals of each star with each component
 
@@ -471,10 +472,15 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
 
     # For each component, get log overlap with each star, scaled by
     # amplitude (weight) of each component's PDF
-    for i, comp in enumerate(comps):
-        lnols[:, i] = \
-            np.log(weights[i]) + \
-            likelihood.get_lnoverlaps(comp, data)
+    if lnols_precomputed is not None:
+        for i, comp in enumerate(comps):
+            lnols[:, i] = \
+                np.log(weights[i]) + lnols_precomputed#[:,i]       
+    else:
+        for i, comp in enumerate(comps):
+            lnols[:, i] = \
+                np.log(weights[i]) + \
+                likelihood.get_lnoverlaps(comp, data)
 
     # insert one time calculated background overlaps
     if using_bg:
@@ -510,19 +516,20 @@ def calc_bic(data, ncomps, lnlike, memb_probs=None, Component=SphereComponent):
         lower BIC indicates a better fit. Differences of <4 are minor
         improvements.
     """
+    # nstars: Number of members in all components altogether (based on eq below)
     if memb_probs is not None:
         nstars = np.sum(memb_probs[:, :ncomps])
     else:
         nstars = len(data['means'])
     ncomp_pars = len(Component.PARAMETER_FORMAT)
-    n = nstars * 6                      # 6 for phase space origin
+    n = nstars * 6                      # 6 for phase space origin. MZ: why?
     k = ncomps * (ncomp_pars)           # parameters for each component model
                                         #  -1 for age, +1 for amplitude
     return np.log(n)*k - 2 * lnlike
 
 
 def expectation(data, comps, old_memb_probs=None,
-                inc_posterior=False, amp_prior=None):
+                inc_posterior=False, amp_prior=None, lnols_precomputed=None):
     """Calculate membership probabilities given fits to each group
 
     Parameters
@@ -562,7 +569,7 @@ def expectation(data, comps, old_memb_probs=None,
 
     # Calculate all log overlaps
     lnols = get_all_lnoverlaps(data, comps, old_memb_probs,
-                               inc_posterior=inc_posterior, amp_prior=amp_prior)
+                               inc_posterior=inc_posterior, amp_prior=amp_prior, lnols_precomputed=lnols_precomputed)
 
     # Calculate membership probabilities, tidying up 'nan's as required
     memb_probs = np.zeros((nstars, ncomps + using_bg))
@@ -575,7 +582,7 @@ def expectation(data, comps, old_memb_probs=None,
 
 
 def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
-                             inc_posterior=False):
+                             inc_posterior=False, lnols_precomputed=None):
     """
     Get overall likelihood for a proposed model.
 
@@ -590,15 +597,17 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
         See fit_many_comps
     return_memb_probs: bool {False}
         Along with log likelihood, return membership probabilites
+    lnols_precomputed: array {False}
+        Use lnols precomputed externally
 
     Returns
     -------
     overall_lnlikelihood: float
     """
     memb_probs = expectation(data, comps, None,
-                             inc_posterior=inc_posterior)
+                             inc_posterior=inc_posterior, lnols_precomputed=lnols_precomputed)
     all_ln_ols = get_all_lnoverlaps(data, comps, memb_probs,
-                                    inc_posterior=inc_posterior)
+                                    inc_posterior=inc_posterior, lnols_precomputed=lnols_precomputed)
 
     # multiplies each log overlap by the star's membership probability
     # (In linear space, takes the star's overlap to the power of its
@@ -737,12 +746,12 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                                 np.std(chain[:,:,-1])))
 
             new_comps.append(best_comp)
+            all_samples.append(chain)
+            all_lnprob.append(lnprob)
             best_comp.store_raw(gdir + 'best_comp_fit.npy')
             np.save(gdir + "best_comp_fit_bak.npy", best_comp) # can remove this line when working
             np.save(gdir + 'final_chain.npy', chain)
             np.save(gdir + 'final_lnprob.npy', lnprob)
-            all_samples.append(chain)
-            all_lnprob.append(lnprob)
 
             # Keep track of the components that weren't ignored
             success_mask.append(i)

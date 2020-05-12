@@ -299,8 +299,8 @@ class NaiveFit(object):
 
     def build_init_comps(self, prev_comps, split_comp_ix, prev_med_and_spans):
         """
-        Given a list of converged components from a N compoennt fit, generate
-        a list of N+1 components with which to intiailise an EM run.
+        Given a list of converged components from a N component fit, generate
+        a list of N+1 components with which to intialise an EM run.
 
         This is done by taking the target component, `prev_comps[comp_ix]`,
         replacing it in the list of comps, by splitting it into two components
