@@ -6,13 +6,8 @@ Run with
 python run_maximisation_1_comp.py testing.pars run_maximisation_1_comp.pars
 
 
-
-Required input data:
+Required input data (global_pars):
 - Stellar data
-- init_pars (but we actually read component
-- (optional but preferred) memb_probs
-
-
 
 ###################################################
 ##### Required fields in the local_pars file: #####
@@ -28,8 +23,13 @@ filename_lnprob: Store lnprob in a file
 filename_init_pos: Store final_pos in this file. This is used as a starting point in the next iteration.
 ###################################################
 
-
 # OUTPUT OF THIS SCRIPT
+- component fit results
+- chain
+- lnprob
+- final_pos (this is used as an input in the next iteration)
+- plots
+
 
 Describe where this output goes
 # Output destination

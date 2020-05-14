@@ -214,11 +214,12 @@ nstars = data['means'].shape[0]
 filename_init_comps = local_pars['filename_init_comps']
 if os.path.exists(filename_init_comps):
     init_comps = Component.load_raw_components(filename_init_comps) # TODO: Add step that selects only one component from this list
+    # Take only the i-th component
+    init_comps = [init_comps[local_pars['icomp']]]
 else:
     #~ init_comps = ncomps * [None]
-    init_comps = [None] # Only one component here
-# Take only the i-th component
-init_comps = [init_comps[local_pars['icomp']]]
+    init_comps = None #[None] # Only one component here
+
 
 #~ if os.path.exists(init_memb_probs_filename):
     #~ todo=True
@@ -377,7 +378,11 @@ while not converged and iter_count < max_em_iterations:
     
     ######################################################
     ### Save data for maximisation into files ############
-    Component.store_raw_components(filename_init_comp, old_comps)
+    try:
+        Component.store_raw_components(filename_init_comp, old_comps)
+    except:
+        print('COMPONENTS=None. Not written.')
+        pass
     
     
     
