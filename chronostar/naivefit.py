@@ -468,6 +468,7 @@ class NaiveFit(object):
 
         # If beginning with 1 component, assume all stars are members
         if self.ncomps == 1:
+            print('ncomps=1, so assume all stars are members.')
             init_memb_probs = np.zeros((len(self.data_dict['means']),
                                         self.ncomps + self.fit_pars['use_background']))
             init_memb_probs[:, 0] = 1.
@@ -510,6 +511,8 @@ class NaiveFit(object):
                             symbol='+', surround=True)
                 mkpath(run_dir)
 
+                # BUILD INITIAL COMPONENTS (SPLIT iTH OF THEM)
+                print('Build init_comps with splitting one of them.')
                 self.fit_pars['init_comps'] = self.build_init_comps(
                         prev_result['comps'], split_comp_ix=i,
                         prev_med_and_spans=prev_result['med_and_spans'])

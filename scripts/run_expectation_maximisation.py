@@ -29,6 +29,10 @@ final_memb_probs
 
 
 """
+import warnings
+warnings.filterwarnings("ignore")
+print('run_expectation_maximisation: all warnings suppressed.')
+
 import numpy as np
 import matplotlib.pyplot as plt
 import os.path
@@ -152,6 +156,9 @@ global_pars = readparam.readParam(sys.argv[1], default_pars=default_global_pars)
 # Read local parameters from the file
 local_pars = readparam.readParam(sys.argv[2])
 
+print('LOCAL PARS', sys.argv[2])
+print('LOCAL PARS', local_pars)
+
 ncomps = local_pars['ncomps']
 use_background = global_pars['use_background']
 
@@ -179,16 +186,17 @@ ignore_dead_comps = global_pars['ignore_dead_comps']
 ### OUTPUT DESTINATIONS ##########
 ##################################
 rdir = os.path.join(global_pars['results_dir'], '{}/'.format(ncomps))
+#~ rdir = local_pars['run_dir']
 import shutil # TODO!!!!!!!!!!!!!!!!!!!!!!
 #~ shutil.rmtree(rdir)
 #~ print('DELETING PREVIOUS RESULTS...!!!!!')
 if not os.path.exists(rdir):
     os.makedirs(rdir)
 
-logging.basicConfig(filename=os.path.join(rdir, 'log.log'), level=logging.INFO)
+logging.basicConfig(filename=os.path.join(rdir, 'log_%d_%d.log'%(ncomps, local_pars['icomp'])), level=logging.INFO)
 
 # BIC plot output
-filename_final_bic = os.path.join(rdir, 'bics.pdf')
+filename_final_bic = os.path.join(rdir, 'bics_%d_%d.pdf'%(ncomps, local_pars['icomp']))
 
 ##################################
 ### READ DATA ####################
@@ -203,12 +211,14 @@ if use_background:
 nstars = data['means'].shape[0]
 
 # Component data
-init_comp_filename = os.path.join('init_comps.npy') # TODO: ADD DIR
-if os.path.exists(init_comp_filename):
-    init_comps = np.load(init_comp_filename) # TODO: Add step that selects only one component from this list
+filename_init_comps = local_pars['filename_init_comps']
+if os.path.exists(filename_init_comps):
+    init_comps = Component.load_raw_components(filename_init_comps) # TODO: Add step that selects only one component from this list
 else:
     #~ init_comps = ncomps * [None]
     init_comps = [None] # Only one component here
+# Take only the i-th component
+init_comps = [init_comps[local_pars['icomp']]]
 
 #~ if os.path.exists(init_memb_probs_filename):
     #~ todo=True
@@ -221,9 +231,13 @@ init_memb_probs = None # TODO
 ##################################
 logging.info("Fitting {} groups with {} burnin steps with cap "
              "of {} iterations".format(ncomps, burnin, max_em_iterations))
-             
+
+logging.info('INIT COMPS')
+logging.info(init_comps)
+print('INIT COMPS', init_comps)
+
 # If initialising with components then need to convert to emcee parameter lists
-if init_comps[0] is not None:
+if init_comps is not None:
     logging.info('Initialised by components')
     all_init_pars = [ic.get_emcee_pars() for ic in init_comps]
     skip_first_e_step = False
@@ -255,15 +269,15 @@ else:
     init_comps        = [None] # ncomps * 
 
 # Store the initial components if available
-if init_comps[0] is not None:
-    Component.store_raw_components(os.path.join(rdir, init_comp_filename), init_comps)
+#~ if init_comps[0] is not None:
+    #~ Component.store_raw_components(os.path.join(rdir, init_comp_filename), init_comps)
 # np.save(rdir + init_comp_filename, init_comps)
 
 # Initialise values for upcoming iterations
 old_comps          = init_comps
 lnols              = None # TODO Check if this is true. Do we have anything from previous iterations?
 # old_overall_lnlike = -np.inf
-all_init_pos       = [None] # ncomps * 
+all_init_pos       = [None] # ncomps *  # But this should be the previous value in the next iter!
 all_med_and_spans  = [None] # ncomps * 
 converged          = False
 
@@ -305,19 +319,26 @@ while not converged and iter_count < max_em_iterations:
     print('\n\n\n\n')
     print('iter', iter_count)
     
-    idir = os.path.join(rdir, "iter{:02}".format(iter_count))
+    #~ idir = os.path.join(rdir, "iter{:02}".format(iter_count))
+    idir = os.path.join(local_pars['run_dir'], "iter{:02}".format(iter_count)) # testresults/2/A/iter00/
     if not os.path.exists(idir):
-        os.makedirs(idir)
+        try:
+            os.makedirs(idir)
+        except:
+            # When doing this in parallel, more than one process might try to create this dir at the same time.
+            pass
 
 
     gdir = os.path.join(idir, "comp{}".format(local_pars['icomp'])) # Do I need idir or is gdir enough?
+    #~ gdir = os.path.join(local_pars['run_dir'], "comp{}".format(local_pars['icomp'])) # Do I need idir or is gdir enough?
     if not os.path.exists(gdir):
         os.makedirs(gdir)
         print('MKDIR', gdir, 'iter', iter_count)
-
-    filename_comp = os.path.join(gdir, 'best_comp_fit.npy') # TODO: Add this comp ID and define gdir
+    filename_comp = os.path.join(gdir, 'best_comp_fit.npy') # TODO: Add this comp ID maybe not because chronostar won't be able to read results later
+    filename_init_comp = os.path.join(gdir, 'init_comp.npy') # Need this to init init_pars
     filename_samples = os.path.join(gdir, 'final_chain.npy') # TODO
-    filename_init_pos = os.path.join(gdir, 'init_pos.npy') # TODO
+    filename_init_pos = os.path.join(gdir, 'init_pos_%d_%d.npy'%(ncomps, local_pars['icomp'])) # TODO
+    filename_init_pars = os.path.join(gdir, 'init_pars.npy') # TODO
     filename_lnprob = os.path.join(gdir, 'final_lnprob.npy') # TODO
 
     #~ if filename_comp_prev_iter is None:
@@ -354,27 +375,34 @@ while not converged and iter_count < max_em_iterations:
     ### MAXIMISATION #################
     ##################################
     
-    print('main filename_comp', filename_comp)
-    print('main filename_comp_prev_iter', filename_comp_prev_iter)
+    ######################################################
+    ### Save data for maximisation into files ############
+    Component.store_raw_components(filename_init_comp, old_comps)
+    
+    
+    
+    #~ print('main filename_comp', filename_comp)
+    #~ print('main filename_comp_prev_iter', filename_comp_prev_iter)
     
     # Write params file. TODO: Make defaults file. Review what is really
     # needed here and what could go into defaults.
     pars = {'ncomps':ncomps,
         'icomp': local_pars['icomp'],
         'iter_count': iter_count,
-        'pool': pool,
-        'nthreads': nthreads,
         'idir': idir,
-        'all_init_pars': all_init_pars,
+        'output_dir': gdir,
+        # Input data
+        'filename_init_comp': filename_init_comp,
         'filename_membership': filename_membership,
-        'filename_comp_prev_iter': filename_comp_prev_iter,
-        'filename_comp': filename_comp,
+        # Output data
+        'filename_comp': filename_comp, # Save result of maximisation into this file
         'filename_samples': filename_samples,
-        'filename_init_pos': filename_init_pos,
-        'filename_init_pos_prev_iter': filename_init_pos_prev_iter,
+        'filename_init_pos': filename_init_pos, # (?)
+        'filename_init_pos_prev_iter': filename_init_pos_prev_iter, # (?)
         'filename_lnprob': filename_lnprob,
         }
     filename_params = os.path.join(gdir, 'run_maximisation_1_comp.pars') # TODO: folder
+    #~ filename_params = os.path.join(local_pars['run_dir'], 'run_maximisation_1_comp.pars') # TODO: folder
     readparam.writeParam(filename_params, pars)
     
     time_end = time.time()
@@ -398,13 +426,13 @@ while not converged and iter_count < max_em_iterations:
     print('DURATION maximisation with emcee/scipy optimizer', dur)
 
     # READ MAXIMISATION RESULTS
-    new_comps = Component.load_raw_components(filename_comp)
+    new_comps = Component.load_raw_components(filename_comp) # gdir?
     print('new_comps', new_comps)
     try:
         all_samples = np.load(filename_samples)
     except:
         all_samples = [None]
-    all_init_pos = np.load(filename_init_pos) # not saved. Make it save it!
+    all_init_pos = np.load(filename_init_pos) # This is an input in the next iteration step. These are really final_pos in the maximisation step that was just executed.
     
 
     #~ # DETERMINE MEDS AND SPANS
@@ -531,11 +559,12 @@ logging.info("CONVERGENCE COMPLETE")
 print("CONVERGENCE COMPLETE")
 
 ##################################
-### SAVE RESULTS #################
+### SAVE FINAL RESULTS: Only for this particular component #################
 ##################################
 
-np.save(os.path.join(rdir, 'bic_list.npy'), list_prev_bics)
+np.save(os.path.join(rdir, 'bic_list_%d_%d.npy'%(ncomps, local_pars['icomp'])), list_prev_bics)
 
+# CHECK IF THIS MAKES SENSE WITH BIC AND ONLY ONE COMPONENT. It should be ok as this code is used in Tim's Em algorithm even for ncomps=1 case.
 
 best_bic_ix = np.argmin(list_prev_bics)
 # Since len(list_prev_bics) is capped, need to count backwards form iter_count
@@ -551,7 +580,7 @@ best_all_init_pos   = list_all_init_pos[best_bic_ix]
 final_med_and_spans = list_all_med_and_spans[best_bic_ix]
 
 log_message('Storing final result', symbol='-', surround=True)
-final_dir = os.path.join(rdir, 'final')
+final_dir = os.path.join(rdir, 'final_%d_%d'%(ncomps, local_pars['icomp']))
 os.makedirs(final_dir)
 
 np.save(os.path.join(final_dir, 'final_membership.npy'), final_memb_probs)

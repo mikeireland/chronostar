@@ -227,6 +227,11 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
     init_pos: [nwalkers, npars] array_like
         The starting positions of emcee walkers
     """
+
+    if type(init_pars)==list:
+        if len(init_pars)==1:
+            init_pars=init_pars[0]
+    
     if init_pars is None:
         rough_mean_now, rough_cov_now = \
             approx_currentday_distribution(data=data,
@@ -393,9 +398,15 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
     # Initialise the emcee sampler
     if init_pos is None:
+        print('FFFFF')
+        #~ print(data)
+        #~ print(Component)
+        #~ print(nwalkers)
         init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
                                       init_pars=init_pars, Component=Component,
                                       nwalkers=nwalkers)
+    
+    print('COMPFITTER: init_pos', init_pos)
     os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
     sampler = emcee.EnsembleSampler(
             nwalkers, npars, likelihood.lnprob_func,
