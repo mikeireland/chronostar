@@ -474,8 +474,18 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     # amplitude (weight) of each component's PDF
     if lnols_precomputed is not None:
         for i, comp in enumerate(comps):
-            lnols[:, i] = \
-                np.log(weights[i]) + lnols_precomputed#[:,i]       
+            #~ print('lnols_precomputed. type', type(lnols_precomputed))
+            #~ print('lnols_precomputed.shape', lnols_precomputed.shape)
+            #~ print('lnols_precomputed.shape LEN', len(lnols_precomputed.shape))
+            #~ print('lnols_precomputed', lnols_precomputed)
+            if len(lnols_precomputed.shape)>1:
+                print('first')
+                lnols[:, i] = \
+                    np.log(weights[i]) + lnols_precomputed[:,i]
+            else:
+                print('second')
+                lnols[:, i] = \
+                    np.log(weights[i]) + lnols_precomputed              
     else:
         for i, comp in enumerate(comps):
             lnols[:, i] = \

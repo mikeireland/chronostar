@@ -155,8 +155,11 @@ global_pars = readparam.readParam(sys.argv[1], default_pars=default_fit_pars)
 # Read local parameters from the file
 local_pars = readparam.readParam(sys.argv[2])
 
+print('ocmp', sys.argv[2], sys.argv[1])
+
 ncomps = local_pars['ncomps']
 icomp = local_pars['icomp']
+use_background = global_pars['use_background']
 
 # TODO ###############
 pool=None#pool#None
@@ -193,8 +196,12 @@ if not os.path.exists(gdir):
 ##################################
 ### READ DATA ####################
 ##################################
+# Mask
+#~ mask_good = np.load(global_pars['mask_good'])
 # Stellar data
-data_dict = tabletool.build_data_dict_from_table(global_pars['data_table'])
+#~ data_dict = tabletool.build_data_dict_from_table(global_pars['data_table'], mask_good=mask_good)
+data_dict = tabletool.build_data_dict_from_table(global_pars['data_table'], get_background_overlaps=use_background)
+print('ONECOME', len(data_dict['means']), global_pars['data_table'])
 
 # Read init_comps (there is only one component in this file??)
 # in order to set init_pars. 'init_comps' itself it not needed further
@@ -221,14 +228,19 @@ else:
 # memb_probs is what we get from the expectation step
 if os.path.exists(local_pars['filename_membership']):
     memb_probs = np.load(local_pars['filename_membership'])
+    print('MEMB PROBS READ FROM FILE', local_pars['filename_membership'])
+    print('MEMB PROBS READ FROM FILE', memb_probs, 'len', len(memb_probs))
 else:
     # This is first run and we have to start somewhere
     nstars = data_dict['means'].shape[0]
     init_memb_probs = np.ones((nstars, ncomps)) / ncomps
+    print('MEMB PROBS INIT EQUAL')
 
     # Add background
     if global_pars['use_background']:
         memb_probs = np.hstack((init_memb_probs, np.zeros((nstars,1))))
+
+print('ONECOMP', len(memb_probs), len(data_dict['means']))
 
 ##################################
 ### COMPUTATIONS #################

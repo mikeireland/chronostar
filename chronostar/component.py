@@ -47,6 +47,8 @@ except:
 import numpy as np
 from scipy.stats.mstats import gmean
 from astropy.table import Table
+from astropy import units as u
+import string
 
 from . import transform
 from .traceorbit import trace_cartesian_orbit
@@ -685,6 +687,61 @@ class AbstractComponent(object):
             pars = np.array([c.get_pars() for c in components])
         print('Start saving...', filename, pars)
         np.save(filename, pars)
+
+    @staticmethod
+    def store_components_in_fits_format(filename, components):
+        """
+        Store raw parameters of components in a fits format in real space (external).
+        Name them with alphabetic...
+
+        Parameters
+        ----------
+        filename: str
+            The name of the file to which we are saving parameter data
+        components: [Component] list
+            The list of components that we are saving
+
+        Returns
+        -------
+        compnames
+
+        Notes
+        -----
+        This is a static method because it needs as input a list of
+        components, not just the component itself
+        """
+        if (type(components) is not list) and (type(components) is not np.ndarray):
+            components = [components]
+        pars = np.array([c.get_pars() for c in components])        
+        
+        ### COMPONENTS
+        # Components (EXcludes background, but background must be 1-sum(memberships for all components))
+        #TODO: It would be great to add background membership as well, because then it is much more simple (using one column) to determine stars that are members of any of the components as opposed to the background.
+        comp = pars
+        ncomps = len(comp)
+
+        # Compnames
+        abc=string.ascii_uppercase
+        compnames = [abc[i] for i in range(ncomps)]
+
+        # TODO: Get NAMES from an array somewhere where this is defined.
+        tabcomps = Table([compnames, comp[:,0], comp[:,1], comp[:,2], comp[:,3], comp[:,4], comp[:,5], comp[:,6], comp[:,7], comp[:,8]], names=('comp_ID', 'X', 'Y', 'Z', 'U', 'V', 'W', 'dX', 'dV', 'Age'))
+        tabcomps['X'].unit = u.pc
+        tabcomps['Y'].unit = u.pc
+        tabcomps['Z'].unit = u.pc
+        tabcomps['dX'].unit = u.pc
+        tabcomps['U'].unit = u.km/u.s
+        tabcomps['V'].unit = u.km/u.s
+        tabcomps['W'].unit = u.km/u.s
+        tabcomps['dV'].unit = u.km/u.s
+        tabcomps['Age'].unit = u.Myr
+
+        print('Start saving...', filename)
+        tabcomps.write(filename, format='fits')        
+        print('%s saved.'%filename)
+        
+        return compnames
+        
 
     def store_attributes(self, filename):
         """

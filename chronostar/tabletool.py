@@ -102,7 +102,9 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
                                historical=False, only_means=False,
                                get_background_overlaps=True,
                                background_colname=None,
-                               return_table_ixs=False):
+                               return_table_ixs=False,
+                               ids_colname=None,
+                               mask_good=None):
     """
     Use data in tale columns to construct arrays of means and covariance
     matrices.
@@ -154,6 +156,8 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
 
         where `final_memb` is a [nstars, ncomps] array recording membership
         probabilities.
+    ids_colname: str {None}
+        Column name of stellar ids in the table.
 
     Returns
     -------
@@ -161,12 +165,19 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
         Array of the mean measurements
     covs: [n,6,6] float array_like
         Array of the covariance matrix for each of the `n` measured objects
+    ids: [n] array
+        Stellar IDs
     Comment by Marusa: it is actually a dictionary that is returned.
     """
 
     # Tidy up input
     if isinstance(table, str):
         table = Table.read(table)
+
+    #~ if mask_good is not None:
+        #~ table = table[mask_good]
+        #~ print('Table is masked with mask_good.')
+
     if historical:
         main_colnames, error_colnames, corr_colnames =\
             get_historical_cart_colnames()
@@ -236,20 +247,33 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
     # Checks for any nans in the means or covariances
     bad_mean_mask = np.any(np.isnan(means), axis=1)
     bad_cov_mask = np.any(np.isnan(covs), axis=(1,2))
+    #~ bad_bgols_mask = np.isnan(table[])
 
     good_row_mask = np.logical_not(np.logical_or(bad_mean_mask, bad_cov_mask))
 
+    #~ np.save('good_row_mask.dat', good_row_mask)
+
+    if ids_colname is not None and len(ids_colname)>0:
+        ids = np.array(table[ids_colname]) # TODO: Gaia ID. Enable custom defined
+        ids=ids[good_row_mask]
+    else:
+        ids=None
+        print('Stellar IDS are not available! Did you specify ids_colname in the params file?')
+
     results_dict = {
-        'means':means[good_row_mask],
-        'covs':covs[good_row_mask],
+        'means': means[good_row_mask],
+        'covs': covs[good_row_mask],
+        'ids': ids, # [good_row_mask] has already been applied above
     }
 
     # Insert background overlaps
+    print('get_background_overlaps', get_background_overlaps)
     if get_background_overlaps:
         if background_colname is None:
             background_colname = 'background_log_overlap'
     if background_colname in table.colnames:
         results_dict['bg_lnols'] = np.array(table[background_colname])[good_row_mask]
+        print('background_colname in table.colnames')
 
     if return_table_ixs:
         return results_dict, np.where(good_row_mask)
@@ -522,3 +546,23 @@ def convert_table_astro2cart(table, return_table=False, write_table=False,
     if return_table:
         return table
 
+def store_memberships_in_fits_format(memb, filename, compnames=None, ids=None, ids_colname=None):
+    """
+    data: IDS of stars. Order the same as in the memb array.
+    memb: ndarray
+    """
+    tab = Table()
+    
+    # Add ids if provided
+    if ids is not None and ids_colname is not None:
+        tab[ids_colname] = ids
+        
+    if compnames is not None:
+        for i, c in enumerate(compnames):
+            tab['membership%s'%c.replace('comp', '')] = memb[:,i]
+    else:
+        for i in range(len(compnames)):
+            tab['membership%d'%i] = memb[:,i]
+
+    tab.write(filename, format='fits')
+    print('%s saved.'%filename)

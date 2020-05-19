@@ -8,9 +8,12 @@ from expectmax.py
 Run with
 python run_expectation_maximisation.py testing.pars run_expectmax.pars
 
+# Wrong
 rdir: results dir for this number of components, e.g. testresults/2/ Where do ABC come from?
 idir: iteration directory, e.g. testresults/2/iter00/
 gdir: component directory, e.g. testresults/2/iter00/comp0/
+
+local_pars['run_dir']: testresults/2/A/
 
 Remove component stability check here as only one component is fitted!
 
@@ -151,7 +154,8 @@ def log_message(msg, symbol='.', surround=False):
 default_global_pars = readparam.readParam('default_fit.pars')
 
 # Read global parameters from the file
-global_pars = readparam.readParam(sys.argv[1], default_pars=default_global_pars)
+filename_global_pars = sys.argv[1]
+global_pars = readparam.readParam(filename_global_pars, default_pars=default_global_pars)
 
 # Read local parameters from the file
 local_pars = readparam.readParam(sys.argv[2])
@@ -209,6 +213,8 @@ if use_background:
     assert 'bg_lnols' in data.keys()
 
 nstars = data['means'].shape[0]
+
+print('EMnstars', nstars, global_pars['data_table'])
 
 # Component data
 filename_init_comps = local_pars['filename_init_comps']
@@ -358,19 +364,23 @@ while not converged and iter_count < max_em_iterations:
         found_prev_iters = False
         skip_first_e_step = False       # Unset the flag to initialise with
                                         # memb probs
+        print('expectmax: membprobs1')
     elif skip_first_e_step:
         logging.info("Using initialising memb_probs for first iteration")
         memb_probs_new = init_memb_probs
         skip_first_e_step = False
+        print('expectmax: membprobs1')
     else:
         memb_probs_new = expectmax.expectation(data, old_comps, memb_probs_old,
                                      inc_posterior=inc_posterior, lnols_precomputed=lnols)
+        print('expectmax: membprobs3')
     logging.info("Membership distribution:\n{}".format(
         memb_probs_new.sum(axis=0)
     ))
     
     filename_membership = os.path.join(idir, "membership.npy")
     np.save(filename_membership, memb_probs_new)
+    print('MEMB LEN', len(memb_probs_new), 'nstars', nstars)
 
     ##################################
     ### MAXIMISATION #################
@@ -416,7 +426,7 @@ while not converged and iter_count < max_em_iterations:
     
     time_start = time.time()
     # Run external maximisation code - the results are written into files.
-    bashCommand = 'python run_maximisation_1_comp.py testing.pars %s'%filename_params
+    bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_global_pars, filename_params)
     #~ bashCommand = 'mpirun -np 8 python run_maximisation_1_comp.py testing.pars %s'%filename_params
     #~ bashCommand = 'python run_maximisation_1_comp_gradient_descent.py testing.pars %s'%filename_params
     print(bashCommand)
@@ -424,7 +434,7 @@ while not converged and iter_count < max_em_iterations:
     #~ output, error = process.communicate()
     #~ _, _ = process.communicate()
     process_output, _ = process.communicate()
-    print('process_output', process_output)
+    print('process_output run_maximisation_1_comp', process_output)
 
     time_end = time.time()
     dur = time_end-time_start
@@ -584,8 +594,14 @@ final_memb_probs    = list_prev_memberships[best_bic_ix]
 best_all_init_pos   = list_all_init_pos[best_bic_ix]
 final_med_and_spans = list_all_med_and_spans[best_bic_ix]
 
+# Create final_ncomp_icomp/ dir
 log_message('Storing final result', symbol='-', surround=True)
-final_dir = os.path.join(rdir, 'final_%d_%d'%(ncomps, local_pars['icomp']))
+if ncomps==1:
+    #~ final_dir = os.path.join(gdir, 'final_%d_%d'%(ncomps, local_pars['icomp'])) # Used to be rdir
+    final_dir = os.path.join(rdir, 'final')
+else:
+    #~ final_dir = os.path.join(gdir, 'final_%d_%d'%(ncomps, local_pars['icomp'])) # Used to be rdir
+    final_dir = os.path.join(local_pars['run_dir'], 'final_%d_%d'%(ncomps, local_pars['icomp'])) # Used to be rdir
 os.makedirs(final_dir)
 
 np.save(os.path.join(final_dir, 'final_membership.npy'), final_memb_probs)

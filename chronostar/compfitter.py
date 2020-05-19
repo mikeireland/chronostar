@@ -103,6 +103,10 @@ def approx_currentday_distribution(data, membership_probs):
     means = data['means']
     if membership_probs is None:
         membership_probs = np.ones(len(means))
+    
+    print('MEANS', len(means))
+    print('membership_probs', len(membership_probs))
+    
     # approximate the (weighted) mean and covariance of star distribution
     mean_of_means = np.average(means, axis=0, weights=membership_probs)
     cov_of_means = np.cov(means.T, ddof=0., aweights=membership_probs)

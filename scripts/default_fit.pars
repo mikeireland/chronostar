@@ -18,3 +18,4 @@ bic_conv_tol        = 0.1
 DEATH_THRESHOLD     = 2.1
 plot_it             = False
 convergence_tol     = 0.5 # C_TOL = 0.5 hardcoded in expectmax line 943, but default_params: 0.25 
+ids_colname         = source_id

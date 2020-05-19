@@ -3,3 +3,4 @@ data_table          = temp_data/2_naive_3comps_and_background/2_naive_3comps_and
 trace_orbit_func    = epicyclic
 overwrite_prev_run  = True
 max_comp_count      = 50
+ids_colname         = ''

@@ -58,7 +58,8 @@ class SynthData():
 
     def __init__(self, pars, starcounts, measurement_error=1.0,
                  Components=SphereComponent, savedir=None,
-                 tablefilename=None, background_density=None):
+                 tablefilename=None, background_density=None,
+                 span_factor=2):
         """
         Generates a set of astrometry data based on multiple star bursts with
         simple, Gaussian origins.
@@ -94,7 +95,9 @@ class SynthData():
                     self.Components[i](self.pars[i])
             )
 
+        # Background
         self.background_density = background_density
+        self.span_factor=span_factor
 
         if savedir is None:
             self.savedir = ''
@@ -158,16 +161,20 @@ class SynthData():
 
     def generate_background_stars(self):
         """Embed association stars in a sea of background stars with
-        twice the span as current data"""
+        twice the span as current data (actually the span factor is defined
+        by span_factor)
+        """
         init_means = tabletool.build_data_dict_from_table(
                 self.table, main_colnames=[el+'0' for el in 'xyzuvw'],
                 only_means=True,
         )
+        
+        print('init means', init_means)
         data_upper_bound = np.max(init_means, axis=0)
         data_lower_bound = np.min(init_means, axis=0)
         box_centre = (data_upper_bound + data_lower_bound) / 2.
         data_span = data_upper_bound - data_lower_bound
-        box_span = 2 * data_span
+        box_span = self.span_factor * data_span
         bg_starcount = self.background_density * np.product(box_span)
 
         bg_init_xyzuvw = np.random.uniform(low=-data_span, high=data_span,
@@ -263,7 +270,7 @@ class SynthData():
         Uses self.pars and self.starcounts to generate an astropy table with
         synthetic stellar measurements.
         """
-        self.generate_all_init_cartesian()
+        self.generate_all_init_cartesian() # Generates background as well.
         self.project_stars()
         self.measure_astrometry()
         if filename is not None:
