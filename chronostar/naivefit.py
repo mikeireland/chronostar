@@ -357,6 +357,9 @@ class NaiveFit(object):
         the previous results from and loads them in this module.
 
         """
+        
+        print('RUNNING THIS ONE run_em_unless_loadable')
+        
         try:
             med_and_spans = np.load(run_dir + 'final/'
                                          + self.final_med_and_spans_file)
@@ -473,7 +476,7 @@ class NaiveFit(object):
     
         return tab
     
-    def run_fit(self):
+    def run_fit(self): # run_chronostar
         """
         Perform a fit (as described in Paper I) to a set of prepared data.
 

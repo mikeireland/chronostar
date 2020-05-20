@@ -923,19 +923,20 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
            all_final_pos, success_mask
         
     # Fit all comps
-    np.save('filenames_pars.npy', filenames_pars)
+    filenames_pars_filename = os.path.join(gdir, 'filenames_pars.npy')
+    np.save(filenames_pars_filename, filenames_pars)
     print(filenames_pars)
     if ncomps==1:
         bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_global_pars, filenames_pars[0])
     else:
-        bashCommand = 'mpirun -np %d python run_maximisation_all_comps.py %s %s'%(ncomps, filename_global_pars, 'filenames_pars.npy')
+        bashCommand = 'mpirun -np %d python run_maximisation_all_comps.py %s %s'%(ncomps, filename_global_pars, filenames_pars_filename)
     
     print(bashCommand)
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     #~ output, error = process.communicate()
-    #~ _, _ = process.communicate()
-    process_output, _ = process.communicate()
-    print('process_output run_maximisation_1_comp', process_output)
+    _, _ = process.communicate()
+    #~ process_output, _ = process.communicate()
+    #~ print('process_output run_maximisation_1_comp', process_output)
 
     # Read results of the fit (but only components that were fitted)
     for i in fitted_comps:
@@ -1142,6 +1143,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         membership probabilities
 
     """
+    print('RUNNING fit_many_comps')
+    
     # Tidying up input
     if not isinstance(data, dict):
         data = tabletool.build_data_dict_from_table(
@@ -1326,7 +1329,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         ))
         np.save(idir+"membership.npy", memb_probs_new)
 
-        # MAXIMISE
+        # MAXIMISE: PARALLEL EXTERNAL
+        print('fit_many_comps: maximisation_parallel_external')
         new_comps, all_samples, _, all_init_pos, success_mask =\
             maximisation_parallel_external(data, ncomps=ncomps,
                          burnin_steps=burnin,

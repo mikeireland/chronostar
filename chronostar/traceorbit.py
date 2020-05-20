@@ -5,6 +5,10 @@ A module aimed at projecting an orbit forward or backward through time.
 Operates in a co-rotating, RH cartesian coordinate system centred on the
 local standard of rest.
 """
+import warnings
+warnings.filterwarnings("ignore")
+print('traceorbit: all warnings suppressed.')
+
 import logging
 import numpy as np
 
