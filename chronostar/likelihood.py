@@ -314,7 +314,8 @@ def lnprob_func(pars, data, memb_probs=None,
     # every single time.
     #~ global data
     #~ global memb_probs
-    
+    print('likelihood memb_probs', memb_probs)
+    print('likelihood data means', data['means'])
     if memb_probs is None:
         memb_probs = np.ones(len(data['means']))
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
