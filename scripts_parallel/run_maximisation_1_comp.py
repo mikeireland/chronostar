@@ -251,10 +251,10 @@ logging.info("Finished fit")
 logging.info("Best comp pars:\n{}".format(
         best_comp.get_pars()
 ))
-final_pos = chain[:, -1, :]
-logging.info("With age of: {:.3} +- {:.3} Myr".
-             format(np.median(chain[:,:,-1]),
-                    np.std(chain[:,:,-1])))
+#~ final_pos = chain[:, -1, :]
+#~ logging.info("With age of: {:.3} +- {:.3} Myr".
+             #~ format(np.median(chain[:,:,-1]),
+                    #~ np.std(chain[:,:,-1])))
 
 ##################################
 ### SAVE RESULTS #################

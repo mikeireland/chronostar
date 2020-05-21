@@ -628,4 +628,5 @@ def fit_comp_scipy_optimise(data, memb_probs=None, init_pos=None, init_pars=None
     best_component = Component(emcee_pars=result.x)
     #~ best_component = get_best_component(sampler.chain, sampler.lnprobability)
 
+    print('RETURN', best_component, result.x, result.fun)
     return best_component, result.x, result.fun
