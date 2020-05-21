@@ -323,3 +323,20 @@ def lnprob_func(pars, data, memb_probs=None,
     if not np.isfinite(lp):
         return -np.inf
     return lp + lnlike(comp, data, memb_probs, **kwargs)
+
+def minus_lnprob_func(pars, data, memb_probs=None,
+                trace_orbit_func=None,
+                Component=SphereComponent, **kwargs):
+    #~ return - lnprob_func(pars, data, memb_probs=None,
+                    #~ trace_orbit_func=None,
+                    #~ Component=SphereComponent, **kwargs)
+    
+    # scipy.optimize.minimize puts data dict into a list
+    if not isinstance(data, dict):
+        data=data[0]
+    
+    result = - lnprob_func(pars, data, memb_probs=None,
+                    trace_orbit_func=None,
+                    Component=SphereComponent)
+    #~ print('result', result)
+    return result
