@@ -42,8 +42,8 @@ else:
     print('run_maximisation_all_comps: LEN FILENAME_PARAMS>1; increase number of processes!')
 
 # RUN MAXIMISATION
-#~ bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_fit_pars, filename_params)
-bashCommand = 'python run_maximisation_1_comp_scipy_optimise.py %s %s'%(filename_fit_pars, filename_params)
+bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_fit_pars, filename_params)
+#~ bashCommand = 'python run_maximisation_1_comp_scipy_optimise.py %s %s'%(filename_fit_pars, filename_params)
 print(bashCommand)
 process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 #~ output, error = process.communicate()
