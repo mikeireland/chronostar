@@ -323,26 +323,3 @@ def lnprob_func(pars, data, memb_probs=None,
     if not np.isfinite(lp):
         return -np.inf
     return lp + lnlike(comp, data, memb_probs, **kwargs)
-
-def minus_lnprob_func(pars, args, Component=SphereComponent, **kwargs):
-    
-    # args = [data, memb_probs, trace_orbit_func]
-    data=args[0]
-    memb_probs = args[1]
-    trace_orbit_func = args[2]
-
-
-    if memb_probs is None:
-        memb_probs = np.ones(len(data['means']))
-    comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
-    lp = lnprior(comp, memb_probs)
-    if not np.isfinite(lp):
-        return -(-np.inf)
-    return - (lp + lnlike(comp, data, memb_probs, **kwargs))
-
-
-    #~ result = - lnprob_func(pars, data, memb_probs=None,
-                    #~ trace_orbit_func=None,
-                    #~ Component=SphereComponent)
-    #print('result', result)
-    #~ return result

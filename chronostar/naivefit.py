@@ -391,51 +391,6 @@ class NaiveFit(object):
 
         return {'comps':comps, 'med_and_spans':med_and_spans, 'memb_probs':memb_probs}
 
-    #~ @profile
-    def run_em_unless_loadable_scipy(self, run_dir, pool=None):
-        """
-        Run and EM fit, but only if not loadable from a previous run.
-        If you want to continue from the previous run, e.g. from '15', 
-        then find the best split of '15', e.g. '15/B' and copy '15/B/final'
-        to your new destination folder (new_folder/15/final/). This is where Chronostar reads
-        the previous results from and loads them in this module.
-
-        """
-        
-        print('RUNNING THIS ONE run_em_unless_loadable')
-        
-        try:
-            med_and_spans = np.load(run_dir + 'final/'
-                                         + self.final_med_and_spans_file)
-            memb_probs = np.load(
-                run_dir + 'final/' + self.final_memb_probs_file)
-            comps = self.Component.load_raw_components(
-                    str(run_dir + 'final/' + self.final_comps_file))
-            logging.info('Loaded from previous run')
-
-            # Handle case where Component class has been modified and can't
-            # load the raw components
-        except AttributeError:
-            # TODO: check that the final chains looked for are guaranteed to be saved
-            comps = self.build_comps_from_chains(run_dir)
-
-            # Handle the case where files are missing, which means we must
-            # perform the fit.
-        except IOError:
-            comps, med_and_spans, memb_probs = \
-                expectmax.fit_many_comps_scipy(data=self.data_dict,
-                        ncomps=self.ncomps, rdir=run_dir, pool=pool, 
-                        filename_global_pars=self.filename_global_pars, 
-                        **self.fit_pars)
-
-        # Since init_comps and init_memb_probs are only meant for one time uses
-        # we clear them to avoid any future usage
-        self.fit_pars['init_comps'] = None
-        self.fit_pars['init_memb_probs'] = None
-
-        return {'comps':comps, 'med_and_spans':med_and_spans, 'memb_probs':memb_probs}
-
-
     def iter_end_log(self, best_split_ix, prev_result, new_result):
         logging.info("Selected {} as best decomposition".format(
                 chr(ord('A') + best_split_ix)))
@@ -923,66 +878,7 @@ class NaiveFit(object):
 
         return result, score
             
-
-    def run_split_for_one_comp_multiproc_scipy(self, i=0, pool=None):
-        """
-        MZ: 2020 - 04 - 23
-        
-        Compute split of one component.
-        This is taken from the run_fit and is made for multiprocessing
-        purposes.
-        
-        Params:
-        -----------
-        i: int
-            Compute split for the i-th component
-            
-        Returns:
-        -----------
-        result:
-        score:
-        
-        """
-        # ------------------------------------------------------------
-        # -----  EXPLORE EXTRA COMPONENT BY DECOMPOSITION  -----------
-        # ------------------------------------------------------------
-
-        # Calculate global score of fit for comparison with future fits with different
-        # component counts
-
-        log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
-                    symbol='*', surround=True)
-
-
-        # Iteratively try subdividing each previous component
-        # target_comp is the component we will split into two.
-        # This will make a total of ncomps (the target comp split into 2,
-        # plus the remaining components from prev_result['comps']
-        #~ print('$$$', i, self.prev_result['comps'])
-        target_comp = self.prev_result['comps'][i]
-        div_label = chr(ord('A') + i)
-        run_dir = self.rdir + '{}/{}/'.format(self.ncomps, div_label)
-        log_message(msg='Subdividing stage {}'.format(div_label),
-                    symbol='+', surround=True)
-        mkpath(run_dir)
-
-        self.fit_pars['init_comps'] = self.build_init_comps(
-                self.prev_result['comps'], split_comp_ix=i,
-                prev_med_and_spans=self.prev_result['med_and_spans'])
-
-        result = self.run_em_unless_loadable_scipy(run_dir, pool=pool)
-        score = self.calc_score(result['comps'], result['memb_probs'])
-        all_scores=[score]
-
-        logging.info(
-                'Decomposition {} finished with \nBIC: {}\nlnlike: {}\n'
-                'lnpost: {}'.format(
-                        div_label, all_scores[-1]['bic'],
-                        all_scores[-1]['lnlike'], all_scores[-1]['lnpost'],
-                ))
-
-        return result, score
-            
+                        
     def run_fit_gather_results_multiproc(self, all_results, all_scores):
         # identify the best performing decomposition
         all_bics = [score['bic'] for score in all_scores]
