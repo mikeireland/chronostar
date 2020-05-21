@@ -286,6 +286,7 @@ def get_best_component(chain, lnprob, Component=SphereComponent):
 
     best_sample = chain[final_best_ix]
     best_component = Component(emcee_pars=best_sample)
+    print('best sample', best_sample)
     return best_component
 
 #@profile
@@ -392,6 +393,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
     # Initialise the emcee sampler
     if init_pos is None:
+        print('emcee init_pos None. Init here.')
         init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
                                       init_pars=init_pars, Component=Component,
                                       nwalkers=nwalkers)
@@ -419,6 +421,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
     cnt = 0
     logging.info("Beginning burnin loop")
     burnin_lnprob_res = np.zeros((nwalkers,0))
+
+    #~ print('EMCEE INIT POS', init_pos)
 
     # burn in until converged or the (optional) max_iter is reached
     while (not converged) and cnt != max_iter:
@@ -493,6 +497,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
     # Determining the median and span of each parameter
     med_and_span = calc_med_and_span(sampler.chain)
     logging.info("Results:\n{}".format(med_and_span))
+
+    print('RETURN', best_component)#, sampler.chain, sampler.lnprobability)
 
     return best_component, sampler.chain, sampler.lnprobability
 
@@ -603,13 +609,18 @@ def fit_comp_scipy_optimise(data, memb_probs=None, init_pos=None, init_pars=None
 
 
     #~ print('compfitter init_pos', init_pos)
-    #~ print('type', type(init_pos))
-    if not type(init_pos)==np.array: # TODO: make a better init_pos
-        print('INIT POS IS NONE!!!')
+    check = type(init_pos)==np.ndarray
+    #~ print('type', type(init_pos), not check)
+    if not check: # TODO: make a better init_pos
+        print('INIT POS IS NONE!!!', not type(init_pos)==np.array)
         dm = data['means']
         med = np.nanmedian(dm, axis=0)
         init_pos = np.hstack((med, [1, 1, 1]))
         print('INIT POS', init_pos)
+
+    # In case this has many init positions (emcee walkers legacy)
+    if len(init_pos)>1:
+        init_pos = init_pos[0]
 
     
     #~ print('COMPFITTER', init_pos, trace_orbit_func)
@@ -617,6 +628,7 @@ def fit_comp_scipy_optimise(data, memb_probs=None, init_pos=None, init_pars=None
 
     # TODO: tol
     # TODO: init_pos
+    #~ print('SCIPY INIT POS', init_pos)
     result = scipy.optimize.minimize(likelihood.minus_lnprob_func, init_pos, args=[data, memb_probs, trace_orbit_func], options={'display': True}, tol=0.1) # , method=None, bounds=None, constraints=(), tol=None, callback=None, options=None , tol=1e-5, , method = 'BFGS'
     
     #~ print('INIT POS', init_pos)
@@ -631,5 +643,5 @@ def fit_comp_scipy_optimise(data, memb_probs=None, init_pos=None, init_pars=None
 
     # x: the solution of optimisation
 
-    #~ print('RETURN', best_component, result.x, result.fun)
-    return best_component, result.x, result.fun
+    print('RETURN', best_component, result.x, result.fun)
+    return best_component, result.x, result.fun, result

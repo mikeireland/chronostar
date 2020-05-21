@@ -210,6 +210,8 @@ else:
     #~ all_init_pos = ncomps * [None]
     all_init_pos = None
 
+#~ print('run_maximisation_1_comp_scipy INIT POS', all_init_pos, local_pars['filename_init_pos'])
+
 # Init_pars
 if os.path.exists(local_pars['filename_init_pars']):
     all_init_pars = np.load(local_pars['filename_init_pars'])
@@ -240,7 +242,7 @@ log_message('Fitting comp {}'.format(icomp), symbol='.', surround=True)
         #~ nthreads=global_pars['nthreads'],
 #~ )
 
-best_comp, xsolution, lnprob = compfitter.fit_comp_scipy_optimise(data_dict, 
+best_comp, xsolution, lnprob, result = compfitter.fit_comp_scipy_optimise(data_dict, 
             memb_probs=memb_probs, init_pos=all_init_pos, 
             init_pars=all_init_pars, Component=component, 
             plot_it=global_pars['plot_it'], pool=pool, 
