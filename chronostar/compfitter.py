@@ -601,7 +601,8 @@ def fit_comp_scipy_optimise(data, memb_probs=None, init_pos=None, init_pars=None
             os.mkdir(plot_dir)
     npars = len(Component.PARAMETER_FORMAT)
 
-    print('compfitter init_pos', init_pos)
+
+    #~ print('compfitter init_pos', init_pos)
     #~ print('type', type(init_pos))
     if not type(init_pos)==np.array: # TODO: make a better init_pos
         print('INIT POS IS NONE!!!')
@@ -618,8 +619,8 @@ def fit_comp_scipy_optimise(data, memb_probs=None, init_pos=None, init_pars=None
     # TODO: init_pos
     result = scipy.optimize.minimize(likelihood.minus_lnprob_func, init_pos, args=[data, memb_probs, trace_orbit_func], options={'display': True}, tol=0.1) # , method=None, bounds=None, constraints=(), tol=None, callback=None, options=None , tol=1e-5, , method = 'BFGS'
     
-    print('INIT POS', init_pos)
-    print('FINAL POS', result.x)
+    #~ print('INIT POS', init_pos)
+    #~ print('FINAL POS', result.x)
     
     #~ print('RESULT', result.fun)
 
@@ -630,5 +631,5 @@ def fit_comp_scipy_optimise(data, memb_probs=None, init_pos=None, init_pars=None
 
     # x: the solution of optimisation
 
-    print('RETURN', best_component, result.x, result.fun)
+    #~ print('RETURN', best_component, result.x, result.fun)
     return best_component, result.x, result.fun

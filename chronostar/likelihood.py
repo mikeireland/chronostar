@@ -314,8 +314,8 @@ def lnprob_func(pars, data, memb_probs=None,
     # every single time.
     #~ global data
     #~ global memb_probs
-    print('likelihood memb_probs', memb_probs)
-    print('likelihood data means', data['means'])
+    #~ print('likelihood memb_probs', memb_probs)
+    #~ print('likelihood data means', data['means'])
     if memb_probs is None:
         memb_probs = np.ones(len(data['means']))
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
@@ -324,19 +324,25 @@ def lnprob_func(pars, data, memb_probs=None,
         return -np.inf
     return lp + lnlike(comp, data, memb_probs, **kwargs)
 
-def minus_lnprob_func(pars, data, memb_probs=None,
-                trace_orbit_func=None,
-                Component=SphereComponent, **kwargs):
-    #~ return - lnprob_func(pars, data, memb_probs=None,
+def minus_lnprob_func(pars, args, Component=SphereComponent, **kwargs):
+    
+    # args = [data, memb_probs, trace_orbit_func]
+    data=args[0]
+    memb_probs = args[1]
+    trace_orbit_func = args[2]
+
+
+    if memb_probs is None:
+        memb_probs = np.ones(len(data['means']))
+    comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
+    lp = lnprior(comp, memb_probs)
+    if not np.isfinite(lp):
+        return -(-np.inf)
+    return - (lp + lnlike(comp, data, memb_probs, **kwargs))
+
+
+    #~ result = - lnprob_func(pars, data, memb_probs=None,
                     #~ trace_orbit_func=None,
-                    #~ Component=SphereComponent, **kwargs)
-    
-    # scipy.optimize.minimize puts data dict into a list
-    if not isinstance(data, dict):
-        data=data[0]
-    
-    result = - lnprob_func(pars, data, memb_probs=None,
-                    trace_orbit_func=None,
-                    Component=SphereComponent)
-    #~ print('result', result)
-    return result
+                    #~ Component=SphereComponent)
+    #print('result', result)
+    #~ return result

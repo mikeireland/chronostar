@@ -188,6 +188,7 @@ data_dict = tabletool.build_data_dict_from_table(global_pars['data_table'], get_
 #~ print('ONECOME', len(data_dict['means']), global_pars['data_table'])
 
 # Membership: memb_probs is what we get from the expectation step
+print('local_pars["filename_membership"]', local_pars['filename_membership'])
 if os.path.exists(local_pars['filename_membership']):
     memb_probs = np.load(local_pars['filename_membership'])
 else:
@@ -199,6 +200,8 @@ else:
     # Add background
     if global_pars['use_background']:
         memb_probs = np.hstack((init_memb_probs, np.zeros((nstars,1))))
+
+#~ print('INIT MEMB PROBS', memb_probs)
 
 # Init_pos
 if os.path.exists(local_pars['filename_init_pos']):
