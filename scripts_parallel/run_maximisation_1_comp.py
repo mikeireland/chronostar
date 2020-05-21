@@ -225,18 +225,28 @@ else:
 
 log_message('Fitting comp {}'.format(icomp), symbol='.', surround=True)
 #~ best_comp, chain, lnprob = compfitter.fit_comp(
-best_comp, chain, lnprob = compfitter.fit_comp_scipy_optimise(
-        data=data_dict, memb_probs=memb_probs,
-        init_pos=all_init_pos,
-        init_pars=all_init_pars,
+        #~ data=data_dict, memb_probs=memb_probs,
+        #~ init_pos=all_init_pos,
+        #~ init_pars=all_init_pars,
         #~ burnin_steps=global_pars['burnin'],
-        plot_it=global_pars['plot_it'], pool=pool,
-        convergence_tol=global_pars['convergence_tol'],
-        plot_dir=local_pars['gdir'], save_dir=local_pars['gdir'], Component=component,
-        trace_orbit_func=global_pars['trace_orbit_func'],
-        store_burnin_chains=global_pars['store_burnin_chains'],
-        nthreads=global_pars['nthreads'],
+        #~ plot_it=global_pars['plot_it'], pool=pool,
+        #~ convergence_tol=global_pars['convergence_tol'],
+        #~ plot_dir=local_pars['gdir'], save_dir=local_pars['gdir'], Component=component,
+        #~ trace_orbit_func=global_pars['trace_orbit_func'],
+        #~ store_burnin_chains=global_pars['store_burnin_chains'],
+        #~ nthreads=global_pars['nthreads'],
+#~ )
+
+best_comp, chain, lnprob = compfitter.fit_comp_scipy_optimise(data_dict, 
+            memb_probs=memb_probs, init_pos=all_init_pos, 
+            init_pars=all_init_pars, Component=component, 
+            plot_it=global_pars['plot_it'], pool=pool, 
+            convergence_tol=0.25, plot_dir=local_pars['gdir'], 
+            save_dir=local_pars['gdir'], 
+            trace_orbit_func=global_pars['trace_orbit_func'], 
+            nthreads=global_pars['nthreads'],
 )
+
 logging.info("Finished fit")
 logging.info("Best comp pars:\n{}".format(
         best_comp.get_pars()
