@@ -938,6 +938,8 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
     #~ process_output, _ = process.communicate()
     #~ print('process_output run_maximisation_1_comp', process_output)
 
+    print('filenames_output_files', filenames_output_files)
+
     # Read results of the fit (but only components that were fitted)
     for i in fitted_comps:
         filename_comp = filenames_output_files[i][0]
