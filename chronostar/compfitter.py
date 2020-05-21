@@ -583,6 +583,8 @@ def fit_comp_scipy_optimise(data, memb_probs=None, init_pos=None, init_pars=None
         [nwalkers, nsteps] array of probabilities for each sample
     """
     
+    print('fit_comp_scipy_optimise')
+    
     #~ print('data instance', isinstance(data, dict))
     #~ print(data)
     #~ print('memb_probs0', memb_probs)

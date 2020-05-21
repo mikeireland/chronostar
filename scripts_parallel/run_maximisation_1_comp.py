@@ -229,7 +229,7 @@ best_comp, chain, lnprob = compfitter.fit_comp_scipy_optimise(
         data=data_dict, memb_probs=memb_probs,
         init_pos=all_init_pos,
         init_pars=all_init_pars,
-        burnin_steps=global_pars['burnin'],
+        #~ burnin_steps=global_pars['burnin'],
         plot_it=global_pars['plot_it'], pool=pool,
         convergence_tol=global_pars['convergence_tol'],
         plot_dir=local_pars['gdir'], save_dir=local_pars['gdir'], Component=component,
