@@ -1549,9 +1549,9 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         np.save(idir+"membership.npy", memb_probs_new)
 
         # MAXIMISE: PARALLEL EXTERNAL
-        print('fit_many_comps: maximisation_parallel_external')
+        print('fit_many_comps: maximisation_parallel_external_scipy_optimise')
+                    #~ maximisation_parallel_external(data, ncomps=ncomps,
         new_comps, all_samples, _, all_init_pos, success_mask =\
-            #~ maximisation_parallel_external(data, ncomps=ncomps,
             maximisation_parallel_external_scipy_optimise(data, ncomps=ncomps,
                          burnin_steps=burnin,
                          plot_it=True, pool=pool, convergence_tol=C_TOL,
