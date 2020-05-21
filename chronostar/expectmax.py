@@ -980,6 +980,225 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
     return new_comps, all_samples, all_lnprob, \
            all_final_pos, success_mask
 
+def maximisation_parallel_external_scipy_optimise(data, ncomps, memb_probs, burnin_steps, idir,
+                 all_init_pars, all_init_pos=None, plot_it=False, pool=None,
+                 convergence_tol=0.25, ignore_dead_comps=False,
+                 Component=SphereComponent,
+                 trace_orbit_func=None,
+                 store_burnin_chains=False,
+                 unstable_comps=None,
+                 ignore_stable_comps=False,
+                 nthreads=1,
+                 filename_global_pars=None,
+                 ):
+    """
+    Performs the 'maximisation' step of the EM algorithm.
+    Calls external code that computes maximisation for all components
+    in parallel.
+
+    all_init_pars must be given in 'internal' form, that is the standard
+    deviations must be provided in log form.
+
+    Parameters
+    ----------
+    data: dict
+        See fit_many_comps
+    ncomps: int
+        Number of components being fitted
+    memb_probs: [nstars, ncomps {+1}] float array_like
+        See fit_many_comps
+    burnin_steps: int
+        The number of steps for each burnin loop
+    idir: str
+        The results directory for this iteration
+    all_init_pars: [ncomps, npars] float array_like
+        The initial parameters around which to initialise emcee walkers
+    all_init_pos: [ncomps, nwalkers, npars] float array_like
+        The actual exact positions at which to initialise emcee walkers
+        (from, say, the output of a previous emcee run)
+    plot_it: bool {False}
+        Whehter to plot lnprob chains (from burnin, etc) as we go
+    pool: MPIPool object {None}
+        pool of threads to execute walker steps concurrently
+    convergence_tol: float {0.25}
+        How many standard devaitions an lnprob chain is allowed to vary
+        from its mean over the course of a burnin stage and still be
+        considered "converged". Default value allows the median of the
+        final 20 steps to differ by 0.25 of its standard deviations from
+        the median of the first 20 steps.
+    ignore_dead_comps : bool {False}
+        if componennts have fewer than 2(?) expected members, then ignore
+        them
+    ignore_stable_comps : bool {False}
+        If components have been deemed to be stable, then disregard them
+    Component: Implementation of AbstractComponent {Sphere Component}
+        The class used to convert raw parametrisation of a model to
+        actual model attributes.
+    trace_orbit_func: function {None}
+        A function to trace cartesian oribts through the Galactic potential.
+        If left as None, will use traceorbit.trace_cartesian_orbit (base
+        signature of any alternate function on this ones)
+
+    Returns
+    -------
+    new_comps: [ncomps] Component array
+        For each component's maximisation, we have the best fitting component
+    all_samples: [ncomps, nwalkers, nsteps, npars] float array
+        An array of each component's final sampling chain
+    all_lnprob: [ncomps, nwalkers, nsteps] float array
+        An array of each components lnprob
+    all_final_pos: [ncomps, nwalkers, npars] float array
+        The final positions of walkers from each separate Compoment
+        maximisation. Useful for restarting the next emcee run.
+    success_mask: np.where mask
+        If ignoring dead components, use this mask to indicate the components
+        that didn't die
+    """
+    # Set up some values
+    DEATH_THRESHOLD = 2.1       # The total expected stellar membership below
+                                # which a component is deemed 'dead' (if
+                                # `ignore_dead_comps` is True)
+
+    new_comps = []
+    all_samples = []
+    all_lnprob = []
+    success_mask = []
+    all_final_pos = ncomps * [None]
+
+    # Ensure None value inputs are still iterable
+    if all_init_pos is None:
+        all_init_pos = ncomps * [None]
+    if all_init_pars is None:
+        all_init_pars = ncomps * [None]
+    if unstable_comps is None:
+        unstable_comps = ncomps * [True]
+
+    log_message('Ignoring stable comps? {}'.format(ignore_stable_comps))
+    log_message('Unstable comps are {}'.format(unstable_comps))
+
+    # Prepare for the external call
+    filenames_pars = []
+    filenames_output_files=[]
+    fitted_comps = [] # i of the components that are fit
+    for i in range(ncomps):
+        log_message('Fitting comp {}'.format(i), symbol='.', surround=True)
+        gdir = os.path.join(idir, "comp{}/".format(i))
+        mkpath(gdir)
+
+        # If component has too few stars, skip fit, and use previous best walker
+        if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
+            logging.info("Skipped component {} with nstars {}".format(
+                    i, np.sum(memb_probs[:, i])
+            ))
+        elif ignore_stable_comps and not unstable_comps[i]:
+            logging.info("Skipped stable component {}".format(i))
+        # Otherwise, run maximisation and sampling stage
+        else:
+            fitted_comps.append(i)
+            # Parameter file for the i-th component
+
+            # Filenames
+            # Input
+            filename_membership = os.path.join(gdir, 'membership_%d_%d.npy'%(ncomps, i))
+            filename_init_pos = os.path.join(gdir, 'init_pos_%d_%d.npy'%(ncomps, i))
+            filename_init_pars = os.path.join(gdir, 'init_pars_%d_%d.npy'%(ncomps, i))
+
+            # Output
+            filename_comp = os.path.join(gdir, 'best_comp_fit.npy') # TODO: Add this comp ID maybe not because chronostar won't be able to read results later
+            filename_samples = os.path.join(gdir, 'final_chain.npy') # TODO
+            filename_lnprob = os.path.join(gdir, 'final_lnprob.npy') # TODO
+            
+            # SAVE LOCAL input data for run_maximisation_1_comp
+            np.save(filename_membership, memb_probs[:, i])
+            if all_init_pos[i] is not None: # If this file is not available in run_maximisation_1_comp it will equal to None. That's OK.
+                np.save(filename_init_pos, all_init_pos[i])
+            if all_init_pars[i] is not None:
+                np.save(filename_init_pars, all_init_pars[i])
+
+            pars = {'ncomps':ncomps,
+                'icomp': i,
+                'gdir': gdir,
+                # Input data
+                #~ 'filename_init_comp': filename_init_comp, # (?)
+                'filename_membership': filename_membership,
+                'filename_init_pos': filename_init_pos,
+                'filename_init_pars': filename_init_pars,
+                # Output data
+                'filename_comp': filename_comp, # Save result of maximisation into this file
+                'filename_samples': filename_samples,
+                'filename_lnprob': filename_lnprob,
+                }
+            filename_params = os.path.join(gdir, 'run_maximisation_1_comp_%d_%d.pars'%(ncomps, i)) # TODO: folder
+            readparam.writeParam(filename_params, pars)
+            filenames_pars.append(filename_params)
+            filenames_output_files.append([filename_comp, filename_samples, filename_lnprob])
+
+    # If there is nothing to fit (all stable etc.), exit and return...
+    if len(filenames_pars)<1:
+        print('len(filenames_pars)', len(filenames_pars))
+        return new_comps, all_samples, all_lnprob, \
+           all_final_pos, success_mask
+        
+    # Fit all comps
+    filenames_pars_filename = os.path.join(gdir, 'filenames_pars.npy')
+    np.save(filenames_pars_filename, filenames_pars)
+    print(filenames_pars)
+    if ncomps==1:
+        #~ bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_global_pars, filenames_pars[0])
+        bashCommand = 'python run_maximisation_1_comp_scipy_optimise.py %s %s'%(filename_global_pars, filenames_pars[0])
+    else:
+        bashCommand = 'mpirun -np %d python run_maximisation_all_comps.py %s %s'%(ncomps, filename_global_pars, filenames_pars_filename)
+    
+    print(bashCommand)
+    process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+    #~ output, error = process.communicate()
+    _, _ = process.communicate()
+    #~ process_output, _ = process.communicate()
+    #~ print('process_output run_maximisation_1_comp', process_output)
+
+    # Read results of the fit (but only components that were fitted)
+    for i in fitted_comps:
+        filename_comp = filenames_output_files[i][0]
+        filename_samples = filenames_output_files[i][1]
+        filename_lnprob = filenames_output_files[i][2]
+        
+        best_comp = Component.load_raw_components(filename_comp)[0]
+        print('i, best_comp', i, best_comp)
+        chain = np.load(filename_samples)
+        lnprob = np.load(filename_lnprob)
+        
+        logging.info("Finished fit")
+        logging.info("Best comp pars:\n{}".format(
+                best_comp.get_pars()
+        ))
+        final_pos = chain # scipy optimise
+        #~ final_pos = chain[:, -1, :]
+        #~ logging.info("With age of: {:.3} +- {:.3} Myr".
+                     #~ format(np.median(chain[:,:,-1]),
+                            #~ np.std(chain[:,:,-1])))
+
+        new_comps.append(best_comp)
+        best_comp.store_raw(gdir + 'best_comp_fit.npy')
+        np.save(gdir + "best_comp_fit_bak.npy", best_comp) # can remove this line when working
+        np.save(gdir + 'final_chain.npy', chain) # This is actually final pos
+        np.save(gdir + 'final_lnprob.npy', lnprob)
+        all_samples.append(chain)
+        all_lnprob.append(lnprob)
+
+        # Keep track of the components that weren't ignored
+        success_mask.append(i)
+
+        # record the final position of the walkers for each comp
+        all_final_pos[i] = final_pos
+
+    # # TODO: Maybe need to this outside of this call, so as to include
+    # # reference to stable comps
+    # Component.store_raw_components(idir + 'best_comps.npy', new_comps)
+    # np.save(idir + 'best_comps_bak.npy', new_comps)
+
+    return new_comps, all_samples, all_lnprob, \
+           all_final_pos, success_mask
+
 
 def check_stability(data, best_comps, memb_probs):
     """
@@ -1332,7 +1551,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         # MAXIMISE: PARALLEL EXTERNAL
         print('fit_many_comps: maximisation_parallel_external')
         new_comps, all_samples, _, all_init_pos, success_mask =\
-            maximisation_parallel_external(data, ncomps=ncomps,
+            #~ maximisation_parallel_external(data, ncomps=ncomps,
+            maximisation_parallel_external_scipy_optimise(data, ncomps=ncomps,
                          burnin_steps=burnin,
                          plot_it=True, pool=pool, convergence_tol=C_TOL,
                          memb_probs=memb_probs_new, idir=idir,
@@ -1434,7 +1654,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             log_message('New ref_counts {}'.format(ref_counts))
 
 
-        # Check stablity, but only affect run after sufficient iterations to
+        # Check stability, but only affect run after sufficient iterations to
         # settle
         temp_stable_state = check_stability(data, new_comps, memb_probs_new)
         logging.info('Stability: {}'.format(temp_stable_state))

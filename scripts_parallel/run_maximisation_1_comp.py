@@ -237,7 +237,7 @@ log_message('Fitting comp {}'.format(icomp), symbol='.', surround=True)
         #~ nthreads=global_pars['nthreads'],
 #~ )
 
-best_comp, chain, lnprob = compfitter.fit_comp_scipy_optimise(data_dict, 
+best_comp, x, lnprob = compfitter.fit_comp_scipy_optimise(data_dict, 
             memb_probs=memb_probs, init_pos=all_init_pos, 
             init_pars=all_init_pars, Component=component, 
             plot_it=global_pars['plot_it'], pool=pool, 
