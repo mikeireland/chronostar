@@ -62,6 +62,28 @@ class SynthData():
         """
         Generates a set of astrometry data based on multiple star bursts with
         simple, Gaussian origins.
+
+        Parameters
+        ----------
+            pars : [ncomps, npars] float array
+                The (external) emcee parameters of each component
+            starcounts : [ncomps] int array
+                Number of stars generated for each component
+            measurement_error : float
+                proportion of measurement error to incorporate.
+                1. -> gaia
+                2. -> twice as bad as Gaia
+                0.5 -> twice as good as Gaia
+                See GERROR attribute for reference values
+            Components : Component class {SphereComponent}
+                The component class to construct component objects
+                from input parameters `pars`
+            savedir : string {None}
+                Directory in which to save generated dataset
+            tablefilename : string {None}
+                Filename to save generated dataset to
+            background_density : float {None}
+                Density of background stars, number of stars per pc^3 (km/s)^3
         """
         # Tidying input and applying some quality checks
         self.pars = np.array(pars)      # Can different rows of pars be
@@ -116,12 +138,15 @@ class SynthData():
         """Given saved files, generate a SynthData object"""
         raise NotImplementedError
 
-    def append_init_cartesian(self, init_xyzuvw, component_name='',
-                              component_age=0.):
-        # constract new table with same fields as self.astr_table,
+    def append_extra_cartesian(self, extra_xyzuvw, component_name='',
+                              component_age=0., init=True):
+        """
+        Append rows of stellar initial (or final) positions to current table
+        """
+        # construct new table with same fields as self.astr_table,
         # then append to existing table
         init_size = len(self.table)
-        starcount = len(init_xyzuvw)
+        starcount = len(extra_xyzuvw)
 
         names = np.arange(init_size, init_size + starcount).astype(np.str)
         new_data = Table(
@@ -131,14 +156,16 @@ class SynthData():
         new_data['name'] = names
         new_data['component'] = starcount * [component_name]
         new_data['age'] = starcount * [component_age]
-        for col, dim in zip(init_xyzuvw.T, self.cart_labels):
-            new_data[dim + '0'] = col
-        # print(self.table)
-        # print(new_data)
-        try:
-            self.table = vstack((self.table, new_data))
-        except:
-            import pdb; pdb.set_trace()
+        if init:
+            colnames = [dim+'0' for dim in self.cart_labels]
+        else:
+            # Final data
+            colnames = [dim+'_now' for dim in self.cart_labels]
+
+        for col, colname in zip(extra_xyzuvw.T, colnames):
+            new_data[colname] = col
+
+        self.table = vstack((self.table, new_data))
 
     def generate_init_cartesian(self, component, starcount, component_name='',
                                 seed=None):
@@ -153,29 +180,42 @@ class SynthData():
         )
 
         # Append data to end of table
-        self.append_init_cartesian(init_xyzuvw, component_name=component_name,
-                                   component_age=component.get_age())
+        self.append_extra_cartesian(init_xyzuvw, component_name=component_name,
+                                   component_age=component.get_age(), init=True)
 
     def generate_background_stars(self):
-        """Embed association stars in a sea of background stars with
-        twice the span as current data"""
-        init_means = tabletool.build_data_dict_from_table(
-                self.table, main_colnames=[el+'0' for el in 'xyzuvw'],
+        """
+        Embed association stars in a sea of background stars with
+        twice the span as current data
+        """
+
+        # Get the 6D means of all stars currently in table
+        means_now = tabletool.build_data_dict_from_table(
+                self.table, main_colnames=[dim+'_now' for dim in self.cart_labels],
                 only_means=True,
         )
-        data_upper_bound = np.max(init_means, axis=0)
-        data_lower_bound = np.min(init_means, axis=0)
+#         init_means = tabletool.build_data_dict_from_table(
+#                 self.table, main_colnames=[el+'0' for el in 'xyzuvw'],
+#                 only_means=True,
+#         )
+
+        # Identify 6D box centred on component stars, with twice the span
+        data_upper_bound = np.max(means_now, axis=0)
+        data_lower_bound = np.min(means_now, axis=0)
         box_centre = (data_upper_bound + data_lower_bound) / 2.
         data_span = data_upper_bound - data_lower_bound
         box_span = 2 * data_span
+
+        # Calculate number of background stars required to reach given density
         bg_starcount = self.background_density * np.product(box_span)
 
-        bg_init_xyzuvw = np.random.uniform(low=-data_span, high=data_span,
+        # Generate a uniform sampling within box
+        bg_xyzuvw = np.random.uniform(low=-data_span, high=data_span,
                                            size=(int(round(bg_starcount)),6))
-        bg_init_xyzuvw += box_centre
+        bg_xyzuvw += box_centre
         self.bg_starcount = bg_starcount
         if bg_starcount > 0:
-            self.append_init_cartesian(bg_init_xyzuvw, component_name='bg')
+            self.append_extra_cartesian(bg_xyzuvw, component_name='bg', init=False)
         else:
             print('WARNING: No synthetic background stars generated')
 
@@ -185,8 +225,10 @@ class SynthData():
         for ix, comp in enumerate(self.components):
             self.generate_init_cartesian(comp, self.starcounts[ix],
                                          component_name=str(ix))
-        if self.background_density is not None:
-            self.generate_background_stars()
+        ## Shouldn't do this here, should wait for components to be
+        ## projected through time
+        # if self.background_density is not None:
+        #     self.generate_background_stars()
 
     def project_stars(self, trace_orbit=traceorbit.trace_cartesian_orbit):
         """Project stars from xyzuvw then to xyzuvw now based on their age"""
@@ -198,6 +240,8 @@ class SynthData():
             xyzuvw_now = trace_orbit(mean_then, times=star['age'])
             for ix, dim in enumerate(self.cart_labels):
                 star[dim+'_now'] = xyzuvw_now[ix]
+        # if self.background_density is not None:
+        #     self.generate_background_stars()
 
     def measure_astrometry(self):
         """
@@ -265,6 +309,8 @@ class SynthData():
         """
         self.generate_all_init_cartesian()
         self.project_stars()
+        if self.background_density is not None:
+            self.generate_background_stars()
         self.measure_astrometry()
         if filename is not None:
             self.store_table(savedir=savedir, filename=filename,

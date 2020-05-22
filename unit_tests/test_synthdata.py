@@ -258,11 +258,13 @@ def test_background_component():
     synth_data = SynthData(pars=[upper_pars, lower_pars],
                            starcounts=starcounts,
                            background_density=background_density)
-    synth_data.generate_all_init_cartesian()
+    # synth_data.generate_all_init_cartesian()
+    # synth_data.project_stars()
+    synth_data.synthesise_everything()
 
     means = tabletool.build_data_dict_from_table(
             synth_data.table[2:],
-            main_colnames=[el+'0' for el in 'xyzuvw'],
+            main_colnames=[el+'_now' for el in 'xyzuvw'],
             only_means=True,
     )
     assert np.allclose(0.5, np.mean(means, axis=0), atol=0.1)
