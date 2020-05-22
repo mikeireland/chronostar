@@ -926,6 +926,7 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
     #####################
     ### FIT ALL COMPS ###
     #####################
+    print('StART MAXIMISATION')
     if ncomps==1:
         bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_global_pars, filenames_pars[0])
     else:
@@ -934,11 +935,11 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
     print(bashCommand)
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     #~ output, error = process.communicate()
-    _, _ = process.communicate()
-    #~ process_output, _ = process.communicate()
-    #~ print('process_output run_maximisation_1_comp', process_output)
+    #~ _, _ = process.communicate()
+    process_output, _ = process.communicate()
+    print('process_output run_maximisation_1_comp', process_output)
 
-    print('filenames_output_files', len(filenames_output_files), fitted_comps)
+    print('END MAXIMISATION')
 
     f = os.path.join(gdir, 'output_%d_%d.out'%(ncomps, i))
     r=[]
