@@ -32,29 +32,40 @@ else:
     filename_params = None
     filename_fit_pars = None
 
+# BROADCAST CONSTANTS
 filename_fit_pars = comm.bcast(filename_fit_pars, root=0)
 
 # SCATTER DATA
 filename_params = comm.scatter(filename_params, root=0)
-if len(filename_params)==1:
-    filename_params=filename_params[0]
-else:
-    print('run_maximisation_all_comps: LEN FILENAME_PARAMS>1; increase number of processes!')
 
 # RUN MAXIMISATION
-bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_fit_pars, filename_params)
-#~ bashCommand = 'python run_maximisation_1_comp_scipy_optimise.py %s %s'%(filename_fit_pars, filename_params)
-print(bashCommand)
-process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-#~ output, error = process.communicate()
-#~ _, _ = process.communicate()
-process_output, _ = process.communicate()
-print('process_output', process_output)
+if len(filename_params)==1:
+    filename_params=filename_params[0]
+    bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_fit_pars, filename_params)
+    print(bashCommand)
+    process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+    #~ output, error = process.communicate()
+    #~ _, _ = process.communicate()
+    process_output, _ = process.communicate()
+    print('process_output', process_output)
+
+else:
+    # This is here just so it doesn't break. But this is not preferred option as it at least doubles the computation time.
+    print('run_maximisation_all_comps: LEN FILENAME_PARAMS>1; increase number of processes!')
+    for x in filename_params:
+        bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_fit_pars, x)
+        print(bashCommand)
+        process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+        #~ output, error = process.communicate()
+        #~ _, _ = process.communicate()
+        process_output, _ = process.communicate()
+        print('process_output', process_output)
+
 
 # Gather results: this makes the code wait until all ranks are finished and then exit.
-result = comm.gather([True], root=0)
-if rank == 0:
-    result = list(itertools.chain.from_iterable(result))
+#~ result = comm.gather([True], root=0)
+#~ if rank == 0:
+    #~ result = list(itertools.chain.from_iterable(result))
 
 
     
