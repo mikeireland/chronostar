@@ -890,7 +890,7 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
             
             # SAVE LOCAL input data for run_maximisation_1_comp
             np.save(filename_membership, memb_probs[:, i])
-            print('ncomps, icomp', ncomps, i, 'all_init_pos', all_init_pos[i])
+            #~ print('ncomps, icomp', ncomps, i, 'all_init_pos', all_init_pos[i])
             if all_init_pos[i] is not None: # If this file is not available in run_maximisation_1_comp it will equal to None. That's OK.
                 np.save(filename_init_pos, all_init_pos[i])
             if all_init_pars[i] is not None:
@@ -931,7 +931,7 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
     if ncomps==1:
         bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_global_pars, filenames_pars[0])
     else:
-        bashCommand = 'mpirun -np %d python run_maximisation_all_comps.py %s %s'%(ncomps, filename_global_pars, filenames_pars_filename)
+        bashCommand = 'mpirun -np %d python run_maximisation_all_comps.py %s %s'%(len(fitted_comps), filename_global_pars, filenames_pars_filename)
     
     print(bashCommand)
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
