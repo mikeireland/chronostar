@@ -861,8 +861,7 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
 
     # Prepare for the external call
     filenames_pars = []
-    filenames_output_files=[]
-    fitted_comps = [] # i of the components that are fit
+    fitted_comps = [] # i and filenames of the components that are fit
     for i in range(ncomps):
         log_message('Fitting comp {}'.format(i), symbol='.', surround=True)
         gdir = os.path.join(idir, "comp{}/".format(i))
@@ -877,19 +876,17 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
             logging.info("Skipped stable component {}".format(i))
         # Otherwise, run maximisation and sampling stage
         else:
-            fitted_comps.append(i)
             # Parameter file for the i-th component
 
-            # Filenames
-            # Input
+            # Filenames: INPUT
             filename_membership = os.path.join(gdir, 'membership_%d_%d.npy'%(ncomps, i))
             filename_init_pos = os.path.join(gdir, 'init_pos_%d_%d.npy'%(ncomps, i))
             filename_init_pars = os.path.join(gdir, 'init_pars_%d_%d.npy'%(ncomps, i))
 
-            # Output
-            filename_comp = os.path.join(gdir, 'best_comp_fit.npy') # TODO: Add this comp ID maybe not because chronostar won't be able to read results later
-            filename_samples = os.path.join(gdir, 'final_chain.npy') # TODO
-            filename_lnprob = os.path.join(gdir, 'final_lnprob.npy') # TODO
+            # Filenames: OUTPUT
+            filename_comp = os.path.join(gdir, 'best_comp_fit_%d_%d.npy'%(ncomps, i))
+            filename_samples = os.path.join(gdir, 'final_chain_%d_%d.npy'%(ncomps, i))
+            filename_lnprob = os.path.join(gdir, 'final_lnprob_%d_%d.npy'%(ncomps, i))
             
             # SAVE LOCAL input data for run_maximisation_1_comp
             np.save(filename_membership, memb_probs[:, i])
@@ -902,19 +899,18 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
                 'icomp': i,
                 'gdir': gdir,
                 # Input data
-                #~ 'filename_init_comp': filename_init_comp, # (?)
                 'filename_membership': filename_membership,
                 'filename_init_pos': filename_init_pos,
                 'filename_init_pars': filename_init_pars,
-                # Output data
-                'filename_comp': filename_comp, # Save result of maximisation into this file
+                # Output data: results of maximisation (best_comp, chain, lnprob)
+                'filename_comp': filename_comp,
                 'filename_samples': filename_samples,
                 'filename_lnprob': filename_lnprob,
                 }
-            filename_params = os.path.join(gdir, 'run_maximisation_1_comp_%d_%d.pars'%(ncomps, i)) # TODO: folder
+            filename_params = os.path.join(gdir, 'run_maximisation_1_comp_%d_%d.pars'%(ncomps, i))
             readparam.writeParam(filename_params, pars)
             filenames_pars.append(filename_params)
-            filenames_output_files.append([filename_comp, filename_samples, filename_lnprob])
+            fitted_comps.append([i, filename_comp, filename_samples, filename_lnprob])
 
     # If there is nothing to fit (all stable etc.), exit and return...
     if len(filenames_pars)<1:
@@ -922,10 +918,14 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
         return new_comps, all_samples, all_lnprob, \
            all_final_pos, success_mask
         
-    # Fit all comps
+    # Save list of filenames_pars
     filenames_pars_filename = os.path.join(gdir, 'filenames_pars.npy')
     np.save(filenames_pars_filename, filenames_pars)
     print(filenames_pars)
+    
+    #####################
+    ### FIT ALL COMPS ###
+    #####################
     if ncomps==1:
         bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_global_pars, filenames_pars[0])
     else:
@@ -940,16 +940,23 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
 
     print('filenames_output_files', len(filenames_output_files), fitted_comps)
 
+    f = os.path.join(gdir, 'output_%d_%d.out'%(ncomps, i))
+    r=[]
+
     # Read results of the fit (but only components that were fitted)
-    for i in fitted_comps:
-        filename_comp = filenames_output_files[i][0]
-        filename_samples = filenames_output_files[i][1]
-        filename_lnprob = filenames_output_files[i][2]
+    for x in fitted_comps:
+        i=x[0]
+        filename_comp = x[1]
+        filename_samples = x[2]
+        filename_lnprob = x[3]
         
         best_comp = Component.load_raw_components(filename_comp)[0]
-        print('i, best_comp', i, best_comp)
         chain = np.load(filename_samples)
         lnprob = np.load(filename_lnprob)
+        
+        print('i, best_comp', best_comp)
+        print('init pos', all_init_pos[i], 'final_pos', chain[:, -1, :])
+        r.append([i, ['init pos', all_init_pos[i], 'final_pos', chain[:, -1, :]]])
         
         logging.info("Finished fit")
         logging.info("Best comp pars:\n{}".format(
@@ -978,6 +985,8 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
     # # reference to stable comps
     # Component.store_raw_components(idir + 'best_comps.npy', new_comps)
     # np.save(idir + 'best_comps_bak.npy', new_comps)
+
+    np.save(f, r)
 
     return new_comps, all_samples, all_lnprob, \
            all_final_pos, success_mask
@@ -1289,6 +1298,10 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
     # Until convergence is achieved (or max_iters is exceeded) iterate through
     # the Expecation and Maximisation stages
+
+    ####################################################################
+    ### EXPECTATION MAXIMISATION LOOP HERE #############################
+    ####################################################################
 
     # TODO: put convergence checking at the start of the loop so restarting doesn't repeat an iteration
     while not all_converged and stable_state and iter_count < max_em_iterations:
