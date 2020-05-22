@@ -6,7 +6,6 @@ Integration test, testing some simple scenarios for NaiveFit
 
 import logging
 import numpy as np
-import os.path
 import sys
 from distutils.dir_util import mkpath
 
@@ -20,18 +19,17 @@ from chronostar import expectmax
 
 PY_VERS = sys.version[0]
 
-# if len(sys.argv) != 2:
-#     raise UserWarning('Incorrect usage. Path to parameter file is required'
-#                       ' as a single command line argument. e.g.\n'
-#                       '   > python run_chronostar.py path/to/parsfile.par')
-
-# fit_par_file = sys.argv[1]
-
-# if not os.path.isfile(fit_par_file):
-#     raise UserWarning('Provided file does not exist')
 
 def dummy_trace_orbit_func(loc, times=None):
-    """Dummy trace orbit func to skip irrelevant computation"""
+    """
+    Integrating orbits takes a long time. So we can run this test quickly,
+    we enforce the age of all components to be ~0, and then use this
+    "dummy" trace orbit function.
+
+    This function doesn't do anything, and it definitely should not be
+    used in any actual comuptation. It is merely a place holder to
+    skip irrelevant computation when running integration tests.
+    """
     if times is not None:
         if np.all(times > 1.0):
             return loc + 1000.
@@ -77,10 +75,11 @@ def test_2comps_and_background():
 
     ### INITIALISE SYNTHETIC DATA ###
 
-    uniform_age = 1e-10
-    # Warning: if peaks are too far apart, it will be difficult for
+    # DON'T CHANGE THE AGE! BECAUSE THIS TEST DOESN'T USE ANY ORBIT INTEGRATION!!!
+    # Note: if peaks are too far apart, it will be difficult for
     # chronostar to identify the 2nd when moving from a 1-component
     # to a 2-component fit.
+    uniform_age = 1e-10
     sphere_comp_pars = np.array([
         #  X,  Y, Z, U, V, W, dX, dV,  age,
         [  0,  0, 0, 0, 0, 0, 10., 5, uniform_age],
@@ -99,12 +98,8 @@ def test_2comps_and_background():
         true_memb_probs[start:start + starcounts[i], i] = 1.0
         start += starcounts[i]
 
-    # # Initialise some random membership probablities
-    # # Normalising such that each row sums to 1
-    # init_memb_probs = np.random.rand(np.sum(starcounts), ncomps)
-    # init_memb_probs = (init_memb_probs.T / init_memb_probs.sum(axis=1)).T
-
     try:
+        # Check if the synth data has already been constructed
         data_dict = tabletool.build_data_dict_from_table(data_filename)
     except:
         synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,

@@ -284,7 +284,7 @@ class NaiveFit(object):
         ------
         None
         """
-        if new['bic'] > prev['bic']:
+        if new['bic'] < prev['bic']:
             logging.info("Extra component has improved BIC...")
             logging.info(
                     "New BIC: {} < Old BIC: {}".format(new['bic'], prev['bic']))

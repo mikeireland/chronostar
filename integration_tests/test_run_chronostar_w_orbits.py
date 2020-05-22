@@ -1,5 +1,5 @@
 """
-test_new_run_chronsotar.py
+test_run_chronostar.py
 
 Integration test, testing some simple scenarios for NaiveFit
 """
@@ -17,36 +17,50 @@ from chronostar.synthdata import SynthData
 from chronostar.component import SphereComponent
 from chronostar import tabletool
 from chronostar import expectmax
+from chronostar.traceorbit import trace_epicyclic_orbit
 
 PY_VERS = sys.version[0]
 
 # if len(sys.argv) != 2:
 #     raise UserWarning('Incorrect usage. Path to parameter file is required'
 #                       ' as a single command line argument. e.g.\n'
-#                       '   > python new_run_chronostar.py path/to/parsfile.par')
+#                       '   > python run_chronostar.py path/to/parsfile.par')
 
 # fit_par_file = sys.argv[1]
 
 # if not os.path.isfile(fit_par_file):
-#     raise UserWarning('Provided file doestest_new_run_chronostar.py not exist')
+#     raise UserWarning('Provided file does not exist')
 
-# def dummy_trace_orbit_func(loc, times=None):
-#     """Dummy trace orbit func to skip irrelevant computation"""
-#     if times is not None:
-#         if np.all(times > 1.0):
-#             return loc + 1000.
-#     return loc
+def dummy_trace_orbit_func(loc, times=None):
+    """Dummy trace orbit func to skip irrelevant computation"""
+    if times is not None:
+        if np.all(times > 1.0):
+            return loc + 1000.
+    return loc
 
-def test_2comps_w_orbits():
+def test_2comps_and_background():
     """
-     Synthesise a file with negligible error, retrieve initial
-     parameters
+    Synthesise a file with negligible error, retrieve initial
+    parameters
 
-     Takes a while... maybe this belongs in integration unit_tests
+    Takes a while... maybe this belongs in integration unit_tests
+
+    Performance of test is a bit tricky to callibrate. Since we are skipping
+    any temporal evolution for speed reasons, we model two
+    isotropic Gaussians. Now if these Gaussians are too far apart, NaiveFit
+    will gravitate to one of the Gaussians during the 1 component fit, and then
+    struggle to discover the second Gaussian.
+
+    If the Gaussians are too close, then both will be characteresied by the
+    1 component fit, and the BIC will decide two Gaussians components are
+    overkill.
+
+    I think I've addressed this by having the two groups have
+    large number of stars.
     """
-    # using_bg = True
+    using_bg = True
 
-    run_name = '2comps_orbiting'
+    run_name = '2comps_and_background_w_orbits'
 
     logging.info(60 * '-')
     logging.info(15 * '-' + '{:^30}'.format('TEST: ' + run_name) + 15 * '-')
@@ -63,41 +77,33 @@ def test_2comps_w_orbits():
                         filename=log_filename)
 
     ### INITIALISE SYNTHETIC DATA ###
-
-    uniform_age = 1e-10
-    # Warning: if peaks are too far apart, it will be difficult for
-    # chronostar to identify the 2nd when moving from a 1-component
-    # to a 2-component fit.
     sphere_comp_pars = np.array([
-        #   X,  Y,  Z, U, V, W, dX, dV,  age,
-        [-15, -15,  0, 0, 0, 0, 10., 5, 10.],
-        [ 15,  15,  0, 0, 0, 0, 10., 5, 20.],
+        #  X,  Y, Z, U, V, W, dX, dV,  age,
+        [-20, 10, 0, 1, 0, 0, 10., 3, 10.],
+        [ 10,  0, 0, 0, 2, 0, 10., 2,  5.],
     ])
-    starcounts = [20, 50]
+    np.save('init_comps.npy', sphere_comp_pars)
+    # init_comps = [SphereComponent(pars=pars) for pars in sphere_comp_pars]
+    # SphereComponent.st
+    starcounts = [100, 150]
     ncomps = sphere_comp_pars.shape[0]
     nstars = np.sum(starcounts)
 
-    # background_density = 1e-9
+    background_density = 1e-9
 
-    # initialise z appropriately
+    # initialise z appropriately such that all stars begin as members
     true_memb_probs = np.zeros((np.sum(starcounts), ncomps))
     start = 0
     for i in range(ncomps):
         true_memb_probs[start:start + starcounts[i], i] = 1.0
         start += starcounts[i]
 
-    # # Initialise some random membership probablities
-    # # Normalising such that each row sums to 1
-    # init_memb_probs = np.random.rand(np.sum(starcounts), ncomps)
-    # init_memb_probs = (init_memb_probs.T / init_memb_probs.sum(axis=1)).T
-
     try:
-        # Check that data is loadable
-        _ = tabletool.build_data_dict_from_table(data_filename)
+        data_dict = tabletool.build_data_dict_from_table(data_filename)
     except:
         synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,
                                Components=SphereComponent,
-                               # background_density=background_density,
+                               background_density=background_density,
                                )
         synth_data.synthesise_everything()
 
@@ -105,10 +111,10 @@ def test_2comps_w_orbits():
                                            write_table=True,
                                            filename=data_filename)
 
-        # background_count = len(synth_data.table) - np.sum(starcounts)
+        background_count = len(synth_data.table) - np.sum(starcounts)
         # insert background densities
-        # synth_data.table['background_log_overlap'] =\
-        #     len(synth_data.table) * [np.log(background_density)]
+        synth_data.table['background_log_overlap'] =\
+            len(synth_data.table) * [np.log(background_density)]
 
         synth_data.table.write(data_filename, overwrite=True)
 
@@ -118,12 +124,11 @@ def test_2comps_w_orbits():
     fit_pars = {
         'results_dir':savedir,
         'data_table':data_filename,
-        # 'trace_orbit_func':'dummy_trace_orbit_func',
+        'trace_orbit_func':trace_epicyclic_orbit,
         'return_results':True,
-        'par_log_file':savedir + 'fit_pars.log',
+        'par_log_file':'fit_pars.log',
         'overwrite_prev_run':True,
-        'nthreads':9,
-        'use_background':False,
+        # 'nthreads':3,
     }
 
     ### INITIALISE AND RUN A NAIVE FIT ###
@@ -132,6 +137,10 @@ def test_2comps_w_orbits():
 
     best_comps = result['comps']
     memb_probs = result['memb_probs']
+
+    # Check membership has ncomps + 1 (bg) columns
+    n_fitted_comps = memb_probs.shape[-1] - 1
+    assert ncomps == n_fitted_comps
 
     ### CHECK RESULT ###
     # No guarantee of order, so check if result is permutated
@@ -145,7 +154,10 @@ def test_2comps_w_orbits():
     n_misclassified_stars = np.sum(np.abs(true_memb_probs - np.round(memb_probs[:,perm])))
 
     # Check fewer than 15% of association stars are misclassified
-    assert n_misclassified_stars / nstars * 100 < 15
+    try:
+        assert n_misclassified_stars / nstars * 100 < 15
+    except AssertionError:
+        import pdb; pdb.set_trace()
 
     for origin, best_comp in zip(origins, np.array(best_comps)[perm,]):
         assert (isinstance(origin, SphereComponent) and
@@ -169,5 +181,3 @@ def test_2comps_w_orbits():
                            atol=1.)
 
 
-if __name__ == '__main__':
-    test_2comps_w_orbits()
