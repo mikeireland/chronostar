@@ -890,6 +890,7 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
             
             # SAVE LOCAL input data for run_maximisation_1_comp
             np.save(filename_membership, memb_probs[:, i])
+            print('ncomps, icomp', ncomps, icomp, 'all_init_pos', all_init_pos[i])
             if all_init_pos[i] is not None: # If this file is not available in run_maximisation_1_comp it will equal to None. That's OK.
                 np.save(filename_init_pos, all_init_pos[i])
             if all_init_pars[i] is not None:
