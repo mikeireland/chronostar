@@ -38,9 +38,9 @@ if rank==0:
     #~ print(d)
     cov_now = d['cov_now']
     mean_now = d['mean_now']
-    #~ star_count = d['star_count']
-    star_covs_all = d['star_covs']
-    star_means_all = d['star_means']
+    star_covs_all = d['star_covs']*10
+    star_means_all = d['star_means']*10
+    print('len', len(star_covs_all))
     
     # Scatter data
     indices_chunks = np.array_split(range(len(star_means_all)), size)
@@ -58,7 +58,6 @@ if rank==0:
 else:
     cov_now = None
     mean_now = None
-    #~ star_count = None
     star_covs = None
     star_means = None
 
