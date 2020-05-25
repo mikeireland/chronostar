@@ -32,6 +32,7 @@ if rank==0:
     
     # Read data
     d = np.load(filename_data, allow_pickle=True)
+    print(d)
     cov_now = d['cov_now']
     mean_now = d['mean_now']
     star_count = d['star_count']
