@@ -73,6 +73,7 @@ star_covs = comm.bcast(star_covs, root=0)
 
 
 star_count = len(star_means)
+print(rank, star_count)
 
 #~ print(rank, 'start', star_covs.shape)
 
