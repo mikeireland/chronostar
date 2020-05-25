@@ -49,11 +49,11 @@ if rank==0:
     star_means = [star_means_all[i] for i in indices_chunks]
     star_covs = [star_covs_all[i] for i in indices_chunks]
     
-    print('star_covs_all.shape', star_covs_all.shape)
-    print('star_means_all.shape', star_means_all.shape)
+    #~ print('star_covs_all.shape', star_covs_all.shape)
+    #~ print('star_means_all.shape', star_means_all.shape)
     
-    print('star_covs', star_covs.shape)
-    print('star_means', star_mean.shapes)
+    #~ print('star_covs', star_covs.shape)
+    #~ print('star_means', star_mean.shapes)
 
 else:
     cov_now = None
