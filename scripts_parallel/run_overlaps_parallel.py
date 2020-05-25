@@ -41,7 +41,7 @@ if rank==0:
     star_covs_all = d['star_covs']
     star_means_all = d['star_means']
 
-    for x in range(len(100)):
+    for x in range(100):
         star_covs_all.append(star_covs_all[0])
         star_means_all.append(star_means_all[0])
 
