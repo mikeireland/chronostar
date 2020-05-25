@@ -41,24 +41,19 @@ if rank==0:
     star_covs_all = d['star_covs']
     star_means_all = d['star_means']
 
-    for x in range(100):
-        star_covs_all.append(star_covs_all[0])
-        star_means_all.append(star_means_all[0])
+    #~ for x in range(100):
+        #~ star_covs_all.append(star_covs_all[0])
+        #~ star_means_all.append(star_means_all[0])
 
-    print('len', len(star_covs_all))
+    #~ print('len', len(star_covs_all))
     
     # Scatter data
     indices_chunks = np.array_split(range(len(star_means_all)), size)
-    #~ star_covs = np.array_split(star_covs_all, size)
-    #~ star_means = np.array_split(star_means_all, size)
-    star_means = [star_means_all[i] for i in indices_chunks]
-    star_covs = [star_covs_all[i] for i in indices_chunks]
+    #~ star_means = [star_means_all[i] for i in indices_chunks]
+    #~ star_covs = [star_covs_all[i] for i in indices_chunks]
     
-    #~ print('star_covs_all.shape', star_covs_all.shape)
-    #~ print('star_means_all.shape', star_means_all.shape)
-    
-    #~ print('star_covs', star_covs.shape)
-    #~ print('star_means', star_mean.shapes)
+    star_covs = star_covs_all
+    star_means = star_means_all
 
 else:
     cov_now = None
@@ -69,11 +64,12 @@ else:
 # BROADCAST CONSTANTS
 cov_now = comm.bcast(cov_now, root=0)
 mean_now = comm.bcast(mean_now, root=0)
-#~ star_count = comm.bcast(star_count, root=0)
+star_means = comm.bcast(star_means, root=0)
+star_covs = comm.bcast(star_covs, root=0)
 
 # SCATTER DATA
-star_covs = comm.scatter(star_covs, root=0)
-star_means = comm.scatter(star_means, root=0)
+#~ star_covs = comm.scatter(star_covs, root=0)
+#~ star_means = comm.scatter(star_means, root=0)
 
 
 star_count = len(star_means)
