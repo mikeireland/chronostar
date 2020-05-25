@@ -40,8 +40,11 @@ if rank==0:
     mean_now = d['mean_now']
     star_covs_all = d['star_covs']
     star_means_all = d['star_means']
-    star_covs_all = np.stack((star_covs_all, star_covs_all))
-    star_means_all = np.stack((star_means_all, star_means_all))
+
+    for x in range(len(100)):
+        star_covs_all.append(star_covs_all[0])
+        star_means_all.append(star_means_all[0])
+
     print('len', len(star_covs_all))
     
     # Scatter data
