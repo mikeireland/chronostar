@@ -867,12 +867,14 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
         gdir = os.path.join(idir, "comp{}/".format(i))
         mkpath(gdir)
 
+        # TODO: MZ: This 
         # If component has too few stars, skip fit, and use previous best walker
-        if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
-            logging.info("Skipped component {} with nstars {}".format(
-                    i, np.sum(memb_probs[:, i])
-            ))
-        elif ignore_stable_comps and not unstable_comps[i]:
+        #~ if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
+            #~ logging.info("Skipped component {} with nstars {}".format(
+                    #~ i, np.sum(memb_probs[:, i])
+            #~ ))
+        #~ elif
+        if ignore_stable_comps and not unstable_comps[i]:
             logging.info("Skipped stable component {}".format(i))
         # Otherwise, run maximisation and sampling stage
         else:
@@ -1346,7 +1348,6 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         np.save(idir+"membership.npy", memb_probs_new)
 
         # MAXIMISE: PARALLEL EXTERNAL
-                    #~ maximisation_parallel_external(data, ncomps=ncomps,
         new_comps, all_samples, _, all_init_pos, success_mask =\
             maximisation_parallel_external(data, ncomps=ncomps,
                          burnin_steps=burnin,

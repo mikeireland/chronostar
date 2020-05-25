@@ -29,6 +29,7 @@ data point:
 P(D|M) = P(x_1|M) * P(x_2|M) * .. * P(x_N|M) = \prod_i^N P(x_i|M)
 """
 import numpy as np
+import random
 
 from .component import SphereComponent
 USE_C_IMPLEMENTATION = True
@@ -159,7 +160,7 @@ def lnprior(comp, memb_probs):
     return ln_alpha_prior(comp, memb_probs, sig=1.0)
 
 
-def get_lnoverlaps(comp, data, star_mask=None):
+def get_lnoverlaps_original(comp, data, star_mask=None):
     """
     Given the parametric description of an origin, calculate star overlaps
 
@@ -201,6 +202,67 @@ def get_lnoverlaps(comp, data, star_mask=None):
                                  star_count)
     else:
         lnols = slow_get_lnoverlaps(cov_now, mean_now, star_covs, star_means)
+    return lnols
+
+def get_lnoverlaps(comp, data, star_mask=None): # multiprocessing
+    """
+    Given the parametric description of an origin, calculate star overlaps
+
+    Utilises Overlap, a c module wrapped with swig to be callable by python.
+    This allows a 100x speed up in our 6x6 matrix operations when compared
+    to numpy.
+
+    Parameters
+    ----------
+    pars: [npars] list
+        Parameters describing the origin of group
+        typically [X,Y,Z,U,V,W,np.log(dX),np.log(dV),age]
+    data: dict
+        stellar cartesian data being fitted to, stored as a dict:
+        'means': [nstars,6] float array
+            the central estimates of each star in XYZUVW space
+        'covs': [nstars,6,6] float array
+            the covariance of each star in XYZUVW space
+    star_mask: [len(data)] indices
+        A mask that excludes stars that have negliglbe membership probablities
+        (and thus have their log overlaps scaled to tiny numbers).
+    """
+    # Prepare star arrays
+    if star_mask is not None:
+        star_means = data['means'][star_mask]
+        star_covs = data['covs'][star_mask]
+    else:
+        star_means = data['means']
+        star_covs = data['covs']
+
+    star_count = len(star_means)
+
+    # Get current day projection of component
+    mean_now, cov_now = comp.get_currentday_projection()
+
+    # Prepare params file
+    number = random.sample(range(10000000), 1)
+    filename_data = 'lnols_input_%d.dat'%number
+    filename_result = 'lnols_output_%d.dat'%number
+    
+    # Save data
+    d = {'cov_now': cov_now, 'mean_now': mean_now, 'star_count': star_count, 'star_covs': star_covs, 'star_means': star_means}
+    np.save(filename_data, d)
+    
+    # COMPUTE OVERLAPS
+    number_of_processes = 8
+    bashCommand = 'mpirun -np %d python run_overlaps_parallel.py %s %s'%(number_of_processes, filename_data, filename_result)
+    
+    print(bashCommand)
+    process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+    #~ output, error = process.communicate()
+    _, _ = process.communicate()
+    #~ process_output, _ = process.communicate()
+    #~ print('process_output run_maximisation_1_comp', process_output)
+    
+    # Read results
+    lnols = np.load(filename_result)
+
     return lnols
 
 
@@ -287,7 +349,7 @@ def lnprob_func(pars, data, memb_probs=None,
     memb_probs
         array of weights [0.0 - 1.0] for each star, describing how likely
         they are members of group to be fitted.
-    Component: Class implmentation of component.AbstractComponent
+    Component: Class implementation of component.AbstractComponent
         A class that can read in `pars`, and generate the three key
         attributes for the modelled origin point:
         mean, covariance matrix, age

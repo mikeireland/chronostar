@@ -234,6 +234,7 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
         # Exploit the component logic to generate closest set of pars
         dummy_comp = Component(attributes={'mean':rough_mean_now,
                                            'covmatrix':rough_cov_now,})
+        # TODO: ESTIMATE AGE: SLOPE XU and YV (an average) Slope is in units 1/time
         init_pars = dummy_comp.get_emcee_pars()
 
     init_std = Component.get_sensible_walker_spread()
