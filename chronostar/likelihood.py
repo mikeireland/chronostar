@@ -250,7 +250,7 @@ def get_lnoverlaps(comp, data, star_mask=None): # multiprocessing
     # Save data
     d = {'cov_now': cov_now, 'mean_now': mean_now, 'star_count': star_count, 'star_covs': star_covs, 'star_means': star_means}
     with open(filename_data, 'wb') as handle:
-        pickle.dump(handle, d)
+        pickle.dump(d, handle)
     #~ np.save(filename_data, d, allow_pickle=True)
     
     # COMPUTE OVERLAPS
