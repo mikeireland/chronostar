@@ -46,8 +46,11 @@ if rank==0:
     star_covs = np.array_split(star_covs_all, size)
     star_means = np.array_split(star_means_all, size)
     
-    print('star_covs', star_covs)
-    print('star_means', star_means)
+    print('star_covs_all.shape', star_covs_all.shape)
+    print('star_means_all.shape', star_means_all.shape)
+    
+    print('star_covs', star_covs.shape)
+    print('star_means', star_mean.shapes)
 
 else:
     cov_now = None
@@ -65,7 +68,7 @@ star_count = comm.bcast(star_count, root=0)
 star_covs = comm.scatter(star_covs, root=0)
 star_means = comm.scatter(star_means, root=0)
 
-print(rank, 'start')
+print(rank, 'start', star_covs.shape)
 
 # RUN OVERLAPS
 if USE_C_IMPLEMENTATION:
