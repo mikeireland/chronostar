@@ -3,8 +3,9 @@ Run the maximisation step for all components at once.
 Use one process for each component (np is external parameter).
 """
 
-import subprocess # to call external scripts
+#~ import subprocess # to call external scripts
 import numpy as np
+import pickle
 import os
 import sys
 import itertools
@@ -31,7 +32,9 @@ if rank==0:
     filename_result = sys.argv[2]
     
     # Read data
-    d = np.load(filename_data, allow_pickle=True)
+    with open(filename_data, 'rb') as handle:
+        d = pickle.load(handle)
+    #~ d = np.load(filename_data, allow_pickle=True)
     print(d)
     cov_now = d['cov_now']
     mean_now = d['mean_now']
