@@ -43,8 +43,11 @@ if rank==0:
     star_means_all = d['star_means']
     
     # Scatter data
-    star_covs = np.array_split(star_covs_all, size)
-    star_means = np.array_split(star_means_all, size)
+    indices_chunks = np.array_split(range(len(star_means_all)), size)
+    #~ star_covs = np.array_split(star_covs_all, size)
+    #~ star_means = np.array_split(star_means_all, size)
+    star_means = [star_means_all[i] for i in indices_chunks]
+    star_covs = [star_covs_all[i] for i in indices_chunks]
     
     print('star_covs_all.shape', star_covs_all.shape)
     print('star_means_all.shape', star_means_all.shape)
