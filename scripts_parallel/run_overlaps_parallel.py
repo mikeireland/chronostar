@@ -58,14 +58,14 @@ if rank==0:
 else:
     cov_now = None
     mean_now = None
-    star_count = None
+    #~ star_count = None
     star_covs = None
     star_means = None
 
 # BROADCAST CONSTANTS
 cov_now = comm.bcast(cov_now, root=0)
 mean_now = comm.bcast(mean_now, root=0)
-star_count = comm.bcast(star_count, root=0)
+#~ star_count = comm.bcast(star_count, root=0)
 
 # SCATTER DATA
 star_covs = comm.scatter(star_covs, root=0)
