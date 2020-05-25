@@ -241,7 +241,7 @@ def get_lnoverlaps(comp, data, star_mask=None): # multiprocessing
     mean_now, cov_now = comp.get_currentday_projection()
 
     # Prepare params file
-    number = random.sample(range(10000000), 1)
+    number = random.sample(range(10000000), 1)[0]
     filename_data = 'lnols_input_%d.dat'%number
     filename_result = 'lnols_output_%d.dat'%number
     
