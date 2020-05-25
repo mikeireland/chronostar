@@ -74,7 +74,7 @@ star_means = comm.scatter(star_means, root=0)
 
 star_count = len(star_means)
 
-print(rank, 'start', star_covs.shape)
+#~ print(rank, 'start', star_covs.shape)
 
 # RUN OVERLAPS
 if USE_C_IMPLEMENTATION:
