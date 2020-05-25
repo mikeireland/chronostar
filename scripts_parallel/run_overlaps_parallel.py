@@ -38,7 +38,7 @@ if rank==0:
     #~ print(d)
     cov_now = d['cov_now']
     mean_now = d['mean_now']
-    star_count = d['star_count']
+    #~ star_count = d['star_count']
     star_covs_all = d['star_covs']
     star_means_all = d['star_means']
     
@@ -70,6 +70,9 @@ star_count = comm.bcast(star_count, root=0)
 # SCATTER DATA
 star_covs = comm.scatter(star_covs, root=0)
 star_means = comm.scatter(star_means, root=0)
+
+
+star_count = len(star_means)
 
 print(rank, 'start', star_covs.shape)
 
