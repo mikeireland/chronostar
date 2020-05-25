@@ -248,7 +248,7 @@ def get_lnoverlaps(comp, data, star_mask=None): # multiprocessing
     
     # Save data
     d = {'cov_now': cov_now, 'mean_now': mean_now, 'star_count': star_count, 'star_covs': star_covs, 'star_means': star_means}
-    np.save(filename_data, d)
+    np.save(filename_data, d, allow_pickle=True)
     
     # COMPUTE OVERLAPS
     number_of_processes = 8

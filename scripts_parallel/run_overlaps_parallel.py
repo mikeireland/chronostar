@@ -31,7 +31,7 @@ if rank==0:
     filename_result = sys.argv[2]
     
     # Read data
-    d = np.load(filename_data)
+    d = np.load(filename_data, allow_pickle=True)
     cov_now = d['cov_now']
     mean_now = d['mean_now']
     star_count = d['star_count']
