@@ -16,7 +16,7 @@ from chronostar import readparam
 
 USE_C_IMPLEMENTATION = True
 try:
-    from ._overlap import get_lnoverlaps as c_get_lnoverlaps # TODO: parallelise!!
+    from chronostar._overlap import get_lnoverlaps as c_get_lnoverlaps # TODO: parallelise!!
 except ImportError:
     print("C IMPLEMENTATION OF GET_OVERLAP NOT IMPORTED")
     USE_C_IMPLEMENTATION = False
