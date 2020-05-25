@@ -27,8 +27,8 @@ rank = comm.Get_rank()
 
 if rank==0:
     # Read fit parameters from the file        
-    filename_data = np.load(sys.argv[1])
-    filename_result = np.load(sys.argv[2])
+    filename_data = sys.argv[1]
+    filename_result = sys.argv[2]
     
     # Read data
     d = np.load(filename_data)
