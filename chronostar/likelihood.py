@@ -30,6 +30,7 @@ P(D|M) = P(x_1|M) * P(x_2|M) * .. * P(x_N|M) = \prod_i^N P(x_i|M)
 """
 import numpy as np
 import random
+import subprocess
 
 from .component import SphereComponent
 USE_C_IMPLEMENTATION = True
