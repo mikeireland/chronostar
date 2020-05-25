@@ -162,7 +162,7 @@ def lnprior(comp, memb_probs):
     return ln_alpha_prior(comp, memb_probs, sig=1.0)
 
 
-def get_lnoverlaps_original(comp, data, star_mask=None):
+def get_lnoverlaps(comp, data, star_mask=None):
     """
     Given the parametric description of an origin, calculate star overlaps
 
@@ -206,7 +206,7 @@ def get_lnoverlaps_original(comp, data, star_mask=None):
         lnols = slow_get_lnoverlaps(cov_now, mean_now, star_covs, star_means)
     return lnols
 
-def get_lnoverlaps(comp, data, star_mask=None): # multiprocessing
+def get_lnoverlaps_parallel(comp, data, star_mask=None): # multiprocessing
     """
     Given the parametric description of an origin, calculate star overlaps
 
@@ -248,13 +248,13 @@ def get_lnoverlaps(comp, data, star_mask=None): # multiprocessing
     filename_result = 'lnols_output_%d.npy'%number
     
     # Save data
-    d = {'cov_now': cov_now, 'mean_now': mean_now, 'star_count': star_count, 'star_covs': star_covs, 'star_means': star_means}
+    d = {'cov_now': cov_now, 'mean_now': mean_now, 'star_count': star_count, 'star_covs': star_covs}
     with open(filename_data, 'wb') as handle:
         pickle.dump(d, handle)
     #~ np.save(filename_data, d, allow_pickle=True)
     
     # COMPUTE OVERLAPS
-    number_of_processes = 8
+    number_of_processes = 8 # TODO: THIS IS HARDCODED
     bashCommand = 'mpirun -np %d python run_overlaps_parallel.py %s %s'%(number_of_processes, filename_data, filename_result)
     
     print(bashCommand)
