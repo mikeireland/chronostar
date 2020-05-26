@@ -115,7 +115,7 @@ while True:
     lc = len(comps)
     
     if rank < lc:
-
+        print('rank', rank)
         # EVERY PROCESS DOES THIS FOR ITS DATA
         all_results_rank = []
         all_scores_rank = []
