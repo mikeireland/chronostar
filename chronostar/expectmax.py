@@ -940,10 +940,11 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
     #~ np.save('run_max_command', bashCommand)
     print('Start process...')
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-    #~ output, error = process.communicate()
+    process_output, process_error = process.communicate()
     #~ _, _ = process.communicate()
-    process_output, _ = process.communicate()
+    #~ process_output, _ = process.communicate()
     print('process_output run_maximisation_1_comp', process_output)
+    print('process_error run_maximisation_1_comp', process_error)
 
     print('END MAXIMISATION')
 
