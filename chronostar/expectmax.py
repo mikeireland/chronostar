@@ -929,7 +929,7 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
     #####################
     ### FIT ALL COMPS ###
     #####################
-    print('StART MAXIMISATION')
+    print('StART MAXIMISATION ******')
     if ncomps==1:
         bashCommand = 'python run_maximisation_1_comp.py %s %s'%(filename_global_pars, filenames_pars[0])
     else:
