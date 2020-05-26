@@ -130,7 +130,7 @@ from chronostar.component import SphereComponent
 
 import logging
 
-np.savetxt('first', 'started')
+np.savetxt('first', [1])
 
 #~ from schwimmbad import MPIPool
 
@@ -226,7 +226,7 @@ else:
 
 #~ print('SHAPES', memb_probs, all_init_pos, all_init_pars)
 
-np.save('run1message', 'Start with the fit...')
+np.savetxt('run1message', [2])
 
 log_message('Fitting comp {}'.format(icomp), symbol='.', surround=True)
 best_comp, chain, lnprob = compfitter.fit_comp(
