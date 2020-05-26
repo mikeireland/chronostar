@@ -936,7 +936,8 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
         bashCommand = 'mpirun -np %d python run_maximisation_all_comps.py %s %s'%(len(fitted_comps), filename_global_pars, filenames_pars_filename)
     
     print(bashCommand)
-    np.save('run_max_command', bashCommand)
+    
+    #~ np.save('run_max_command', bashCommand)
     process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
     #~ output, error = process.communicate()
     #~ _, _ = process.communicate()
