@@ -117,6 +117,8 @@ import warnings
 warnings.filterwarnings("ignore")
 print('run_maximisation_1_comp: all warnings suppressed.')
 
+np.savetxt('first', 'started')
+
 import numpy as np
 import os
 import sys
