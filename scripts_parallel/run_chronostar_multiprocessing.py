@@ -113,7 +113,7 @@ while True:
 
     # SCATTER DATA; this will need to be reiterated when a new component is added
     comps = comm.scatter(comps, root=0)
-    
+    print('RRRrank', rank)
     if rank < ncomps:
         print('rank', rank)
         # EVERY PROCESS DOES THIS FOR ITS DATA
