@@ -112,17 +112,22 @@ while True:
     # SCATTER DATA; this will need to be reiterated when a new component is added
     comps = comm.scatter(comps, root=0)
 
-    # EVERY PROCESS DOES THIS FOR ITS DATA
-    all_results_rank = []
-    all_scores_rank = []
-    for comp in comps:
-        result, score = naivefit.run_split_for_one_comp_multiproc(i=comp) # , pool=pool
-        all_results_rank.append(result)
-        all_scores_rank.append(score)
+    lc = len(comps)
+    
+    if rank < lc:
 
-    # GATHER DATA AND UPDATE NAIVEFIT
-    all_results_tmp = comm.gather(all_results_rank, root=0)
-    all_scores_tmp = comm.gather(all_scores_rank, root=0)
+        # EVERY PROCESS DOES THIS FOR ITS DATA
+        all_results_rank = []
+        all_scores_rank = []
+        for comp in comps:
+            result, score = naivefit.run_split_for_one_comp_multiproc(i=comp) # , pool=pool
+            all_results_rank.append(result)
+            all_scores_rank.append(score)
+
+        # GATHER DATA AND UPDATE NAIVEFIT
+        all_results_tmp = comm.gather(all_results_rank, root=0)
+        all_scores_tmp = comm.gather(all_scores_rank, root=0)
+
     if rank == 0:
         all_results = list(itertools.chain.from_iterable(all_results_tmp))
         all_scores = list(itertools.chain.from_iterable(all_scores_tmp))
