@@ -117,8 +117,6 @@ import warnings
 warnings.filterwarnings("ignore")
 print('run_maximisation_1_comp: all warnings suppressed.')
 
-np.savetxt('first', 'started')
-
 import numpy as np
 import os
 import sys
@@ -131,6 +129,8 @@ from chronostar import tabletool
 from chronostar.component import SphereComponent
 
 import logging
+
+np.savetxt('first', 'started')
 
 #~ from schwimmbad import MPIPool
 
