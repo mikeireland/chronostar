@@ -242,6 +242,8 @@ best_comp, chain, lnprob = compfitter.fit_comp(
         nthreads=global_pars['nthreads'],
 )
 
+np.savetxt('run1message_finishedfit_comp', [2])
+
 #~ best_comp, x, lnprob = compfitter.fit_comp_scipy_optimise(data_dict, 
             #~ memb_probs=memb_probs, init_pos=all_init_pos, 
             #~ init_pars=all_init_pars, Component=component, 
