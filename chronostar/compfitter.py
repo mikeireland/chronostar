@@ -460,6 +460,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             burnin_lnprob_res, sampler.lnprobability
         ))
         cnt += 1
+        
+        np.savetxt('cnt', str(cnt))
 
     logging.info("Burnt in, with convergence: {}".format(converged))
     if plot_it and plt_avail:

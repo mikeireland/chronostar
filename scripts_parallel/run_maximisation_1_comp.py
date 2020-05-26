@@ -224,6 +224,7 @@ else:
 
 #~ print('SHAPES', memb_probs, all_init_pos, all_init_pars)
 
+np.save('run1message', 'Start with the fit...')
 
 log_message('Fitting comp {}'.format(icomp), symbol='.', surround=True)
 best_comp, chain, lnprob = compfitter.fit_comp(
