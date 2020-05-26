@@ -91,6 +91,7 @@ if rank == 0:
 else:
     naivefit = None
     comps = None
+    ncomps = None # for sleep
 
 #~ with MPIPool() as pool:
     #~ if not pool.is_master():
@@ -108,13 +109,12 @@ else:
 while True:
     # BROADCAST CONSTANTS
     naivefit = comm.bcast(naivefit, root=0)  # updated ncomps, prev_results, prev_score
+    ncomps = comm.bcast(ncomps, root=0)  # updated ncomps, prev_results, prev_score
 
     # SCATTER DATA; this will need to be reiterated when a new component is added
     comps = comm.scatter(comps, root=0)
-
-    lc = len(comps)
     
-    if rank < lc:
+    if rank < ncomps:
         print('rank', rank)
         # EVERY PROCESS DOES THIS FOR ITS DATA
         all_results_rank = []
@@ -148,6 +148,7 @@ while True:
         terminate=None
         naivefit=None
         comps=None
+        ncomps=None # for sleep
 
     terminate = comm.bcast(terminate, root=0)
 
