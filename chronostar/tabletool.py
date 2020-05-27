@@ -97,6 +97,7 @@ def get_colnames(main_colnames=None, error_colnames=None, corr_colnames=None,
     return main_colnames, error_colnames, corr_colnames
 
 
+@profile
 def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
                                corr_colnames=None, cartesian=True,
                                historical=False, only_means=False,
