@@ -263,7 +263,9 @@ logging.info("With age of: {:.3} +- {:.3} Myr".
              format(np.median(chain[:,:,-1]),
                     np.std(chain[:,:,-1])))
 
-np.save(local_pars['filename_samples'].replace('samples', 'printouts'), [ncomps, icomp, all_init_pos, final_pos])
+fln = local_pars['filename_samples'].replace('samples', 'printouts')
+print('fln', fln)
+#~ np.save(fln, [ncomps, icomp, all_init_pos, final_pos])
 #~ print('ncomps, icomp, init_pos, final_pos', ncomps, icomp, all_init_pos, final_pos)
 
 ##################################

@@ -895,8 +895,12 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
             #~ print('ncomps, icomp', ncomps, i, 'all_init_pos', all_init_pos[i])
             if all_init_pos[i] is not None: # If this file is not available in run_maximisation_1_comp it will equal to None. That's OK.
                 np.save(filename_init_pos, all_init_pos[i])
-            if all_init_pars[i] is not None:
-                np.save(filename_init_pars, all_init_pars[i])
+            #~ if all_init_pars[i] is not None:
+            if isinstance(all_init_pars, np.ndarray):
+                if all_init_pars[i] is not None:
+                    np.save(filename_init_pars, all_init_pars[i])
+            elif all_init_pars is not None:
+                np.save(filename_init_pars, all_init_pars)
 
             pars = {'ncomps': ncomps,
                 'icomp': i,
@@ -995,7 +999,7 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
     # Component.store_raw_components(idir + 'best_comps.npy', new_comps)
     # np.save(idir + 'best_comps_bak.npy', new_comps)
 
-    np.save(f, r)
+    #~ np.save(f, r)
 
     return new_comps, all_samples, all_lnprob, \
            all_final_pos, success_mask
@@ -1319,6 +1323,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         # for iter_count in range(10):
         idir = rdir+"iter{:02}/".format(iter_count)
         mkpath(idir)
+        
+        print('IDIR', idir)
 
         log_message('Iteration {}'.format(iter_count),
                     symbol='-', surround=True)

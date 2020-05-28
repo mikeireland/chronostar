@@ -32,6 +32,8 @@ import numpy as np
 import random
 import pickle
 import subprocess
+import line_profiler
+profile = line_profiler.LineProfiler()
 
 from .component import SphereComponent
 USE_C_IMPLEMENTATION = True
@@ -161,7 +163,7 @@ def lnprior(comp, memb_probs):
 
     return ln_alpha_prior(comp, memb_probs, sig=1.0)
 
-#~ @profile
+@profile
 def get_lnoverlaps(comp, data, star_mask=None):
     """
     Given the parametric description of an origin, calculate star overlaps

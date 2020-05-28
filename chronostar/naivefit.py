@@ -27,6 +27,8 @@ import sys
 import logging
 from distutils.dir_util import mkpath
 import random
+import subprocess
+import pickle
 
 #~ from emcee.utils import MPIPool
 #~ from multiprocessing import Pool
@@ -698,7 +700,8 @@ class NaiveFit(object):
                     symbol='*', surround=True)
         run_dir = self.rdir + '{}/'.format(self.ncomps)
 
-        prev_result = self.run_em_unless_loadable(run_dir)
+        # This is parallelised!
+        prev_result = self.run_em_unless_loadable_parallel(run_dir)
         prev_score = self.calc_score(prev_result['comps'], prev_result['memb_probs'])
 
         self.ncomps += 1
@@ -742,32 +745,71 @@ class NaiveFit(object):
                 local_fit_pars['ncomps'] = self.ncomps
                 local_fit_pars['run_dir'] = run_dir
                 local_fit_pars['div_label'] = div_label
-                #~ local_fit_pars['pool'] = pool
+                local_fit_pars['self.final_med_and_spans_file'] = self.final_med_and_spans_file
+                local_fit_pars['self.final_memb_probs_file'] = self.final_memb_probs_file
+                local_fit_pars['self.final_comps_file'] = self.final_comps_file
+                local_fit_pars['Component'] = self.Component
+                local_fit_pars['pool'] = None # TODO
                 local_fit_pars['filename_global_pars'] = self.filename_global_pars
-                local_fit_pars['filename_result'] = os.path.join(run_dir, 'result_%d_%s'%(self.ncomps, div_label))
-                filename_em_fit_pars = os.path.join(self.rdir, 'fit_pars_em_%s_%d'%(div_label, i))
-                np.save(filename_em_fit_pars, self.fit_pars)
+                local_fit_pars['filename_result'] = os.path.join(run_dir, 'result_%d_%s.pkl'%(self.ncomps, div_label))
+                filename_em_fit_pars = os.path.join(self.rdir, 'fit_pars_em_%d_%s.pkl'%(self.ncomps, div_label))
+                #~ np.save(filename_em_fit_pars, self.fit_pars)
+                with open(filename_em_fit_pars, 'wb') as handle:
+                    pickle.dump(local_fit_pars, handle)
+                #~ np.save(filename_em_fit_pars, local_fit_pars)
                 list_filename_em_fit_pars.append(filename_em_fit_pars)
             
-            filename_list = os.path.join(run_dir, 'em_list_%d'%self.ncomps)
+            filename_list = os.path.join(self.fit_pars['results_dir'], 'em_list_%d.npy'%self.ncomps)
             np.save(filename_list, list_filename_em_fit_pars)
-                
-            # RUN
+
+
+
+
+            # READ RESULTS
+            #~ if self.ncomps==4:
+            try:
+                print('********* NCOMPS=%d, READ RESULTS'%self.ncomps)
+                for x in list_filename_em_fit_pars:
+                    par = np.load(x)
+                    #~ print('parrrarara', par)
+                    filename_result = par['filename_result']
+                    print('FILENAME RESSSULT', filename_result, x)
+                    with open(filename_result, 'rb') as handle:
+                        result = pickle.load(handle)
+                    #~ result = np.load(filename_result)
+                    all_results.append(result)
+
+                    score = self.calc_score(result['comps'], result['memb_probs'])
+                    all_scores.append(score)
+
+                    logging.info(
+                            'Decomposition {} finished with \nBIC: {}\nlnlike: {}\n'
+                            'lnpost: {}'.format(
+                                    par['div_label'], all_scores[-1]['bic'],
+                                    all_scores[-1]['lnlike'], all_scores[-1]['lnpost'],
+                            ))
+
+                    print(                            'Decomposition {} finished with \nBIC: {}\nlnlike: {}\n'
+                            'lnpost: {}'.format(
+                                    par['div_label'], all_scores[-1]['bic'],
+                                    all_scores[-1]['lnlike'], all_scores[-1]['lnpost'],
+                            ))
             
-            for filename in list_filename_em_fit_pars:
-                result = self.run_em_unless_loadable_parallel(run_dir)
+            except: # RUN
 
-            print('START EM all ABC')
-            bashCommand = 'mpirun -np %d python run_em_unless_loadable_multiprocessing.py %s'%(len(list_filename_em_fit_pars), filename_list)
+                # RUN
+                print('START EM all ABC')
+                bashCommand = 'mpirun -np %d python run_em_unless_loadable_multiprocessing.py %s'%(len(list_filename_em_fit_pars), filename_list)
 
-            print('Start process...')
-            process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
-            print('intermediate', process)
-            #~ process_output, process_error = process.communicate()
-            _, _ = process.communicate()
-            #~ process_output, _ = process.communicate()
-
-            print('END EM all ABC')
+                print('Start process...')
+                process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+                print('intermediate', process)
+                #~ process_output, process_error = process.communicate()
+                process_output, process_error = process.communicate()
+                #~ process_output, _ = process.communicate()
+                print('output', process_output)
+                print('error', process_error)
+                print('END EM all ABC')
 
 
 
@@ -775,7 +817,9 @@ class NaiveFit(object):
             for x in list_filename_em_fit_pars:
                 par = np.load(x)
                 filename_result = par['filename_result']
-                result = np.load(filename_result)
+                with open(filename_result, 'rb') as handle:
+                    result = pickle.load(handle)
+                #~ result = np.load(filename_result)
                 all_results.append(result)
 
                 score = self.calc_score(result['comps'], result['memb_probs'])
