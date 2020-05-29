@@ -27,8 +27,8 @@ import logging
 from distutils.dir_util import mkpath
 import random
 
-from emcee.utils import MPIPool
-from multiprocessing import Pool
+#~ from emcee.utils import MPIPool
+#~ from multiprocessing import Pool
 
 from multiprocessing import cpu_count
 
@@ -297,7 +297,7 @@ class NaiveFit(object):
         logging.info("lnpost: {} | {}".format(new['lnpost'], prev['lnpost']))
 
 
-    def build_init_comps(self, prev_comps, split_comp_ix, prev_med_and_spans):
+    def build_init_comps_original(self, prev_comps, split_comp_ix, prev_med_and_spans):
         """
         Given a list of converged components from a N compoennt fit, generate
         a list of N+1 components with which to intiailise an EM run.
@@ -339,11 +339,58 @@ class NaiveFit(object):
 
         return init_comps
 
+    def build_init_comps(self, prev_comps, split_comp_ix, prev_med_and_spans): # Scipy modification
+        """
+        Given a list of converged components from a N compoennt fit, generate
+        a list of N+1 components with which to intiailise an EM run.
+        This is done by taking the target component, `prev_comps[comp_ix]`,
+        replacing it in the list of comps, by splitting it into two components
+        with a lower and higher age,
+        Parameters
+        ----------
+        prev_comps : [N] list of Component objects
+            List of components from the N component fit
+        split_comp_ix : int
+            The index of component which is to be split into two
+        prev_med_and_spans : [ncomps,npars,3] np.array
+            The median and spans of
+        Return
+        ------
+        init_comps: [N+1] list of Component objects
+        Side effects
+        ------------
+        Updates self.fit_pars['init_comps'] with a [N+1] list of Component
+        objects
+        """
+        target_comp = prev_comps[split_comp_ix]
+
+        assert isinstance(target_comp, self.Component)
+        # Decompose and replace the ith component with two new components
+        # by using the 16th and 84th percentile ages from previous run
+        age = target_comp.get_age()
+        #~ split_comps = target_comp.splitGroup(
+            #~ lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
+            #~ hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
+        #~ split_comps = target_comp.splitGroup(
+            #~ lo_age=0.8*age,
+            #~ hi_age=2.0*age)
+        split_comps = target_comp.splitGroup(
+            lo_age=0.5*age,
+            hi_age=1.5*age)
+        #~ split_comps = target_comp.splitGroup(
+            #~ lo_age=1,
+            #~ hi_age=10)
+        init_comps = list(prev_comps)
+        init_comps.pop(split_comp_ix)
+        init_comps.insert(split_comp_ix, split_comps[1])
+        init_comps.insert(split_comp_ix, split_comps[0])
+
+        return init_comps
+
 
     def run_em_unless_loadable(self, run_dir):
         """
         Run and EM fit, but only if not loadable from a previous run
-
         """
         try:
             med_and_spans = np.load(run_dir + 'final/'
@@ -353,6 +400,7 @@ class NaiveFit(object):
             comps = self.Component.load_raw_components(
                     str(run_dir + 'final/' + self.final_comps_file))
             logging.info('Loaded from previous run')
+            print('Loaded from previous run', str(run_dir + 'final/' + self.final_comps_file))
 
             # Handle case where Component class has been modified and can't
             # load the raw components
@@ -363,6 +411,7 @@ class NaiveFit(object):
             # Handle the case where files are missing, which means we must
             # perform the fit.
         except IOError:
+            # Fit many compy should be scipy modified!
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
@@ -372,6 +421,8 @@ class NaiveFit(object):
         # we clear them to avoid any future usage
         self.fit_pars['init_comps'] = None
         self.fit_pars['init_memb_probs'] = None
+
+        print('COMPS', comps)
 
         return {'comps':comps, 'med_and_spans':med_and_spans, 'memb_probs':memb_probs}
 
@@ -510,9 +561,17 @@ class NaiveFit(object):
                             symbol='+', surround=True)
                 mkpath(run_dir)
 
+                # SPLIT THE i-TH COMPONENT: KEEP XYZUVWdXdV but split in the age
                 self.fit_pars['init_comps'] = self.build_init_comps(
                         prev_result['comps'], split_comp_ix=i,
                         prev_med_and_spans=prev_result['med_and_spans'])
+
+                
+                #~ print('BEFORE SPLIT:', i)
+                #~ print(prev_result['comps'])
+                
+                #~ print('AFTER SPLIT:', i)
+                #~ print(self.fit_pars['init_comps'])
 
                 result = self.run_em_unless_loadable(run_dir)
                 all_results.append(result)

@@ -261,7 +261,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     return result
 
 
-def lnprob_func(pars, data, memb_probs=None,
+def lnprob_func_original(pars, data, memb_probs=None,
                 trace_orbit_func=None,
                 Component=SphereComponent, **kwargs):
     """Computes the log-probability for a fit to a group.
@@ -313,3 +313,26 @@ def lnprob_func(pars, data, memb_probs=None,
     if not np.isfinite(lp):
         return -np.inf
     return lp + lnlike(comp, data, memb_probs, **kwargs)
+
+def lnprob_func(pars, args, Component=SphereComponent, **kwargs): # scipy modified
+    """
+    returns minus lnprob_func_original
+    """
+    
+    # args = [data, memb_probs, trace_orbit_func]
+    data=args[0]
+    memb_probs = args[1]
+    trace_orbit_func = args[2]
+
+
+    if memb_probs is None:
+        memb_probs = np.ones(len(data['means']))
+    #~ print('PARS', pars)
+    comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
+    lp = lnprior(comp, memb_probs)
+    if not np.isfinite(lp):
+        return -(-np.inf)
+    lnprob = - (lp + lnlike(comp, data, memb_probs, **kwargs))
+    #~ print(lnprob)
+    #~ print('')
+    return lnprob
