@@ -79,8 +79,8 @@ def test_2comps_and_background():
     ### INITIALISE SYNTHETIC DATA ###
     sphere_comp_pars = np.array([
         #  X,  Y, Z, U, V, W, dX, dV,  age,
-        [-20, 10, 0, 1, 0, 0, 10., 3, 10.],
-        [ 10,  0, 0, 0, 2, 0, 10., 2,  5.],
+        [-20, 10, 0, 1, 0, 0, 10., 3, 30.],
+        [ 10,  0, 0, 0, 2, 0, 10., 2, 25.],
     ])
     np.save('init_comps.npy', sphere_comp_pars)
     # init_comps = [SphereComponent(pars=pars) for pars in sphere_comp_pars]
@@ -89,7 +89,7 @@ def test_2comps_and_background():
     ncomps = sphere_comp_pars.shape[0]
     nstars = np.sum(starcounts)
 
-    background_density = 1e-9
+    background_density = 1e-10
 
     # initialise z appropriately such that all stars begin as members
     true_memb_probs = np.zeros((np.sum(starcounts), ncomps))
@@ -151,6 +151,7 @@ def test_2comps_and_background():
 
     logging.info('Best permutation is: {}'.format(perm))
 
+    #TODO: Need to rethink this logic for ncomps > 1
     n_misclassified_stars = np.sum(np.abs(true_memb_probs - np.round(memb_probs[:,perm])))
 
     # Check fewer than 15% of association stars are misclassified
@@ -181,3 +182,5 @@ def test_2comps_and_background():
                            atol=1.)
 
 
+if __name__=='__main__':
+    test_2comps_and_background()

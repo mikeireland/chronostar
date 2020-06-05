@@ -556,6 +556,8 @@ def expectation(data, comps, old_memb_probs=None,
     nstars = len(data['means'])
     using_bg = 'bg_lnols' in data.keys()
 
+    # TODO: impelemnt interation till convergence
+
     # if no memb_probs provided, assume perfectly equal membership
     if old_memb_probs is None:
         old_memb_probs = np.ones((nstars, ncomps+using_bg)) / (ncomps+using_bg)
