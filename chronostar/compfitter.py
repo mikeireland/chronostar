@@ -434,6 +434,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         # them to the best walker's position
         if not converged:
             best_ix = np.argmax(lnprob)
+            #TODO : Identify walkers with NaNs!
             poor_ixs = np.where(lnprob < np.percentile(lnprob, 33))
             for ix in poor_ixs:
                 init_pos[ix] = init_pos[best_ix]

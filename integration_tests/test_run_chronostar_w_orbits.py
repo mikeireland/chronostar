@@ -152,7 +152,15 @@ def test_2comps_and_background():
     logging.info('Best permutation is: {}'.format(perm))
 
     #TODO: Need to rethink this logic for ncomps > 1
-    n_misclassified_stars = np.sum(np.abs(true_memb_probs - np.round(memb_probs[:,perm])))
+    # Identify where calculated membership probs differ from true
+    memb_discrepancy = true_memb_probs - np.round(memb_probs[:,perm])
+
+    # Ensure we only count each misclassified star once
+    # This is done by identifying the membership rows with any non-zero entries
+    # Note that this approach will include background stars erroneously assigned
+    # membership to components
+    misclassified_stars = np.where(np.sum(np.abs(memb_discrepancy), axis=1))
+    n_misclassified_stars = len(misclassified_stars[0])
 
     # Check fewer than 15% of association stars are misclassified
     try:
@@ -168,6 +176,7 @@ def test_2comps_and_background():
 
         logging.info("origin pars:   {}".format(o_pars))
         logging.info("best fit pars: {}".format(b_pars))
+        # TODO: tolerance
         assert np.allclose(origin.get_mean(),
                            best_comp.get_mean(),
                            atol=5.)
