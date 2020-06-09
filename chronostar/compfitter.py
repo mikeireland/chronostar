@@ -23,6 +23,8 @@ import logging
 import os
 import scipy.optimize
 
+import pdb
+
 from .component import SphereComponent
 from . import likelihood
 from . import tabletool
@@ -593,17 +595,23 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None, # scipy modif
     check = type(init_pos)==np.ndarray
     #~ print('type', type(init_pos), not check)
     if not check: # TODO: make a better init_pos
-        print('INIT POS IS NONE!!!', not type(init_pos)==np.array)
+        #~ print('INIT POS IS NONE!!!', not type(init_pos)==np.array)
         dm = data['means']
         med = np.nanmedian(dm, axis=0)
         init_pos = np.hstack((med, [1, 1, 1]))
-        print('INIT POS FROM MEANS', init_pos)
+        #~ print('INIT POS FROM MEANS', init_pos)
 
     # In case this has many init positions (emcee walkers legacy)
     #~ print('OINK OINK init_pos', init_pos, init_pos.shape, len(init_pos.shape))
     if len(init_pos.shape)>1:
         if len(init_pos)>1: # TODO: fix this
             init_pos = init_pos[0]
+
+    # TOOOOOOODDDDOOOOOOOOO URGENT!!! LIFE OR DEATH!!!! ###################################
+    # Take init_pars instead of init_pos
+    print('INIT PARS', init_pars)
+
+    #~ pdb.set_trace()
 
     # TODO: tol
     # TODO: init_pos
@@ -613,7 +621,24 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None, # scipy modif
     if '/2/A/iter00' in save_dir:
         np.save('init_pos_2_00', [init_pos, data, memb_probs, trace_orbit_func])
     
-    result = scipy.optimize.minimize(likelihood.lnprob_func, init_pos, args=[data, memb_probs, trace_orbit_func], tol=0.01, method='Nelder-Mead') # , method=None, bounds=None, constraints=(), tol=None, callback=None, options=None , tol=1e-5, , method = 'BFGS'
+    
+    # init_pars is None at the very beginning?
+    if init_pars is not None:
+        init_position = init_pars
+        print('YYYYYYYYYYYYES')
+    else:
+        # TODO: USE memb_probs and data and approx_currentday_position()...
+        #~ init_position = init_pos
+        init_position = get_init_emcee_pos(data=data, memb_probs=memb_probs,
+                                      init_pars=init_pars, Component=Component,
+                                      nwalkers=1)
+        print('NOOOOOOOOOOOO666666')
+    
+    print('INIT POS', init_pos)
+    print('INIT PARS', init_pars)
+    print('INIT POSITION', init_position)
+    
+    result = scipy.optimize.minimize(likelihood.lnprob_func, init_position, args=[data, memb_probs, trace_orbit_func], tol=0.01, method='Nelder-Mead') # , method=None, bounds=None, constraints=(), tol=None, callback=None, options=None , tol=1e-5, , method = 'BFGS'
     #~ result = scipy.optimize.minimize(likelihood.lnprob_func, init_pos, args=[data, memb_probs, trace_orbit_func], tol=0.01, method='Powell') # , method=None, bounds=None, constraints=(), tol=None, callback=None, options=None , tol=1e-5, , method = 'BFGS'
     
     #~ print('SCIPY INIT POS AFtER (result.x)', result.x)

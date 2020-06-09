@@ -21,6 +21,7 @@ BIC has improved, this "N+1 component fit" will be taken as the best fit so far.
 This process iterates until adding a component fails to yield a better fit.
 """
 import numpy as np
+from numpy.polynomial import polynomial
 import os
 import sys
 import logging
@@ -339,7 +340,99 @@ class NaiveFit(object):
 
         return init_comps
 
-    def build_init_comps(self, prev_comps, split_comp_ix, prev_med_and_spans): # Scipy modification
+
+    def get_age_from_slope_sigma_clipping(self, memb_probs):
+        mask = memb_probs>0.5 # All True
+        
+        means = self.data_dict['means']
+        
+        x=means[mask,0]
+        y=means[mask,3]
+        
+        len_init = len(x)
+        len_prev=len_init
+        
+        niter=0
+        while len(x)>0.5*len_init and niter<20:
+            coeff = np.polyfit(x, y, 1)
+            f = np.poly1d(coeff)
+            
+            # O-C
+            omc = y - f(x)
+            sigma = np.std(omc) # Not really sigma...
+            
+            mask = np.abs(omc)<1.0*sigma
+            
+            #~ print(omc)
+            print(sigma, len(x))
+            
+            x=x[mask]
+            y=y[mask]
+            
+            niter+=1
+            
+            if len(x)==len_prev:
+                break
+            else:
+                len_prev=len(x)
+
+
+        coeff = np.polyfit(x, y, 1)
+        f = np.poly1d(coeff)
+        
+        slope = coeff[0]
+        age = 1.0 / (slope * 1.0227121650537077)
+        
+        # Age cannot be negative
+        if age<0:
+            age=1
+        
+        if age>30:
+            age=30
+            print('WARNING: Age estimate from slope set to the max limit of 30 Myr!')
+        
+        
+        print('slopesigma, age', slope, age)
+        
+        return age
+
+    def get_age_from_slope(self, memb_probs):
+        """
+        Estimate component age from the slope in the XU space.
+        This is used as a reference age where a component is split
+        into two. Such estimation is needed due to degeneracy in...
+        """
+        
+        means = self.data_dict['means']
+        #~ coeff = polynomial.polyfit(means[:,0], means[:,3], 1, w=memb_probs) # TODO: Maybe really take only members if number of stars gets large!!
+        
+        # Take onlt 30% of the more likely members
+        prob_value = np.percentile(memb_probs, 70)
+        mask_members = memb_probs>prob_value
+        
+        #~ coeff = polynomial.polyfit(means[mask_members,0], means[mask_members,3], 1, w=memb_probs[mask_members])
+        #~ coeff = polynomial.polyfit(means[mask_members,0], means[mask_members,3], 1)
+        
+        coeff = np.polyfit(means[mask_members,0], means[mask_members,3], 1)
+        f = np.poly1d(coeff)
+        
+        slope = coeff[0]
+        age = 1.0 / (slope * 1.0227121650537077) # Myr; 1.0227121650537077 is to convert from km/s/pc to 1/Myr
+        
+        #~ import matplotlib.pyplot as plt
+        #~ fig=plt.figure()
+        #~ ax=fig.add_subplot(111)
+        #~ ax.scatter(means[mask_members,0], means[mask_members,3])
+        #f=np.polyval(coeff)
+        #~ x=[np.min(means[mask_members,0]), np.max(means[mask_members,0])]
+        #~ ax.plot(x, f(x), c='r')
+        #~ plt.show()
+        
+        print('slope, age', slope, age)
+        return age
+
+
+    def build_init_comps(self, prev_comps, split_comp_ix, prev_med_and_spans, memb_probs): # Scipy modification
         """
         Given a list of converged components from a N compoennt fit, generate
         a list of N+1 components with which to intiailise an EM run.
@@ -367,24 +460,34 @@ class NaiveFit(object):
         assert isinstance(target_comp, self.Component)
         # Decompose and replace the ith component with two new components
         # by using the 16th and 84th percentile ages from previous run
+        
+        # This age estimate was used in emcee fit
         age = target_comp.get_age()
+        print('age target_comp.get_age()', age)
+        
         #~ split_comps = target_comp.splitGroup(
             #~ lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
             #~ hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
-        #~ split_comps = target_comp.splitGroup(
-            #~ lo_age=0.8*age,
-            #~ hi_age=2.0*age)
-        split_comps = target_comp.splitGroup(
-            lo_age=0.5*age,
-            hi_age=1.5*age)
-        #~ split_comps = target_comp.splitGroup(
-            #~ lo_age=1,
-            #~ hi_age=10)
+        
+        ##~ age_slope_estimate = self.get_age_from_slope(memb_probs)
+        #~ age_slope_estimate = self.get_age_from_slope_sigma_clipping(memb_probs)
+        #~ import pickle
+        #~ with open('data_for_plot_%d'%self.ncomps, 'wb') as handle:
+            #~ pickle.dump([self.data_dict, memb_probs, age, age_slope_estimate], handle)
+        
+        #~ split_comps = target_comp.splitGroup( # TODO: Maybe even smaller change
+            #~ lo_age=0.9*age_slope_estimate,
+            #~ hi_age=1.1*age_slope_estimate)
+        split_comps = target_comp.splitGroup( # TODO: Maybe even smaller change
+            lo_age=0.8*age,
+            hi_age=1.2*age)
         init_comps = list(prev_comps)
         init_comps.pop(split_comp_ix)
         init_comps.insert(split_comp_ix, split_comps[1])
         init_comps.insert(split_comp_ix, split_comps[0])
 
+        print('INIT_COMPS from build_init_comps', np.array([c.get_emcee_pars() for c in init_comps]))
+        
         return init_comps
 
 
@@ -415,6 +518,7 @@ class NaiveFit(object):
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
+                                         #~ init_comps = self.fit_pars['init_comps'],
                                          **self.fit_pars)
 
         # Since init_comps and init_memb_probs are only meant for one time uses
@@ -564,7 +668,7 @@ class NaiveFit(object):
                 # SPLIT THE i-TH COMPONENT: KEEP XYZUVWdXdV but split in the age
                 self.fit_pars['init_comps'] = self.build_init_comps(
                         prev_result['comps'], split_comp_ix=i,
-                        prev_med_and_spans=prev_result['med_and_spans'])
+                        prev_med_and_spans=prev_result['med_and_spans'], memb_probs=prev_result['memb_probs'][:,i])
 
                 
                 #~ print('BEFORE SPLIT:', i)

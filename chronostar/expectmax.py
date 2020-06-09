@@ -556,6 +556,9 @@ def expectation(data, comps, old_memb_probs=None,
     nstars = len(data['means'])
     using_bg = 'bg_lnols' in data.keys()
 
+    # TODO: implement iteration till convergence
+
+
     # if no memb_probs provided, assume perfectly equal membership
     if old_memb_probs is None:
         old_memb_probs = np.ones((nstars, ncomps+using_bg)) / (ncomps+using_bg)
@@ -863,6 +866,15 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir, # scipy modified
         # Otherwise, run maximisation and sampling stage
         else:
 
+            #~ best_comp, chain, lnprob = compfitter.fit_comp( # scipy modified
+                    #~ data=data, memb_probs=memb_probs[:, i],
+                    #~ plot_it=plot_it,
+                    #~ pool=pool, convergence_tol=convergence_tol,
+                    #~ plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[i],
+                    #~ init_pars=all_init_pars[i], Component=Component,
+                    #~ trace_orbit_func=trace_orbit_func,
+                    #~ nthreads=nthreads,
+            #~ )
             best_comp, chain, lnprob = compfitter.fit_comp( # scipy modified
                     data=data, memb_probs=memb_probs[:, i],
                     plot_it=plot_it,
@@ -1067,6 +1079,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         membership probabilities
 
     """
+    
     # Tidying up input
     if not isinstance(data, dict):
         data = tabletool.build_data_dict_from_table(
@@ -1094,7 +1107,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # INITIALISE RUN PARAMETERS
 
     # If initialising with components then need to convert to emcee parameter lists
-    if init_comps is not None:
+    if init_comps is not None :#and ...TODOOOOOOOOOO:
         logging.info('Initialised by components')
         all_init_pars = [ic.get_emcee_pars() for ic in init_comps]
         skip_first_e_step = False
@@ -1103,10 +1116,18 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
     # If initialising with membership probabilities, we need to skip first
     # expectation step, but make sure other values are iterable
-    elif init_memb_probs is not None:
+    elif init_memb_probs is not None and init_comps is None:
         logging.info('Initialised by memberships')
         skip_first_e_step = True
         all_init_pars = ncomps * [None]
+        init_comps = ncomps * [None]
+        memb_probs_old = init_memb_probs
+        
+    # We need all_init_pars for scipy as a starting point
+    elif init_memb_probs is not None and init_comps is not None:
+        logging.info('Initialised by memberships')
+        skip_first_e_step = True
+        all_init_pars = np.array([c.get_emcee_pars() for c in init_comps])
         init_comps = ncomps * [None]
         memb_probs_old = init_memb_probs
 
@@ -1301,8 +1322,11 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         # LOG RESULTS OF ITERATION
         overall_lnlike = get_overall_lnlikelihood(data, new_comps,
                                                  inc_posterior=False)
+        
+        # Posterior is actually not needed in the code.
         overall_lnposterior = get_overall_lnlikelihood(data, new_comps,
                                                       inc_posterior=True)
+        
         bic = calc_bic(data, ncomps, overall_lnlike,
                        memb_probs=memb_probs_new,
                        Component=Component)
