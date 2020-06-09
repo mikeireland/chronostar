@@ -325,15 +325,11 @@ def lnprob_func(pars, args, Component=SphereComponent, **kwargs): # scipy modifi
     memb_probs = args[1]
     trace_orbit_func = args[2]
 
-
     if memb_probs is None:
         memb_probs = np.ones(len(data['means']))
-    #~ print('PARS', pars)
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
     lp = lnprior(comp, memb_probs)
     if not np.isfinite(lp):
         return -(-np.inf)
     lnprob = - (lp + lnlike(comp, data, memb_probs, **kwargs))
-    #~ print(lnprob)
-    #~ print('')
     return lnprob
