@@ -899,8 +899,9 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
             if isinstance(all_init_pars, np.ndarray):
                 if all_init_pars[i] is not None:
                     np.save(filename_init_pars, all_init_pars[i])
-            elif all_init_pars is not None:
+            elif all_init_pars is not None and all_init_pars[0] is not None:
                 np.save(filename_init_pars, all_init_pars)
+                print('all_init_pars', all_init_pars)
 
             pars = {'ncomps': ncomps,
                 'icomp': i,
