@@ -227,7 +227,7 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
     init_pos: [nwalkers, npars] array_like
         The starting positions of emcee walkers
     """
-    if init_pars is None:
+    if init_pars is None or init_pars[0] is None:
         rough_mean_now, rough_cov_now = \
             approx_currentday_distribution(data=data,
                                            membership_probs=memb_probs)
@@ -244,6 +244,7 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
     if nwalkers is None:
         npars = len(init_pars)
         nwalkers = 2 * npars
+
     init_pos = emcee.utils.sample_ball(init_pars, init_std,
                                        size=nwalkers)
     # force ages to be positive

@@ -914,6 +914,8 @@ def maximisation_parallel_external(data, ncomps, memb_probs, burnin_steps, idir,
                 'filename_samples': filename_samples,
                 'filename_lnprob': filename_lnprob,
                 }
+                
+            #~ pars.update(fit_pars) # fit_pars not available here. need to parse it into this function.
             filename_params = os.path.join(gdir, 'run_maximisation_1_comp_%d_%d.pars'%(ncomps, i))
             readparam.writeParam(filename_params, pars)
             filenames_pars.append(filename_params)
