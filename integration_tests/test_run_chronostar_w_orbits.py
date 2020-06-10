@@ -253,6 +253,7 @@ def test_3comps_and_background():
             len(synth_data.table) * [np.log(background_density)]
 
         synth_data.table.write(data_filename, overwrite=True)
+        print('%s saved.'%data_filename)
 
     origins = [SphereComponent(pars) for pars in sphere_comp_pars]
 
