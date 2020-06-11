@@ -216,7 +216,7 @@ def test_3comps_and_background():
         #  X,  Y, Z, U, V, W, dX, dV,  age,
         [-20, 10, 0, 1, 0, 0, 10., 3, 30.],
         [ 10,  0, 0, 0, 2, 0, 10., 2, 25.],
-        [ 15,  5, 2, 0, 2, 0, 7., 2, 18.],
+        [ 55,  15, 2, 0, 2, 0, 7., 2, 15.],
     ])
     np.save('init_comps.npy', sphere_comp_pars)
     # init_comps = [SphereComponent(pars=pars) for pars in sphere_comp_pars]

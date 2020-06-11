@@ -9,11 +9,22 @@ from chronostar import traceorbit
 from chronostar import likelihood
 
 if len(sys.argv)<3:
-    filename_comp = 'scripts_scipy/betaPicParallel_1_from_emcee_continue_with_scipy/2/A/init_comps.npy'
+    #~ filename_comp = 'scripts_scipy/betaPicParallel_1_from_emcee_continue_with_scipy/2/A/init_comps.npy'    filename_comp = 'scripts_scipy/betaPicParallel_1_from_emcee_continue_with_scipy/2/A/init_comps.npy'
+    filename_comp = 'scripts_scipy/betaPicParallel_1_from_emcee_continue_with_scipy/2/A/final/final_comps.npy'
+    filename_membership = 'scripts_scipy/betaPicParallel_1_from_emcee_continue_with_scipy/2/A/final/final_membership.npy'
     filename_params = '/Users/marusa/chronostar/scripts_scipy/bpic_start_1_from_emcee.pars'
 else:
     filename_params = sys.argv[1]
     filename_comp = sys.argv[2]
+    
+    try:
+        filename_membership = sys.argv[3]
+    except:
+        filename_membership = None
+    
+print(filename_params)
+print(filename_comp)
+print(filename_membership)
 
 DEFAULT_FIT_PARS = {
     'results_dir':'',
@@ -65,20 +76,32 @@ DEFAULT_FIT_PARS = {
 fit_pars = readparam.readParam(filename_params, default_pars=DEFAULT_FIT_PARS)
 data_dict = tabletool.build_data_dict_from_table(fit_pars['data_table'])
 fit_pars['trace_orbit_func'] = traceorbit.trace_epicyclic_orbit
+#~ fit_pars['trace_orbit_func'] = traceorbit.trace_cartesian_orbit
+#~ print('CARTESIAN ORBIT!!')
+print(fit_pars['data_table'])
 
 nstars=len(data_dict['means'])
+print('Number of stars', nstars)
 ncomps=2
 use_background=True
 
 Component = component.SphereComponent
 init_comps = Component.load_raw_components(filename_comp)
 
-memb_probs=np.ones((nstars, ncomps+use_background))\
-                         / (ncomps+use_background)
-memb_probs_new = expectmax.expectation(data_dict, init_comps, memb_probs)
 
-print(memb_probs_new[:,0])
+if filename_membership is None:
+    memb_probs=np.ones((nstars, ncomps+use_background))\
+                             / (ncomps+use_background)
+    memb_probs_new = expectmax.expectation(data_dict, init_comps, memb_probs)
+else:
+    memb_probs_new = np.load(filename_membership)
+
+#~ print(data_dict['means'])
+#~ print(init_comps)
+#~ print(memb_probs_new)
+
+print('memb_probs_new', memb_probs_new[:,0])
 pos = np.load(filename_comp)
-print(pos[0])
-lnprob = likelihood.lnprob_func(pos[0], [data_dict, memb_probs_new[:,0], fit_pars['trace_orbit_func']])
+
+lnprob = likelihood.lnprob_func(init_comps[0].get_emcee_pars(), [data_dict, memb_probs_new[:,0], fit_pars['trace_orbit_func']])
 print(lnprob)
