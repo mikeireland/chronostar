@@ -100,7 +100,7 @@ else:
 #~ print(init_comps)
 #~ print(memb_probs_new)
 
-print('memb_probs_new', memb_probs_new[:,0])
+#~ print('memb_probs_new', memb_probs_new[:,0])
 pos = np.load(filename_comp)
 
 lnprob = likelihood.lnprob_func(init_comps[0].get_emcee_pars(), [data_dict, memb_probs_new[:,0], fit_pars['trace_orbit_func']])

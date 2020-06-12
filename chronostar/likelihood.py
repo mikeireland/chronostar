@@ -196,8 +196,8 @@ def get_lnoverlaps(comp, data, star_mask=None):
     # Get current day projection of component
     mean_now, cov_now = comp.get_currentday_projection()
 
-    print(comp)
-    print('DATA', cov_now, mean_now, star_covs, star_means, star_count)
+    #~ print(comp)
+    #~ print('DATA', cov_now, mean_now, star_covs, star_means, star_count)
 
     # Calculate overlap integral of each star
     if USE_C_IMPLEMENTATION:
@@ -259,8 +259,6 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     lnols = np.zeros(len(memb_probs))
     lnols[nearby_star_mask] = get_lnoverlaps(comp, data,
                                              star_mask=nearby_star_mask)
-
-    print(lnols)
 
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
@@ -335,8 +333,6 @@ def lnprob_func(pars, args, Component=SphereComponent, **kwargs): # scipy modifi
         memb_probs = np.ones(len(data['means']))
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
     lp = lnprior(comp, memb_probs)
-    
-    print('lp', lp)
     
     if not np.isfinite(lp):
         return -(-np.inf)

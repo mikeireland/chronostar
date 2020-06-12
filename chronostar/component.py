@@ -501,7 +501,6 @@ class AbstractComponent(object):
         This is the most expensive aspect of Chronostar, so we first make
         sure the covariance matrix hasn't already been projected.
         """
-        print('self._covmatrix', self._covmatrix, self._mean, self._age)
         if self._covmatrix_now is None:
             self._covmatrix_now = transform.transform_covmatrix(
                     self._covmatrix, trans_func=self.trace_orbit_func,
@@ -1055,16 +1054,13 @@ class SphereComponent(AbstractComponent):
         provided covariance matrix then updates self.pars for consistency"""
         # If covmatrix hasn't been provided, generate from self._pars
         # and set.
-        print('DETERMINE COVMATRIX', covmatrix)
         if covmatrix is None:
-            print('self._pars', self._pars)
             dx = self._pars[6]
             dv = self._pars[7]
             self._covmatrix = np.identity(6)
             self._covmatrix[:3, :3] *= dx ** 2
             self._covmatrix[3:, 3:] *= dv ** 2
             
-            print('dx, dv', dx, dv)
         # If covmatrix has been provided, reverse engineer the most
         # suitable set of parameters and update self._pars accordingly
         # (e.g. take the geometric mean of the (square-rooted) velocity
