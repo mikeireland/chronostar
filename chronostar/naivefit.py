@@ -691,8 +691,10 @@ class NaiveFit(object):
                         ))
 
             # identify the best performing decomposition
-            all_bics = [score['bic'] for score in all_scores]
+            all_bics = [score['bic'] for score in all_scores if not np.isnan(score['bic'])] # MZ: ADDED np.isnan()
             best_split_ix = np.argmin(all_bics)
+            print('ALL_BICS', all_bics)
+            print('BEST_SPLIT_IX', best_split_ix)
 
             new_result = all_results[best_split_ix]
             new_score = all_scores[best_split_ix]
@@ -702,6 +704,7 @@ class NaiveFit(object):
             # Check if the fit has improved
             self.log_score_comparison(new=new_score,
                                       prev=prev_score)
+            print('NCOMPS', self.ncomps, new_score['bic'], prev_score['bic'], new_score['bic'] < prev_score['bic'])
             if new_score['bic'] < prev_score['bic']:
                 prev_score = new_score
                 prev_result = new_result
@@ -827,11 +830,15 @@ class NaiveFit(object):
                     symbol='+', surround=True)
         mkpath(run_dir)
 
+        #~ self.fit_pars['init_comps'] = self.build_init_comps(
+                #~ self.prev_result['comps'], split_comp_ix=i,
+                #~ prev_med_and_spans=self.prev_result['med_and_spans'])
+                        # SPLIT THE i-TH COMPONENT: KEEP XYZUVWdXdV but split in the age
         self.fit_pars['init_comps'] = self.build_init_comps(
                 self.prev_result['comps'], split_comp_ix=i,
-                prev_med_and_spans=self.prev_result['med_and_spans'])
+                prev_med_and_spans=self.prev_result['med_and_spans'], memb_probs=self.prev_result['memb_probs'][:,i])
 
-        result = self.run_em_unless_loadable(run_dir, pool=pool)
+        result = self.run_em_unless_loadable(run_dir)
         score = self.calc_score(result['comps'], result['memb_probs'])
         all_scores=[score]
 

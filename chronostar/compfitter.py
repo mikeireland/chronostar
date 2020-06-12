@@ -757,8 +757,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None, # JUST TESTIN
 
 
     def m(pos, return_dict):
-        #~ result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func], tol=0.01, method='Nelder-Mead')
-        result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func], tol=0.01, method='Powell')
+        result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func], tol=0.01, method='Nelder-Mead')
+        #~ result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func], tol=0.01, method='Powell')
         return_dict[result.fun] = result
 
     threads = nwalkers   # Number of threads to create
