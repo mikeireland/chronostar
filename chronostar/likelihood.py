@@ -361,7 +361,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     # Calculate log overlaps of relevant stars
     lnols = np.zeros(len(memb_probs))
     start0=time.time()
-    lnols[nearby_star_mask] = get_lnoverlaps_multiprocessing(comp, data,
+    lnols[nearby_star_mask] = get_lnoverlaps(comp, data,
                                              star_mask=nearby_star_mask)
     end0=time.time()
 
