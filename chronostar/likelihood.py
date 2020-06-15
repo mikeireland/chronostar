@@ -257,7 +257,7 @@ def get_lnoverlaps_multiprocessing(comp, data, star_mask=None): # DOES NOT WORK 
     #~ print('DATA', cov_now, mean_now, star_covs, star_means, star_count)
 
     start=time.time()
-    threads = 16
+    threads = 2
     
     manager = multiprocessing.Manager()
     return_dict = manager.dict()
