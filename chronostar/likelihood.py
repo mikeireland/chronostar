@@ -360,16 +360,16 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
 
     # Calculate log overlaps of relevant stars
     lnols = np.zeros(len(memb_probs))
-    start0=time.time()
+    #~ start0=time.time()
     lnols[nearby_star_mask] = get_lnoverlaps(comp, data,
                                              star_mask=nearby_star_mask)
-    end0=time.time()
+    #~ end0=time.time()
 
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
     #~ end=time.time()
     #~ print('LNLIKE', end-start, end0-start0)
-    print('overlaps', end0-start0)
+    #~ print('overlaps', end0-start0)
     return result
 
 
