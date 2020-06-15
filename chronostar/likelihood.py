@@ -203,7 +203,7 @@ def get_lnoverlaps(comp, data, star_mask=None):
     #~ print(comp)
     #~ print('DATA', cov_now, mean_now, star_covs, star_means, star_count)
 
-    #~ start=time.time()
+    start=time.time()
 
     # Calculate overlap integral of each star
     if USE_C_IMPLEMENTATION:
@@ -212,8 +212,8 @@ def get_lnoverlaps(comp, data, star_mask=None):
     else:
         lnols = slow_get_lnoverlaps(cov_now, mean_now, star_covs, star_means)
     
-    #~ end=time.time()
-    #~ print('LNOLS', (end-start)*10000)
+    end=time.time()
+    print('LNOLS', (end-start)*10000)
     
     return lnols
 
@@ -343,6 +343,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
         the logarithm of the likelihood of the fit
 
     """
+    start = time.time()
     # Boost expect star count to some minimum threshold
     # This is a bit of a hack to prevent component amplitudes dwindling
     # to nothing
@@ -364,6 +365,8 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
 
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
+    end=time.time()
+    print('LNLIKE', end-start)
     return result
 
 

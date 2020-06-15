@@ -31,6 +31,7 @@ from . import tabletool
 
 #~ import threading
 import multiprocessing
+import time
 
 try:
     import matplotlib.pyplot as plt
@@ -763,6 +764,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None, # JUST TESTIN
 
     threads = nwalkers   # Number of threads to create
 
+    start = time.time()
+
     # Create a list of jobs and then iterate through
     # the number of threads appending each thread to
     # the job list 
@@ -799,6 +802,9 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None, # JUST TESTIN
     #TODO: EXCLUDE NANS
 
     best_result = return_dict[key]
+    
+    end = time.time()
+    print('Total time for scipy minimisation', end-start)
 
     #~ print('BEST RESULT', best_result)
 
