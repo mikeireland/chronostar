@@ -744,7 +744,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None, # JUST TESTIN
     npars = len(Component.PARAMETER_FORMAT)
     
     # NUMBER OF WALKERS
-    nwalkers = 2 #2*npars
+    nwalkers = 2*npars
 
     # Initialise the emcee sampler
     #~ if init_pos is None:
