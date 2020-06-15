@@ -776,6 +776,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None, # JUST TESTIN
         thread = multiprocessing.Process(target=m, args=(init_pos[i], return_dict))
         jobs.append(thread)
 
+    print('jobs', len(jobs), jobs)
+
     # Start the threads (i.e. calculate the random number lists)
     for j in jobs:
         j.start()
