@@ -1254,24 +1254,24 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
         # EXPECTATION
         # Need to handle couple of side cases of initalising by memberships.
-        print('EXPECTATION memb_probs_old, init_memb_probs', memb_probs_old, init_memb_probs)
+        #~ print('EXPECTATION memb_probs_old, init_memb_probs', memb_probs_old, init_memb_probs)
         if found_prev_iters:
             logging.info("Using previously found memberships")
             memb_probs_new = memb_probs_old
-            print('memb_probs_new = memb_probs_old')
+            #~ print('memb_probs_new = memb_probs_old')
             found_prev_iters = False
             skip_first_e_step = False       # Unset the flag to initialise with
                                             # memb probs
         elif skip_first_e_step:
             logging.info("Using initialising memb_probs for first iteration")
             memb_probs_new = init_memb_probs
-            print('memb_probs_new = init_memb_probs')
+            #~ print('memb_probs_new = init_memb_probs')
             skip_first_e_step = False
         else:
             logging.info("Computing memb_probs_new...")
             memb_probs_new = expectation(data, old_comps, memb_probs_old,
                                          inc_posterior=inc_posterior)
-            print('memb_probs_new = expectation(...)')
+            #~ print('memb_probs_new = expectation(...)')
         
         # MZ: Added this line here to see what happens
         #~ print('MZ: DELETE THIS LINE (memb_probs_new = expectation...)')
@@ -1281,7 +1281,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             memb_probs_new.sum(axis=0)
         ))
         np.save(idir+"membership.npy", memb_probs_new)
-        print('MEMB_PROBS_NEW', memb_probs_new)
+        #~ print('MEMB_PROBS_NEW', memb_probs_new)
 
         # MAXIMISE
         new_comps, all_samples, _, all_init_pos, success_mask =\

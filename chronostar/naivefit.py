@@ -691,8 +691,9 @@ class NaiveFit(object):
                         ))
 
             # identify the best performing decomposition
-            all_bics = [score['bic'] for score in all_scores if not np.isnan(score['bic'])] # MZ: ADDED np.isnan()
-            best_split_ix = np.argmin(all_bics)
+            #~ all_bics = [score['bic'] for score in all_scores if not np.isnan(score['bic'])] # MZ: ADDED np.isnan()
+            all_bics = [score['bic'] for score in all_scores] # MZ: ADDED np.isnan()
+            best_split_ix = np.nanargmin(all_bics) # MZ: NANARGMIN
             print('ALL_BICS', all_bics)
             print('BEST_SPLIT_IX', best_split_ix)
 

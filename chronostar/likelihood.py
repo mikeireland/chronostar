@@ -30,6 +30,10 @@ P(D|M) = P(x_1|M) * P(x_2|M) * .. * P(x_N|M) = \prod_i^N P(x_i|M)
 """
 import numpy as np
 
+import time # TODO DELETE
+import multiprocessing
+import itertools
+
 from .component import SphereComponent
 USE_C_IMPLEMENTATION = True
 try:
@@ -199,12 +203,110 @@ def get_lnoverlaps(comp, data, star_mask=None):
     #~ print(comp)
     #~ print('DATA', cov_now, mean_now, star_covs, star_means, star_count)
 
+    #~ start=time.time()
+
     # Calculate overlap integral of each star
     if USE_C_IMPLEMENTATION:
         lnols = c_get_lnoverlaps(cov_now, mean_now, star_covs, star_means,
                                  star_count)
     else:
         lnols = slow_get_lnoverlaps(cov_now, mean_now, star_covs, star_means)
+    
+    #~ end=time.time()
+    #~ print('LNOLS', (end-start)*10000)
+    
+    return lnols
+
+def get_lnoverlaps_multiprocessing(comp, data, star_mask=None): # DOES NOT WORK YET
+    """
+    Given the parametric description of an origin, calculate star overlaps
+
+    Utilises Overlap, a c module wrapped with swig to be callable by python.
+    This allows a 100x speed up in our 6x6 matrix operations when compared
+    to numpy.
+
+    Parameters
+    ----------
+    pars: [npars] list
+        Parameters describing the origin of group
+        typically [X,Y,Z,U,V,W,np.log(dX),np.log(dV),age]
+    data: dict
+        stellar cartesian data being fitted to, stored as a dict:
+        'means': [nstars,6] float array
+            the central estimates of each star in XYZUVW space
+        'covs': [nstars,6,6] float array
+            the covariance of each star in XYZUVW space
+    star_mask: [len(data)] indices
+        A mask that excludes stars that have negliglbe membership probablities
+        (and thus have their log overlaps scaled to tiny numbers).
+    """
+    # Prepare star arrays
+    if star_mask is not None:
+        star_means_all = data['means'][star_mask]
+        star_covs_all = data['covs'][star_mask]
+    else:
+        star_means_all = data['means']
+        star_covs_all = data['covs']
+
+    star_count = len(star_means_all)
+
+    # Get current day projection of component
+    mean_now, cov_now = comp.get_currentday_projection()
+
+    #~ print(comp)
+    #~ print('DATA', cov_now, mean_now, star_covs, star_means, star_count)
+
+    start=time.time()
+    threads = 4
+    
+    manager = multiprocessing.Manager()
+    return_dict = manager.dict()
+
+    # Calculate overlap integral of each star
+    def run(i, indices, return_dict):
+        star_means = star_means_all[indices]
+        star_covs = star_covs_all[indices]
+        star_count = len(star_means)
+        
+        # RUN OVERLAPS
+        if USE_C_IMPLEMENTATION:
+            lnols_tmp = c_get_lnoverlaps(cov_now, mean_now, star_covs, star_means,
+                                     star_count)
+        else:
+            lnols_tmp = slow_get_lnoverlaps(cov_now, mean_now, star_covs, star_means)
+
+        return_dict[i] = lnols_tmp
+
+
+    # Scatter data
+    indices_chunks = np.array_split(range(len(star_means_all)), threads)
+
+    # Create a list of jobs and then iterate through
+    # the number of threads appending each thread to
+    # the job list 
+    jobs = []
+    #~ result = list()
+    for i in range(0, threads):
+        #~ thread = threading.Thread(target=run(indices_chunks[i], result))
+        thread = multiprocessing.Process(target=run, args=(i, indices_chunks[i], return_dict))
+        #~ thread = multiprocessing.Process(target=run, args=(i, indices_chunks[i], lnols))
+        jobs.append(thread)
+
+    # Start the threads (i.e. calculate the random number lists)
+    for j in jobs:
+        j.start()
+
+    # Ensure all of the threads have finished
+    for j in jobs:
+        j.join()
+
+
+    print('LNOLS0', (time.time()-start)*10000)
+    lnols = list(itertools.chain.from_iterable([return_dict[k] for k in sorted(return_dict.keys())]))
+    end=time.time()
+    print('LNOLS', (end-start)*10000)
+
+
     return lnols
 
 

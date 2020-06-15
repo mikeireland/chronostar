@@ -796,10 +796,11 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None, # JUST TESTIN
 
     keys = return_dict.keys()
     key = np.min(keys)
+    #TODO: EXCLUDE NANS
 
     best_result = return_dict[key]
 
-    print('BEST RESULT', best_result)
+    #~ print('BEST RESULT', best_result)
 
 
     #~ print('RESULTS', results)
