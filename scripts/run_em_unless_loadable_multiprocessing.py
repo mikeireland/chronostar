@@ -30,6 +30,7 @@ sys.path.insert(0, '..')
 from chronostar.naivefit import NaiveFit
 from chronostar import expectmax
 
+
 import time
 import itertools
 import logging
@@ -75,7 +76,9 @@ def build_comps_from_chains(run_dir, ncomps, fit_pars):
         final_cdir = run_dir + 'final/comp{}/'.format(i)
         chain = np.load(final_cdir + 'final_chain.npy')
         lnprob = np.load(final_cdir + 'final_lnprob.npy')
-        npars = len(Component.PARAMETER_FORMAT)
+        # TC: maybe fixed a bug?
+        # npars = len(Component.PARAMETER_FORMAT)
+        npars = len(fit_pars['Component'].PARAMETER_FORMAT)
         best_ix = np.argmax(lnprob)
         best_pars = chain.reshape(-1, npars)[best_ix]
         comps[i] = fit_pars['Component'](emcee_pars=best_pars)
