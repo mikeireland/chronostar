@@ -418,7 +418,10 @@ A non-exhaustive list of data preparation parameters are listed here:
     either the second positional argument or can be a keyword argument.
     Extra arguments may exist in the signature, as long as they have 
     default values.
-    
+ 
+  - optimisation_method: string [default = 'emcee'] [optional]
+    Optimisation method in the maximisation step of the EM algorithm. Besides `emcee`, `Nelder-Mead` is implemented.
+ 
   - par_log_file: string [default = 'fit_pars.log'] [optional]
     
     Filename to (over)write parameters used in run. It will state
