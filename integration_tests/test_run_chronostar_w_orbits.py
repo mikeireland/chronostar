@@ -57,10 +57,6 @@ def test_2comps_and_background():
 
     run_name = '2comps_and_background_w_orbits'
 
-    logging.info(60 * '-')
-    logging.info(15 * '-' + '{:^30}'.format('TEST: ' + run_name) + 15 * '-')
-    logging.info(60 * '-')
-
     savedir = 'temp_data/{}_naive_{}/'.format(PY_VERS, run_name)
     mkpath(savedir)
     data_filename = savedir + '{}_naive_{}_data.fits'.format(PY_VERS,
@@ -70,6 +66,10 @@ def test_2comps_and_background():
 
     logging.basicConfig(level=logging.INFO, filemode='w',
                         filename=log_filename)
+
+    logging.info(60 * '-')
+    logging.info(15 * '-' + '{:^30}'.format('TEST: ' + run_name) + 15 * '-')
+    logging.info(60 * '-')
 
     ### INITIALISE SYNTHETIC DATA ###
     sphere_comp_pars = np.array([
@@ -123,6 +123,7 @@ def test_2comps_and_background():
         'return_results':True,
         'par_log_file':'fit_pars.log',
         'overwrite_prev_run':True,
+        'optimisation_method':'Nelder-Mead',
         # 'nthreads':3,
     }
 
@@ -197,10 +198,6 @@ def test_3comps_and_background():
 
     run_name = '3comps_and_background_w_orbits'
 
-    logging.info(60 * '-')
-    logging.info(15 * '-' + '{:^30}'.format('TEST: ' + run_name) + 15 * '-')
-    logging.info(60 * '-')
-
     savedir = 'temp_data/{}_naive_{}/'.format(PY_VERS, run_name)
     mkpath(savedir)
     data_filename = savedir + '{}_naive_{}_data.fits'.format(PY_VERS,
@@ -210,6 +207,9 @@ def test_3comps_and_background():
 
     logging.basicConfig(level=logging.INFO, filemode='w',
                         filename=log_filename)
+    logging.info(60 * '-')
+    logging.info(15 * '-' + '{:^30}'.format('TEST: ' + run_name) + 15 * '-')
+    logging.info(60 * '-')
 
     ### INITIALISE SYNTHETIC DATA ###
     sphere_comp_pars = np.array([
@@ -320,5 +320,5 @@ def test_3comps_and_background():
 
 
 if __name__=='__main__':
-    #~ test_2comps_and_background()
-    test_3comps_and_background()
+    test_2comps_and_background()
+    # test_3comps_and_background()

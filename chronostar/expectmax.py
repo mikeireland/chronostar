@@ -577,6 +577,7 @@ def expectation(data, comps, old_memb_probs=None,
 
 
 def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
+                             old_memb_probs=None,
                              inc_posterior=False):
     """
     Get overall likelihood for a proposed model.
@@ -597,9 +598,11 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     -------
     overall_lnlikelihood: float
     """
-    memb_probs = expectation(data, comps, None,
+    memb_probs = expectation(data, comps,
+                             old_memb_probs=old_memb_probs,
                              inc_posterior=inc_posterior)
-    all_ln_ols = get_all_lnoverlaps(data, comps, memb_probs,
+    all_ln_ols = get_all_lnoverlaps(data, comps,
+                                    old_memb_probs=memb_probs,
                                     inc_posterior=inc_posterior)
 
     # multiplies each log overlap by the star's membership probability
@@ -818,6 +821,9 @@ def check_comps_stability(z, unstable_flags_old, ref_counts, using_bg, thresh=0.
     Compares current total member count of each component with those
     from the last time it was deemed stable, and see if membership has
     changed strongly enough to warrant a refit of a component model
+
+    TODO: maybe worth investigating if run can be deemed converged if all
+    components are "stable". Tim think better safe than sorry.
 
     Parameters
     ----------

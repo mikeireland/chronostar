@@ -131,6 +131,7 @@ class NaiveFit(object):
         # here we recommend Nelder-Mead (because the initialisation
         # with any additional arguments, e.g. Jacobian etc. is not 
         # implemented in Chronostar).
+        # 'emcee' | 'Nelder-Mead'
         'optimisation_method': 'emcee',
 
         'par_log_file':'fit_pars.log',
@@ -440,13 +441,15 @@ class NaiveFit(object):
         TODO: Establish relevance of bg_ln_ols
         """
         lnlike = expectmax.get_overall_lnlikelihood(self.data_dict,
-                                                         comps,
-                                                         # bg_ln_ols=bg_ln_ols,
-                                                         )
+                                                    comps,
+                                                    old_memb_probs=memb_probs,
+                                                    # bg_ln_ols=bg_ln_ols,
+                                                    )
         lnpost = expectmax.get_overall_lnlikelihood(self.data_dict,
-                                                         comps,
-                                                         # bg_ln_ols=bg_ln_ols,
-                                                         inc_posterior=True)
+                                                    comps,
+                                                    # bg_ln_ols=bg_ln_ols,
+                                                    old_memb_probs=memb_probs,
+                                                    inc_posterior=True)
 
         bic = expectmax.calc_bic(self.data_dict, self.ncomps, lnlike,
                                       memb_probs=memb_probs,

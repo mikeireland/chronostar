@@ -406,7 +406,10 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
                                           nwalkers=nwalkers)
         
         # MZ: What does this line do?
-        os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
+        # TC: hacky (probs broken) way of forcing spawned threads to not be
+        # stuck on the same cpu. TC faced some issues when trying to do multithreading
+        # on mash. Maybe MZ will have better luck :P
+        # os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
         
         sampler = emcee.EnsembleSampler(
                 nwalkers, npars, likelihood.lnprob_func,
