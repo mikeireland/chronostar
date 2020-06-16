@@ -556,7 +556,7 @@ def expectation(data, comps, old_memb_probs=None,
     nstars = len(data['means'])
     using_bg = 'bg_lnols' in data.keys()
 
-    # TODO: impelemnt interation till convergence
+    # TODO: implement interation till convergence
 
     # if no memb_probs provided, assume perfectly equal membership
     if old_memb_probs is None:
@@ -620,7 +620,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                  store_burnin_chains=False,
                  unstable_comps=None,
                  ignore_stable_comps=False,
-                 nthreads=1,
+                 nthreads=1, optimisation_method=None,
                  ):
     """
     Performs the 'maximisation' step of the EM algorithm
@@ -667,6 +667,11 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
         A function to trace cartesian oribts through the Galactic potential.
         If left as None, will use traceorbit.trace_cartesian_orbit (base
         signature of any alternate function on this ones)
+    optimisation_method: str {'emcee'}
+        Optimisation method to be used in the maximisation step to fit
+        the model. Default: emcee. Available: scipy.optimise.minimize with
+        the Nelder-Mead method. Note that in case of the gradient descent,
+        no chain is returned and meds and spans cannot be determined.
 
     Returns
     -------
@@ -727,16 +732,23 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                     init_pars=all_init_pars[i], Component=Component,
                     trace_orbit_func=trace_orbit_func,
                     store_burnin_chains=store_burnin_chains,
-                    nthreads=nthreads,
+                    nthreads=nthreads, 
+                    optimisation_method=optimisation_method,
             )
             logging.info("Finished fit")
             logging.info("Best comp pars:\n{}".format(
                     best_comp.get_pars()
             ))
-            final_pos = chain[:, -1, :]
-            logging.info("With age of: {:.3} +- {:.3} Myr".
-                         format(np.median(chain[:,:,-1]),
-                                np.std(chain[:,:,-1])))
+            
+            if optimisation_method=='emcee':
+                final_pos = chain[:, -1, :]
+                logging.info("With age of: {:.3} +- {:.3} Myr".
+                             format(np.median(chain[:,:,-1]),
+                                    np.std(chain[:,:,-1])))
+            elif optimisation_method=='Nelder-Mead':
+                final_pos = chain
+                logging.info("With age of: {:.3} Myr".
+                             format(np.median(chain)))
 
             new_comps.append(best_comp)
             best_comp.store_raw(gdir + 'best_comp_fit.npy')
@@ -847,7 +859,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    use_background=False, store_burnin_chains=False,
                    ignore_stable_comps=False, max_em_iterations=100,
                    record_len=30, bic_conv_tol=0.1, min_em_iterations=30,
-                   nthreads=1,
+                   nthreads=1, optimisation_method=None,
                    **kwargs):
     """
 
@@ -911,6 +923,12 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         every 5 iterations. Component stability is determined by inspecting
         whether the change in total star member count is less than 2% as
         compared to previous fit.
+    optimisation_method: str {'emcee'}
+        Optimisation method to be used in the maximisation step to fit
+        the model. Default: emcee. Available: scipy.optimise.minimize with
+        the Nelder-Mead method. Note that in case of the gradient descent,
+        no chain is returned and meds and spans cannot be determined.
+        
 
     Return
     ------
@@ -959,10 +977,19 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
     # If initialising with membership probabilities, we need to skip first
     # expectation step, but make sure other values are iterable
-    elif init_memb_probs is not None:
+    elif init_memb_probs is not None and init_comps is None: # MZ added and init_comps is None
         logging.info('Initialised by memberships')
         skip_first_e_step = True
         all_init_pars = ncomps * [None]
+        init_comps = ncomps * [None]
+        memb_probs_old = init_memb_probs
+
+    # MZ
+    # We need all_init_pars for scipy as a starting point
+    elif init_memb_probs is not None and init_comps is not None:
+        logging.info('Initialised by memberships')
+        skip_first_e_step = True
+        all_init_pars = np.array([c.get_emcee_pars() for c in init_comps])
         init_comps = ncomps * [None]
         memb_probs_old = init_memb_probs
 
@@ -1120,7 +1147,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                          store_burnin_chains=store_burnin_chains,
                          unstable_comps=unstable_comps,
                          ignore_stable_comps=ignore_stable_comps_iter,
-                         nthreads=nthreads,
+                         nthreads=nthreads, 
+                         optimisation_method=optimisation_method,
                          )
 
         for i in range(ncomps):
@@ -1300,7 +1328,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # If compoents aren't super great, log a message, but return whatever we
     # get.
     if not stable_state:
-        log_message('BAD RUN TERMINATED', symbol='*', surround=True)
+        log_message('BAD RUN TERMINATED (not stable_state)', symbol='*', surround=True)
 
     logging.info(50*'=')
 

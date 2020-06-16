@@ -263,7 +263,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
 
 
 def lnprob_func(pars, data, memb_probs=None,
-                trace_orbit_func=None,
+                trace_orbit_func=None, optimisation_method=None,
                 Component=SphereComponent, **kwargs):
     """Computes the log-probability for a fit to a group.
 
@@ -307,10 +307,31 @@ def lnprob_func(pars, data, memb_probs=None,
     logprob
         the logarithm of the posterior probability of the fit
     """
+    
+    # TODO: THis is not OK but it works.
+    # scipy optimizer works differently to emcee and it packs all
+    # arguments in the data keyword. emcee is different.
+    if type(data)==list:
+        args=data
+        optimisation_method=args[3]
+        if optimisation_method=='Nelder-Mead':
+            # args = [data, memb_probs, trace_orbit_func]
+            memb_probs = args[1]
+            trace_orbit_func = args[2]
+            data=args[0]
+
+    
     if memb_probs is None:
         memb_probs = np.ones(len(data['means']))
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
     lp = lnprior(comp, memb_probs)
-    if not np.isfinite(lp):
-        return -np.inf
-    return lp + lnlike(comp, data, memb_probs, **kwargs)
+    
+    if optimisation_method=='emcee':
+        if not np.isfinite(lp):
+            return -np.inf
+        return lp + lnlike(comp, data, memb_probs, **kwargs)
+    
+    elif optimisation_method=='Nelder-Mead':
+        if not np.isfinite(lp):
+            return np.inf
+        return - (lp + lnlike(comp, data, memb_probs, **kwargs))

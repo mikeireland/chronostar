@@ -21,6 +21,8 @@ import numpy as np
 import emcee
 import logging
 import os
+import multiprocessing
+import scipy.optimize
 
 from .component import SphereComponent
 from . import likelihood
@@ -290,7 +292,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
              burnin_steps=1000, Component=SphereComponent, plot_it=False,
              pool=None, convergence_tol=0.25, plot_dir='', save_dir='',
              sampling_steps=None, max_iter=None, trace_orbit_func=None,
-             store_burnin_chains=False, nthreads=1,):
+             store_burnin_chains=False, nthreads=1, 
+             optimisation_method=None,):
     """Fits a single 6D gaussian to a weighted set (by membership
     probabilities) of stellar phase-space positions.
 
@@ -363,6 +366,11 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         A function to trace cartesian oribts through the Galactic potential.
         If left as None, will use traceorbit.trace_cartesian_orbit (base
         signature of any alternate function on this ones)
+    optimisation_method: str {'emcee'}
+        Optimisation method to be used in the maximisation step to fit
+        the model. Default: emcee. Available: scipy.optimise.minimize with
+        the Nelder-Mead method. Note that in case of the gradient descent,
+        no chain is returned and meds and spans cannot be determined.
 
     Returns
     -------
@@ -386,101 +394,159 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             os.mkdir(plot_dir)
     npars = len(Component.PARAMETER_FORMAT)
     nwalkers = 2*npars
+    
+    #########################################
+    ### OPTIMISE WITH EMCEE #################
+    if optimisation_method=='emcee':
 
-    # Initialise the emcee sampler
-    if init_pos is None:
-        init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
-                                      init_pars=init_pars, Component=Component,
-                                      nwalkers=nwalkers)
-    os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
-    sampler = emcee.EnsembleSampler(
-            nwalkers, npars, likelihood.lnprob_func,
-            args=[data, memb_probs, trace_orbit_func],
-            pool=pool,
-            threads=nthreads,
-    )
+        # Initialise the emcee sampler
+        if init_pos is None:
+            init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
+                                          init_pars=init_pars, Component=Component,
+                                          nwalkers=nwalkers)
+        
+        # MZ: What does this line do?
+        os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
+        
+        sampler = emcee.EnsembleSampler(
+                nwalkers, npars, likelihood.lnprob_func,
+                args=[data, memb_probs, trace_orbit_func, optimisation_method],
+                pool=pool,
+                threads=nthreads,
+        )
 
-    # PERFORM BURN IN
-    state = None
-    converged = False
-    cnt = 0
-    logging.info("Beginning burnin loop")
-    burnin_lnprob_res = np.zeros((nwalkers,0))
+        # PERFORM BURN IN
+        state = None
+        converged = False
+        cnt = 0
+        logging.info("Beginning burnin loop")
+        burnin_lnprob_res = np.zeros((nwalkers,0))
 
-    # burn in until converged or the (optional) max_iter is reached
-    while (not converged) and cnt != max_iter:
-        logging.info("Burning in cnt: {}".format(cnt))
-        sampler.reset()
-        init_pos, lnprob, state = sampler.run_mcmc(init_pos, burnin_steps, state)
-        np.save(plot_dir+'lnprob_last.npy', sampler.lnprobability)
-        stable = burnin_convergence(sampler.lnprobability, tol=convergence_tol)
-        no_stuck = no_stuck_walkers(sampler.lnprobability)
+        # burn in until converged or the (optional) max_iter is reached
+        while (not converged) and cnt != max_iter:
+            logging.info("Burning in cnt: {}".format(cnt))
+            sampler.reset()
+            init_pos, lnprob, state = sampler.run_mcmc(init_pos, burnin_steps, state)
+            np.save(plot_dir+'lnprob_last.npy', sampler.lnprobability)
+            stable = burnin_convergence(sampler.lnprobability, tol=convergence_tol)
+            no_stuck = no_stuck_walkers(sampler.lnprobability)
 
-        # For debugging cases where walkers have stabilised but apparently some are stuck
-        if (stable and not no_stuck) or store_burnin_chains:
-            np.save(plot_dir+'burnin_lnprob{:02}.npy'.format(cnt), sampler.lnprobability)
-            np.save(plot_dir+'burnin_chain{:02}.npy'.format(cnt), sampler.chain)
-            logging.info('Lnprob and chain saved')
+            # For debugging cases where walkers have stabilised but apparently some are stuck
+            if (stable and not no_stuck) or store_burnin_chains:
+                np.save(plot_dir+'burnin_lnprob{:02}.npy'.format(cnt), sampler.lnprobability)
+                np.save(plot_dir+'burnin_chain{:02}.npy'.format(cnt), sampler.chain)
+                logging.info('Lnprob and chain saved')
 
-        converged = stable and no_stuck
-        logging.info("Burnin status: {}".format(converged))
+            converged = stable and no_stuck
+            logging.info("Burnin status: {}".format(converged))
 
+            if plot_it and plt_avail:
+                plt.clf()
+                plt.plot(sampler.lnprobability.T)
+                plt.savefig(plot_dir+"burnin_lnprobT{:02}.png".format(cnt))
+
+            # If about to burnin again, help out the struggling walkers by shifting
+            # them to the best walker's position
+            if not converged:
+                best_ix = np.argmax(lnprob)
+                #TODO : Identify walkers with NaNs!
+                poor_ixs = np.where(lnprob < np.percentile(lnprob, 33))
+                for ix in poor_ixs:
+                    init_pos[ix] = init_pos[best_ix]
+
+            burnin_lnprob_res = np.hstack((
+                burnin_lnprob_res, sampler.lnprobability
+            ))
+            cnt += 1
+
+        logging.info("Burnt in, with convergence: {}".format(converged))
         if plot_it and plt_avail:
             plt.clf()
+            plt.plot(burnin_lnprob_res.T)
+            plt.savefig(plot_dir+"burnin_lnprobT.png")
+
+        # SAMPLING STAGE
+        if not sampling_steps:
+            logging.info("Taking final burnin segment as sampling stage"\
+                         .format(converged))
+        else:
+            logging.info("Entering sampling stage for {} steps".format(
+                sampling_steps
+            ))
+            sampler.reset()
+            # Don't need to keep track of any outputs
+            sampler.run_mcmc(init_pos, sampling_steps, state)
+            logging.info("Sampling done")
+
+        # save the chain for later inspection
+        np.save(save_dir+"final_chain.npy", sampler.chain)
+        np.save(save_dir+"final_lnprob.npy", sampler.lnprobability)
+
+        if plot_it and plt_avail:
+            logging.info("Plotting final lnprob")
+            plt.clf()
             plt.plot(sampler.lnprobability.T)
-            plt.savefig(plot_dir+"burnin_lnprobT{:02}.png".format(cnt))
+            plt.savefig(plot_dir+"lnprobT.png")
+            logging.info("Plotting done")
 
-        # If about to burnin again, help out the struggling walkers by shifting
-        # them to the best walker's position
-        if not converged:
-            best_ix = np.argmax(lnprob)
-            #TODO : Identify walkers with NaNs!
-            poor_ixs = np.where(lnprob < np.percentile(lnprob, 33))
-            for ix in poor_ixs:
-                init_pos[ix] = init_pos[best_ix]
+        # Identify the best component
+        best_component = get_best_component(sampler.chain, sampler.lnprobability)
 
-        burnin_lnprob_res = np.hstack((
-            burnin_lnprob_res, sampler.lnprobability
-        ))
-        cnt += 1
+        # Determining the median and span of each parameter
+        med_and_span = calc_med_and_span(sampler.chain)
+        logging.info("Results:\n{}".format(med_and_span))
 
-    logging.info("Burnt in, with convergence: {}".format(converged))
-    if plot_it and plt_avail:
-        plt.clf()
-        plt.plot(burnin_lnprob_res.T)
-        plt.savefig(plot_dir+"burnin_lnprobT.png")
-
-    # SAMPLING STAGE
-    if not sampling_steps:
-        logging.info("Taking final burnin segment as sampling stage"\
-                     .format(converged))
-    else:
-        logging.info("Entering sampling stage for {} steps".format(
-            sampling_steps
-        ))
-        sampler.reset()
-        # Don't need to keep track of any outputs
-        sampler.run_mcmc(init_pos, sampling_steps, state)
-        logging.info("Sampling done")
-
-    # save the chain for later inspection
-    np.save(save_dir+"final_chain.npy", sampler.chain)
-    np.save(save_dir+"final_lnprob.npy", sampler.lnprobability)
-
-    if plot_it and plt_avail:
-        logging.info("Plotting final lnprob")
-        plt.clf()
-        plt.plot(sampler.lnprobability.T)
-        plt.savefig(plot_dir+"lnprobT.png")
-        logging.info("Plotting done")
-
-    # Identify the best component
-    best_component = get_best_component(sampler.chain, sampler.lnprobability)
-
-    # Determining the median and span of each parameter
-    med_and_span = calc_med_and_span(sampler.chain)
-    logging.info("Results:\n{}".format(med_and_span))
-
-    return best_component, sampler.chain, sampler.lnprobability
+        return best_component, sampler.chain, sampler.lnprobability
 
 
+    #########################################
+    ### OPTIMISE WITH GRADIENT DESCENT ######
+    elif optimisation_method=='Nelder-Mead':
+        """
+        Run optimisation multiple times and select result with the
+        best lnprob value as the best. Reason is that Nelder-Mead method
+        turned out not to be robust enough so we need to run optimisation
+        with a few different starting points. This is done in parallel 
+        with the nwalker processes.
+        
+        scipy.optimize.minimize is using -likelihood.lnprob_func because
+        it is minimizing rather than optimizing.
+        """
+        
+        # Initialise the initial positions (use emcee because
+        # this works in this case just well).
+        init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
+                                          init_pars=init_pars, Component=Component,
+                                          nwalkers=nwalkers)
+
+        manager = multiprocessing.Manager()
+        return_dict = manager.dict()
+
+        def worker(pos, return_dict):
+            result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
+            return_dict[result.fun] = result
+        #TODO: tol: is this value optimal?
+
+
+        jobs = []
+        for i in range(nwalkers):
+            process = multiprocessing.Process(target=worker, args=(init_pos[i], return_dict))
+            jobs.append(process)
+
+        # Start the processes
+        for j in jobs:
+            j.start()
+
+        # Ensure all of the processes have finished
+        for j in jobs:
+            j.join()
+
+        # Select the best result. Keys are lnprob values.
+        keys = return_dict.keys()
+        key = np.nanmin(keys)
+        best_result = return_dict[key]
+
+        # Identify and create the best component (with best lnprob)
+        best_component = Component(emcee_pars=best_result.x)
+
+        return best_component, best_result.x, -best_result.fun

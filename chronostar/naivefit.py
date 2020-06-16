@@ -27,8 +27,8 @@ import logging
 from distutils.dir_util import mkpath
 import random
 
-from emcee.utils import MPIPool
-from multiprocessing import Pool
+#~ from emcee.utils import MPIPool
+#~ from multiprocessing import Pool
 
 from multiprocessing import cpu_count
 
@@ -123,6 +123,15 @@ class NaiveFit(object):
         # Alternativley, if building up parameter dictionary in a script, can
         # provide actual function.
         'trace_orbit_func':traceorbit.trace_cartesian_orbit,
+        
+        # MZ
+        # Specify what optimisation method in the maximisation step of
+        # the EM algorithm to use. Default: emcee. Also available:
+        # In principle any method from scipy.optimise.minimise, but 
+        # here we recommend Nelder-Mead (because the initialisation
+        # with any additional arguments, e.g. Jacobian etc. is not 
+        # implemented in Chronostar).
+        'optimisation_method': 'emcee',
 
         'par_log_file':'fit_pars.log',
     }
@@ -329,9 +338,16 @@ class NaiveFit(object):
         assert isinstance(target_comp, self.Component)
         # Decompose and replace the ith component with two new components
         # by using the 16th and 84th percentile ages from previous run
-        split_comps = target_comp.splitGroup(
-            lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
-            hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
+        
+        if self.fit_pars['optimisation_method']=='emcee':
+            split_comps = target_comp.splitGroup(
+                lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
+                hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
+        elif self.fit_pars['optimisation_method']=='Nelder-Mead':
+            age = target_comp.get_age()
+            split_comps = target_comp.splitGroup( # TODO: Maybe even smaller change
+            lo_age=0.8*age,
+            hi_age=1.2*age)
         init_comps = list(prev_comps)
         init_comps.pop(split_comp_ix)
         init_comps.insert(split_comp_ix, split_comps[1])
@@ -529,7 +545,7 @@ class NaiveFit(object):
 
             # identify the best performing decomposition
             all_bics = [score['bic'] for score in all_scores]
-            best_split_ix = np.argmin(all_bics)
+            best_split_ix = np.nanargmin(all_bics)
 
             new_result = all_results[best_split_ix]
             new_score = all_scores[best_split_ix]
