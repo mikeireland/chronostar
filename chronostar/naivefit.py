@@ -27,6 +27,8 @@ import sys
 import logging
 from distutils.dir_util import mkpath
 import random
+import pickle
+import subprocess
 
 #~ from emcee.utils import MPIPool
 #~ from multiprocessing import Pool
@@ -140,6 +142,7 @@ class NaiveFit(object):
         """
         # Parse parameter file if required
         if type(fit_pars) is str:
+            self.filename_global_pars=fit_pars
             fit_pars = readparam.readParam(fit_pars, default_pars=self.DEFAULT_FIT_PARS)
 
         # Make a new dictionary, with priority given to contents of fit_pars
@@ -737,6 +740,235 @@ class NaiveFit(object):
 
         return prev_result, prev_score
 
+    def run_fit_parallel(self):
+        """
+        Run component splitting in parallel, e.g. whenever introducing 
+        a new component, run an external file in parallel. Number
+        of processes is always equal to the number of new components
+        to fit.
+        
+        Perform a fit (as described in Paper I) to a set of prepared data.
+        Results are outputted as two dictionaries
+        results = {'comps':best_fit, (list of components)
+                   'med_and_spans':median and spans of model parameters,
+                   'memb_probs': membership probability array (the standard one)}
+        scores  = {'bic': the bic,
+                   'lnlike': log likelihood of that run,
+                   'lnpost': log posterior of that run}
+        """
+
+        log_message('Beginning Chronostar run',
+                    symbol='_', surround=True)
+
+        # ------------------------------------------------------------
+        # -----  EXECUTE RUN  ----------------------------------------
+        # ------------------------------------------------------------
+
+        if self.fit_pars['store_burnin_chains']:
+            log_message(msg='Storing burnin chains', symbol='-')
+
+        # Handle special case of very first run
+        # Either by fitting one component (default) or by using `init_comps`
+        # to initialise the EM fit.
+
+        # If beginning with 1 component, assume all stars are members
+        if self.ncomps == 1:
+            init_memb_probs = np.zeros((len(self.data_dict['means']),
+                                        self.ncomps + self.fit_pars['use_background']))
+            init_memb_probs[:, 0] = 1.
+        # Otherwise, we must have been given an init_comps, or an init_memb_probs
+        #  to start things with
+        else:
+            assert self.fit_pars['init_comps'] is not None or self.fit_pars['init_memb_probs'] is not None
+        log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
+                    symbol='*', surround=True)
+        run_dir = self.rdir + '{}/'.format(self.ncomps)
+
+        # This is parallelised!
+        #~ prev_result = self.run_em_unless_loadable_parallel(run_dir) # HM does this really do anything different??
+        prev_result = self.run_em_unless_loadable(run_dir)
+        prev_score = self.calc_score(prev_result['comps'], prev_result['memb_probs'])
+
+        self.ncomps += 1
+
+        # ------------------------------------------------------------
+        # -----  EXPLORE EXTRA COMPONENT BY DECOMPOSITION  -----------
+        # ------------------------------------------------------------
+
+        # Calculate global score of fit for comparison with future fits with different
+        # component counts
+
+        # Begin iterative loop, each time trialing the incorporation of a new component
+        while self.ncomps <= self.fit_pars['max_comp_count']:
+            log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
+                        symbol='*', surround=True)
+
+            all_results = []
+            all_scores = []
+
+            # Iteratively try subdividing each previous component
+            # target_comp is the component we will split into two.
+            # This will make a total of ncomps (the target comp split into 2,
+            # plus the remaining components from prev_result['comps']
+            
+            # PREPARE DATA
+            list_filename_em_fit_pars=[]
+            for i, target_comp in enumerate(prev_result['comps']):
+                div_label = chr(ord('A') + i)
+                run_dir = self.rdir + '{}/{}/'.format(self.ncomps, div_label)
+                log_message(msg='Subdividing stage {}'.format(div_label),
+                            symbol='+', surround=True)
+                mkpath(run_dir)
+
+                self.fit_pars['init_comps'] = self.build_init_comps(
+                        prev_result['comps'], split_comp_ix=i,
+                        prev_med_and_spans=prev_result['med_and_spans'],
+                        memb_probs = prev_result['memb_probs'])
+
+                # Save fit_pars: add all the pars that are needed by external code
+                local_fit_pars = self.fit_pars
+                local_fit_pars['data'] = self.data_dict
+                local_fit_pars['ncomps'] = self.ncomps
+                local_fit_pars['run_dir'] = run_dir
+                local_fit_pars['div_label'] = div_label
+                local_fit_pars['self.final_med_and_spans_file'] = self.final_med_and_spans_file
+                local_fit_pars['self.final_memb_probs_file'] = self.final_memb_probs_file
+                local_fit_pars['self.final_comps_file'] = self.final_comps_file
+                local_fit_pars['Component'] = self.Component
+                local_fit_pars['pool'] = None # TODO
+                local_fit_pars['filename_global_pars'] = self.filename_global_pars
+                local_fit_pars['filename_result'] = os.path.join(run_dir, 'result_%d_%s.pkl'%(self.ncomps, div_label))
+                filename_em_fit_pars = os.path.join(self.rdir, 'fit_pars_em_%d_%s.pkl'%(self.ncomps, div_label))
+                #~ np.save(filename_em_fit_pars, self.fit_pars)
+                with open(filename_em_fit_pars, 'wb') as handle:
+                    pickle.dump(local_fit_pars, handle)
+                #~ np.save(filename_em_fit_pars, local_fit_pars)
+                list_filename_em_fit_pars.append(filename_em_fit_pars)
+            
+            filename_list = os.path.join(self.fit_pars['results_dir'], 'em_list_%d.npy'%self.ncomps)
+            np.save(filename_list, list_filename_em_fit_pars)
+
+
+
+
+            # READ RESULTS
+            #~ if self.ncomps==4:
+            try:
+                print('********* NCOMPS=%d, READ RESULTS'%self.ncomps)
+                for x in list_filename_em_fit_pars:
+                    par = np.load(x)
+                    #~ print('parrrarara', par)
+                    filename_result = par['filename_result']
+                    print('FILENAME RESSSULT', filename_result, x)
+                    with open(filename_result, 'rb') as handle:
+                        result = pickle.load(handle)
+                    #~ result = np.load(filename_result)
+                    all_results.append(result)
+
+                    score = self.calc_score(result['comps'], result['memb_probs'])
+                    all_scores.append(score)
+
+                    logging.info(
+                            'Decomposition {} finished with \nBIC: {}\nlnlike: {}\n'
+                            'lnpost: {}'.format(
+                                    par['div_label'], all_scores[-1]['bic'],
+                                    all_scores[-1]['lnlike'], all_scores[-1]['lnpost'],
+                            ))
+
+                    print(                            'Decomposition {} finished with \nBIC: {}\nlnlike: {}\n'
+                            'lnpost: {}'.format(
+                                    par['div_label'], all_scores[-1]['bic'],
+                                    all_scores[-1]['lnlike'], all_scores[-1]['lnpost'],
+                            ))
+            
+            except: # RUN
+
+                # RUN
+                print('START EM all ABC')
+                bashCommand = 'mpirun -np %d python run_em_unless_loadable_multiprocessing.py %s'%(len(list_filename_em_fit_pars), filename_list)
+
+                print('Start process...')
+                process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
+                print('intermediate', process)
+                #~ process_output, process_error = process.communicate()
+                process_output, process_error = process.communicate()
+                #~ process_output, _ = process.communicate()
+                print('output', process_output)
+                print('error', process_error)
+                print('END EM all ABC')
+
+
+
+            # READ RESULTS
+            for x in list_filename_em_fit_pars:
+                par = np.load(x)
+                filename_result = par['filename_result']
+                with open(filename_result, 'rb') as handle:
+                    result = pickle.load(handle)
+                #~ result = np.load(filename_result)
+                all_results.append(result)
+
+                score = self.calc_score(result['comps'], result['memb_probs'])
+                all_scores.append(score)
+
+                logging.info(
+                        'Decomposition {} finished with \nBIC: {}\nlnlike: {}\n'
+                        'lnpost: {}'.format(
+                                par['div_label'], all_scores[-1]['bic'],
+                                all_scores[-1]['lnlike'], all_scores[-1]['lnpost'],
+                        ))
+
+            # identify the best performing decomposition
+            all_bics = [score['bic'] for score in all_scores]
+            best_split_ix = np.argmin(all_bics)
+
+            new_result = all_results[best_split_ix]
+            new_score = all_scores[best_split_ix]
+
+            self.iter_end_log(best_split_ix, prev_result=prev_result, new_result=new_result)
+
+            # Check if the fit has improved
+            self.log_score_comparison(new=new_score,
+                                      prev=prev_score)
+            if new_score['bic'] < prev_score['bic']:
+                prev_score = new_score
+                prev_result = new_result
+
+                self.ncomps += 1
+                log_message(msg="Commencing {} component fit on {}{}".format(
+                        self.ncomps, self.ncomps - 1,
+                        chr(ord('A') + best_split_ix)), symbol='+'
+                )
+            else:
+                # WRITING THE FINAL RESULTS INTO FILES
+                logging.info("... saving previous fit as best fit to data")
+                self.Component.store_raw_components(self.rdir + self.final_comps_file,
+                                                    prev_result['comps'])
+                np.save(self.rdir + self.final_med_and_spans_file, prev_result['med_and_spans'])
+                np.save(self.rdir + self.final_memb_probs_file, prev_result['memb_probs'])
+                np.save(self.rdir + 'final_likelihood_post_and_bic',
+                        prev_score)
+
+                # Save fits files as well
+                tabcomps = self.Component.convert_components_array_into_astropy_table(prev_result['comps'])
+                tabcomps.write(os.path.join(self.rdir, 'final_comps_%d.fits'%(self.ncomps-1)), overwrite=True)
+                try:
+                    tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], prev_result['memb_probs'], prev_result['comps'], os.path.join(self.rdir, 'final_memberships_%d.fits'%(self.ncomps-1)), get_background_overlaps=True)
+                except:
+                    logging.info("[WARNING] Couldn't print membership.fits file. Is source_id available?")
+
+                self.log_final_log(prev_result, prev_score)
+                break
+
+            logging.info("Best fit:\n{}".format(
+                    [group.get_pars() for group in prev_result['comps']]))
+
+        if self.ncomps >= self.fit_pars['max_comp_count']:
+            log_message(msg='REACHED MAX COMP LIMIT', symbol='+',
+                        surround=True)
+
+        return prev_result, prev_score
+
     def first_run_fit(self):
         """
         MZ: 2020 - 04 - 23
@@ -851,8 +1083,7 @@ class NaiveFit(object):
                 ))
 
         return result, score
-            
-                        
+                                    
     def run_fit_gather_results_multiproc(self, all_results, all_scores):
         # identify the best performing decomposition
         all_bics = [score['bic'] for score in all_scores]

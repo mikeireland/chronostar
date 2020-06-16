@@ -16,6 +16,8 @@ import itertools
 import logging
 import numpy as np
 
+import multiprocessing
+
 # The placement of logsumexp varies wildly between scipy versions
 import scipy
 _SCIPY_VERSION= [int(v.split('rc')[0])
@@ -761,7 +763,7 @@ def maximisation_original(data, ncomps, memb_probs, burnin_steps, idir,
     return new_comps, all_samples, all_lnprob, \
            all_final_pos, success_mask
 
-def maximisation(data, ncomps, memb_probs, burnin_steps, idir, # scipy modified
+def maximisation_original(data, ncomps, memb_probs, burnin_steps, idir, # scipy modified
                  all_init_pars, all_init_pos=None, plot_it=False, pool=None,
                  convergence_tol=0.25, ignore_dead_comps=False,
                  Component=SphereComponent,
@@ -906,6 +908,177 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir, # scipy modified
 
             # record the final position of the walkers for each comp
             all_final_pos[i] = final_pos
+
+    # # TODO: Maybe need to this outside of this call, so as to include
+    # # reference to stable comps
+    # Component.store_raw_components(idir + 'best_comps.npy', new_comps)
+    # np.save(idir + 'best_comps_bak.npy', new_comps)
+
+    return new_comps, all_samples, all_lnprob, \
+           all_final_pos, success_mask
+
+def maximisation(data, ncomps, memb_probs, burnin_steps, idir, # multiprocessing
+                 all_init_pars, all_init_pos=None, plot_it=False, pool=None,
+                 convergence_tol=0.25, ignore_dead_comps=False,
+                 Component=SphereComponent,
+                 trace_orbit_func=None,
+                 store_burnin_chains=False,
+                 unstable_comps=None,
+                 ignore_stable_comps=False,
+                 nthreads=1,
+                 ):
+    """
+    Performs the 'maximisation' step of the EM algorithm
+    all_init_pars must be given in 'internal' form, that is the standard
+    deviations must be provided in log form.
+    Parameters
+    ----------
+    data: dict
+        See fit_many_comps
+    ncomps: int
+        Number of components being fitted
+    memb_probs: [nstars, ncomps {+1}] float array_like
+        See fit_many_comps
+    burnin_steps: int
+        The number of steps for each burnin loop
+    idir: str
+        The results directory for this iteration
+    all_init_pars: [ncomps, npars] float array_like
+        The initial parameters around which to initialise emcee walkers
+    all_init_pos: [ncomps, nwalkers, npars] float array_like
+        The actual exact positions at which to initialise emcee walkers
+        (from, say, the output of a previous emcee run)
+    plot_it: bool {False}
+        Whehter to plot lnprob chains (from burnin, etc) as we go
+    pool: MPIPool object {None}
+        pool of threads to execute walker steps concurrently
+    convergence_tol: float {0.25}
+        How many standard devaitions an lnprob chain is allowed to vary
+        from its mean over the course of a burnin stage and still be
+        considered "converged". Default value allows the median of the
+        final 20 steps to differ by 0.25 of its standard deviations from
+        the median of the first 20 steps.
+    ignore_dead_comps : bool {False}
+        if componennts have fewer than 2(?) expected members, then ignore
+        them
+    ignore_stable_comps : bool {False}
+        If components have been deemed to be stable, then disregard them
+    Component: Implementation of AbstractComponent {Sphere Component}
+        The class used to convert raw parametrisation of a model to
+        actual model attributes.
+    trace_orbit_func: function {None}
+        A function to trace cartesian oribts through the Galactic potential.
+        If left as None, will use traceorbit.trace_cartesian_orbit (base
+        signature of any alternate function on this ones)
+    Returns
+    -------
+    new_comps: [ncomps] Component array
+        For each component's maximisation, we have the best fitting component
+    all_samples: [ncomps, nwalkers, nsteps, npars] float array
+        An array of each component's final sampling chain
+    all_lnprob: [ncomps, nwalkers, nsteps] float array
+        An array of each components lnprob
+    all_final_pos: [ncomps, nwalkers, npars] float array
+        The final positions of walkers from each separate Compoment
+        maximisation. Useful for restarting the next emcee run.
+    success_mask: np.where mask
+        If ignoring dead components, use this mask to indicate the components
+        that didn't die
+    """
+    # Set up some values
+    DEATH_THRESHOLD = 2.1       # The total expected stellar membership below
+                                # which a component is deemed 'dead' (if
+                                # `ignore_dead_comps` is True)
+
+    new_comps = []
+    all_samples = []
+    all_lnprob = []
+    success_mask = []
+    all_final_pos = ncomps * [None]
+
+    # Ensure None value inputs are still iterable
+    if all_init_pos is None:
+        all_init_pos = ncomps * [None]
+    if all_init_pars is None:
+        all_init_pars = ncomps * [None]
+    if unstable_comps is None:
+        unstable_comps = ncomps * [True]
+
+    log_message('Ignoring stable comps? {}'.format(ignore_stable_comps))
+    log_message('Unstable comps are {}'.format(unstable_comps))
+
+
+
+
+
+    manager = multiprocessing.Manager()
+    return_dict = manager.dict()
+
+
+    def worker(i, return_dict):
+        log_message('Fitting comp {}'.format(i), symbol='.', surround=True)
+        gdir = idir + "comp{}/".format(i)
+        mkpath(gdir)
+
+        # If component has too few stars, skip fit, and use previous best walker
+        if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
+            logging.info("Skipped component {} with nstars {}".format(
+                    i, np.sum(memb_probs[:, i])
+            ))
+        elif ignore_stable_comps and not unstable_comps[i]:
+            logging.info("Skipped stable component {}".format(i))
+        # Otherwise, run maximisation and sampling stage
+        else:
+
+            #~ best_comp, chain, lnprob = compfitter.fit_comp( # scipy modified
+                    #~ data=data, memb_probs=memb_probs[:, i],
+                    #~ plot_it=plot_it,
+                    #~ pool=pool, convergence_tol=convergence_tol,
+                    #~ plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[i],
+                    #~ init_pars=all_init_pars[i], Component=Component,
+                    #~ trace_orbit_func=trace_orbit_func,
+                    #~ nthreads=nthreads,
+            #~ )
+            best_comp, chain, lnprob = compfitter.fit_comp( # scipy modified
+                    data=data, memb_probs=memb_probs[:, i],
+                    plot_it=plot_it,
+                    pool=pool, convergence_tol=convergence_tol,
+                    plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[i],
+                    init_pars=all_init_pars[i], Component=Component,
+                    trace_orbit_func=trace_orbit_func,
+                    nthreads=nthreads,
+            )
+            logging.info("Finished fit")
+            logging.info("Best comp pars:\n{}".format(
+                    best_comp.get_pars()
+            ))
+            final_pos = chain#[:, -1, :] # SCIPY
+            #~ logging.info("With age of: {:.3} +- {:.3} Myr".
+                         #~ format(np.median(chain[:,:,-1]),
+                                #~ np.std(chain[:,:,-1])))
+
+            new_comps.append(best_comp)
+            best_comp.store_raw(gdir + 'best_comp_fit.npy')
+            np.save(gdir + "best_comp_fit_bak.npy", best_comp) # can remove this line when working
+            np.save(gdir + 'final_chain.npy', chain)
+            np.save(gdir + 'final_lnprob.npy', lnprob)
+            all_samples.append(chain)
+            all_lnprob.append(lnprob)
+
+            # Keep track of the components that weren't ignored
+            success_mask.append(i)
+
+            # record the final position of the walkers for each comp
+            all_final_pos[i] = final_pos
+        
+        
+        
+            return_dict[i] = [best_comp, chain, lnprob, final_pos]
+
+
+
+
+
 
     # # TODO: Maybe need to this outside of this call, so as to include
     # # reference to stable comps
