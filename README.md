@@ -420,6 +420,7 @@ A non-exhaustive list of data preparation parameters are listed here:
     default values.
  
   - optimisation_method: string [default = 'emcee'] [optional]
+    
     Optimisation method in the maximisation step of the EM algorithm. Besides `emcee`, `Nelder-Mead` is implemented.
  
   - par_log_file: string [default = 'fit_pars.log'] [optional]
