@@ -1,14 +1,10 @@
 """
 synthdata.py
-
 synthesiser
-
 Used to generate realistic data for one (or many) synthetic association(s)
 with multiple starburst events along with a background as desired.
-
 From a parametrised gaussian distribution, generate the starting
 XYZUVW values for a given number of stars
-
 TODO: accommodate multiple groups
 """
 
@@ -62,7 +58,6 @@ class SynthData():
         """
         Generates a set of astrometry data based on multiple star bursts with
         simple, Gaussian origins.
-
         Parameters
         ----------
             pars : [ncomps, npars] float array
@@ -200,19 +195,25 @@ class SynthData():
 #         )
 
         # Identify 6D box centred on component stars, with twice the span
+        # TC: Edited, to only have 10% margin on every side
         data_upper_bound = np.max(means_now, axis=0)
         data_lower_bound = np.min(means_now, axis=0)
         box_centre = (data_upper_bound + data_lower_bound) / 2.
+
         data_span = data_upper_bound - data_lower_bound
-        box_span = 2 * data_span
+        box_span = 1.2 * data_span
+        box_low = box_centre - 0.5*box_span
+        box_high = box_centre + 0.5*box_span
 
         # Calculate number of background stars required to reach given density
         bg_starcount = self.background_density * np.product(box_span)
 
         # Generate a uniform sampling within box
-        bg_xyzuvw = np.random.uniform(low=-data_span, high=data_span,
+        # bg_xyzuvw = np.random.uniform(low=-data_span, high=data_span,
+        # TC: This was incorrect. Fixed it now.
+        bg_xyzuvw = np.random.uniform(low=box_low, high=box_high,
                                            size=(int(round(bg_starcount)),6))
-        bg_xyzuvw += box_centre
+        # bg_xyzuvw += box_centre
         self.bg_starcount = bg_starcount
         if bg_starcount > 0:
             self.append_extra_cartesian(bg_xyzuvw, component_name='bg', init=False)
@@ -282,7 +283,6 @@ class SynthData():
     def store_table(self, savedir=None, filename=None, overwrite=False):
         """
         Store table on disk.
-
         Parameters
         ----------
         savedir : str {None}
