@@ -1016,6 +1016,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir, # multiprocessing
 
 
     def worker(i, return_dict):
+        print('worker ', i)
         log_message('Fitting comp {}'.format(i), symbol='.', surround=True)
         gdir = idir + "comp{}/".format(i)
         mkpath(gdir)
@@ -1030,16 +1031,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir, # multiprocessing
         # Otherwise, run maximisation and sampling stage
         else:
 
-            #~ best_comp, chain, lnprob = compfitter.fit_comp( # scipy modified
-                    #~ data=data, memb_probs=memb_probs[:, i],
-                    #~ plot_it=plot_it,
-                    #~ pool=pool, convergence_tol=convergence_tol,
-                    #~ plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[i],
-                    #~ init_pars=all_init_pars[i], Component=Component,
-                    #~ trace_orbit_func=trace_orbit_func,
-                    #~ nthreads=nthreads,
-            #~ )
-            best_comp, chain, lnprob = compfitter.fit_comp( # scipy modified
+            best_comp, chain, lnprob = compfitter.fit_comp(
                     data=data, memb_probs=memb_probs[:, i],
                     plot_it=plot_it,
                     pool=pool, convergence_tol=convergence_tol,
@@ -1071,12 +1063,47 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir, # multiprocessing
             # record the final position of the walkers for each comp
             all_final_pos[i] = final_pos
         
-        
-        
-            return_dict[i] = [best_comp, chain, lnprob, final_pos]
+
+            return_dict[i] = {'best_comp': best_comp, 'chain': chain, 'lnprob': lnprob, 'final_pos': final_pos}
+
+
+    jobs = []
+    for i in range(ncomps):
+        process = multiprocessing.Process(target=worker, args=(i, return_dict))
+        jobs.append(process)
+
+    print('jobs', len(jobs), jobs)
+
+    # Start the threads (i.e. calculate the random number lists)
+    for j in jobs:
+        j.start()
+
+    # Ensure all of the threads have finished
+    for j in jobs:
+        j.join()
 
 
 
+    print(return_dict)
+    keys = return_dict.keys()
+    keys = sorted(keys)
+    
+    for i in keys:
+        v = return_dict[i]
+        best_comp = v['best_comp']
+        chain = v['chain']
+        lnprob = v['lnprob']
+        final_pos = v['final_pos']
+
+        new_comps.append(best_comp)
+        all_samples.append(chain)
+        all_lnprob.append(lnprob)
+
+    # Keep track of the components that weren't ignored
+        success_mask.append(i)
+
+    # record the final position of the walkers for each comp
+        all_final_pos[i] = final_pos
 
 
 

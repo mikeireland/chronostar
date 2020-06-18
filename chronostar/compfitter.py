@@ -745,6 +745,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None, # JUST TESTIN
     
     # NUMBER OF WALKERS
     nwalkers = 2*npars
+    #~ nwalkers = npars
+    #~ print('NWALKERS = NPARS')
 
     # Initialise the emcee sampler
     #~ if init_pos is None:
