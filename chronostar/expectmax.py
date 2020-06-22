@@ -709,7 +709,7 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
         #~ logging.info("Skipped stable component {}".format(i))
     # Otherwise, run maximisation and sampling stage
     #~ else:
-    print('start compfitter.fit_comp')
+
     best_comp, chain, lnprob = compfitter.fit_comp(
             data=data, memb_probs=memb_probs[:, i],
             burnin_steps=burnin_steps, plot_it=plot_it,
@@ -742,7 +742,6 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
     np.save(gdir + 'final_chain.npy', chain)
     np.save(gdir + 'final_lnprob.npy', lnprob)
     
-    print('return...')
     return best_comp, chain, lnprob, final_pos
     
 
@@ -851,30 +850,12 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
 
     ### MULTIPROCESSING
     if nprocess_ncomp and ncomps>1:
-        print('MULTIPROC')
+        logging.info("Maximising components with multiprocessing")
         manager = multiprocessing.Manager()
         return_dict = manager.dict()
 
         def worker(i, return_dict):
-            print('worker ', i)
-            
-            
-            
 
-
-            #~ print(memb_probs, i, all_init_pars, idir, 
-                #~ ignore_stable_comps, 
-                #~ ignore_dead_comps,
-                #~ DEATH_THRESHOLD, unstable_comps,
-                #~ burnin_steps, plot_it,
-                #~ pool, )
-                #~ all_init_pos,)
-                #~ Component,
-                #~ trace_orbit_func,
-                #~ store_burnin_chains,
-                #~ nthreads, 
-                #~ optimisation_method,)
-            print('AFTER')
             best_comp, chain, lnprob, final_pos = maximise_one_comp(data,
                 memb_probs, i, all_init_pars=all_init_pars, 
                 all_init_pos=all_init_pos, idir=idir, 
@@ -889,8 +870,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                 nthreads=nthreads, 
                 optimisation_method=optimisation_method,
                 )
-            
-            #TODO: optimize_one_comp might not return anything...
+
             return_dict[i] = {'best_comp': best_comp, 'chain': chain, 'lnprob': lnprob, 'final_pos': final_pos}
 
         jobs = []
@@ -914,9 +894,6 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
         for j in jobs:
             j.join()
 
-
-
-        #~ print(return_dict)
         keys = return_dict.keys()
         keys = sorted(keys)
         
@@ -938,31 +915,8 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
             all_final_pos[i] = final_pos
 
     else:
-        print('FOR LOOP')
+        logging.info("Maximising components in a for loop")
         for i in range(ncomps):
-            
-            print(data,
-                memb_probs, i, all_init_pars, 
-                all_init_pos,
-                store_burnin_chains,
-                optimisation_method,)
-            print('AFTER PRINT0')
-            
-            print(data,
-                memb_probs, i, all_init_pars, 'idir=', idir, 
-                'ignore_stable_comps=', ignore_stable_comps, 
-                'ignore_dead_comps=', ignore_dead_comps,
-                'DEATH_THRESHOLD=', DEATH_THRESHOLD, 'unstable_comps=', unstable_comps,
-                'burnin_steps=', burnin_steps, 'plot_it=', plot_it,
-                'pool=', pool, 'convergence_tol=', 0.25,
-                'all_init_pos=', all_init_pos,
-                'Component=', Component,
-                'trace_orbit_func=', trace_orbit_func,
-                'store_burnin_chains=', store_burnin_chains,
-                'nthreads=', nthreads, 
-                'optimisation_method=', optimisation_method,)
-            
-            print('AFTER PRINTTTT')
             
             # If component has too few stars, skip fit, and use previous best walker
             if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
@@ -972,7 +926,6 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
             elif ignore_stable_comps and not unstable_comps[i]:
                 logging.info("Skipped stable component {}".format(i))
             else:
-                #TODO: this function needs to return something in any case!!!
                 best_comp, chain, lnprob, final_pos = maximise_one_comp(data,
                     memb_probs, i, all_init_pars=all_init_pars, 
                     all_init_pos=all_init_pos, idir=idir, 
@@ -1002,8 +955,6 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     # # reference to stable comps
     # Component.store_raw_components(idir + 'best_comps.npy', new_comps)
     # np.save(idir + 'best_comps_bak.npy', new_comps)
-
-    print(new_comps, all_samples, all_lnprob, all_final_pos, success_mask)
 
     return new_comps, all_samples, all_lnprob, \
            all_final_pos, success_mask
