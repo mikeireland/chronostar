@@ -604,16 +604,14 @@ class NaiveFit(object):
                     tabcomps.write(filename_comps_fits_random, overwrite=self.fit_pars['overwrite_fits'])
 
                 # Save membership fits file
-                #~ try:
-                if self.fit_pars['overwrite_fits']:
-                    tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], prev_result['memb_probs'], prev_result['comps'], os.path.join(self.rdir, 'final_memberships_%d.fits'%len(prev_result['comps'])), get_background_overlaps=True, stellar_id_colname = self.fit_pars['stellar_id_colname'], overwrite_fits = self.fit_pars['overwrite_fits'])
-                else:
-                    filename_memb_probs_fits_random = os.path.join(self.rdir, 'final_memberships_%d_%s.fits'%(len(prev_result['comps']), str(uuid.uuid4().hex)))
-                    tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], prev_result['memb_probs'], prev_result['comps'], filename_memb_probs_fits_random, get_background_overlaps=True, stellar_id_colname = self.fit_pars['stellar_id_colname'], overwrite_fits = self.fit_pars['overwrite_fits'])
-                    
-                    
-                #~ except:
-                    #~ logging.info("[WARNING] Couldn't print membership.fits file. Check column id.")
+                try:
+                    if self.fit_pars['overwrite_fits']:
+                        tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], prev_result['memb_probs'], prev_result['comps'], os.path.join(self.rdir, 'final_memberships_%d.fits'%len(prev_result['comps'])), get_background_overlaps=True, stellar_id_colname = self.fit_pars['stellar_id_colname'], overwrite_fits = self.fit_pars['overwrite_fits'])
+                    else:
+                        filename_memb_probs_fits_random = os.path.join(self.rdir, 'final_memberships_%d_%s.fits'%(len(prev_result['comps']), str(uuid.uuid4().hex)))
+                        tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], prev_result['memb_probs'], prev_result['comps'], filename_memb_probs_fits_random, get_background_overlaps=True, stellar_id_colname = self.fit_pars['stellar_id_colname'], overwrite_fits = self.fit_pars['overwrite_fits'])
+                except:
+                    logging.info("[WARNING] Couldn't print membership.fits file. Check column id.")
 
                 self.log_final_log(prev_result, prev_score)
                 break
