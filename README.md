@@ -333,11 +333,6 @@ A non-exhaustive list of data preparation parameters are listed here:
      must both set the `output_file` to the same filename as `input_file` AND
      set this flag to True.
 
-   - overwrite_fits: True or False [default = False] [optional]
-   
-     Overwrite final fits files in the results_dir? If False, append a random
-     string to the end of the filename and save.
-
    - return_data_table: True or False [default = True] [optional]
    
      If true, `prepare_data` will return the resulting table. This is useful
@@ -437,6 +432,11 @@ A non-exhaustive list of data preparation parameters are listed here:
     Column name of stellar IDs in the input data table. This is used 
     for the final fits table with results including stellar IDs and 
     their component memberships.
+ 
+   - overwrite_fits: True or False [default = False] [optional]
+   
+     Overwrite final fits files in the `results_dir`? If `False`, append a random
+     string to the end of the filename and save.
  
   - par_log_file: string [default = 'fit_pars.log'] [optional]
     
