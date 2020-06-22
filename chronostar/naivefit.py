@@ -133,6 +133,9 @@ class NaiveFit(object):
         # implemented in Chronostar).
         # 'emcee' | 'Nelder-Mead'
         'optimisation_method': 'emcee',
+        
+        # Optimise components in parallel in expectmax.maximise.
+        'nprocess_ncomp': False,
 
         'par_log_file':'fit_pars.log',
     }
@@ -309,8 +312,8 @@ class NaiveFit(object):
 
     def build_init_comps(self, prev_comps, split_comp_ix, prev_med_and_spans):
         """
-        Given a list of converged components from a N compoennt fit, generate
-        a list of N+1 components with which to intiailise an EM run.
+        Given a list of converged components from a N component fit, generate
+        a list of N+1 components with which to initialise an EM run.
 
         This is done by taking the target component, `prev_comps[comp_ix]`,
         replacing it in the list of comps, by splitting it into two components
@@ -417,7 +420,8 @@ class NaiveFit(object):
         logging.info('Final best fits:')
         [logging.info(c.get_pars()) for c in prev_result['comps']]
         logging.info('Final age med and span:')
-        [logging.info(row[-1]) for row in prev_result['med_and_spans']]
+        if self.fit_pars['optimisation_method']=='emcee':
+            [logging.info(row[-1]) for row in prev_result['med_and_spans']]
         logging.info('Membership distribution: {}'.format(
                 prev_result['memb_probs'].sum(axis=0)))
         logging.info('Final membership:')
@@ -425,6 +429,9 @@ class NaiveFit(object):
         logging.info('Final lnlikelihood: {}'.format(prev_score['lnlike']))
         logging.info('Final lnposterior:  {}'.format(prev_score['lnpost']))
         logging.info('Final BIC: {}'.format(prev_score['bic']))
+        logging.info('#########################')
+        logging.info('### END #################')
+        logging.info('#########################')
 
 
     def calc_score(self, comps, memb_probs):

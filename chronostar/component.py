@@ -560,6 +560,39 @@ class AbstractComponent(object):
 
         return comps
 
+    def splitGroupSpatial(self):
+        """
+        Split the component into two parts along its semimajor axis.
+        
+        Covariance matrix is generated automatically?
+
+
+        Parameters
+        ----------
+
+
+        Returns
+        -------
+        lo_comp : Component
+            A component that matches `self` in current-day mean and initial
+            covariance matrix but with a younger age
+        hi_comp : Component
+            A component that matches `self` in current-day mean and initial
+            covariance matrix but with an older age
+        """
+        comps = []
+        for new_age in [lo_age, hi_age]:
+            # Give new component identical initial covmatrix, and a initial
+            # mean chosen to yield identical mean_now
+            new_mean = self.trace_orbit_func(self.get_mean_now(),
+                                             times=-new_age)
+            new_comp = self.__class__(attributes={'mean':new_mean,
+                                                  'covmatrix':self._covmatrix,
+                                                  'age':new_age})
+            comps.append(new_comp)
+
+        return comps
+
     def get_peak(self, amplitude=1.):
         """
         Get the density at the peak of distribution.

@@ -15,6 +15,7 @@ from distutils.dir_util import mkpath
 import itertools
 import logging
 import numpy as np
+import multiprocessing
 
 # The placement of logsumexp varies wildly between scipy versions
 import scipy
@@ -614,6 +615,136 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     else:
         return np.sum(weighted_lnols)
 
+def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_pos=None,
+                ignore_stable_comps=False, ignore_dead_comps=False,
+                DEATH_THRESHOLD=2.1, unstable_comps=None,
+                burnin_steps=None, plot_it=False,
+                pool=None, convergence_tol=0.25,
+                plot_dir=None, save_dir=None,
+                Component=SphereComponent,
+                trace_orbit_func=None,
+                store_burnin_chains=False,
+                nthreads=1, 
+                optimisation_method=None,
+                ):
+
+    """
+    Performs the 'maximisation' step of the EM algorithm for 1 component
+    at a time.
+
+    all_init_pars must be given in 'internal' form, that is the standard
+    deviations must be provided in log form.
+
+    Parameters
+    ----------
+    data: dict
+        See fit_many_comps
+    memb_probs: [nstars, ncomps {+1}] float array_like
+        See fit_many_comps
+    i: int
+        Perform optimisation for the i-th component of the model.
+    DEATH_THRESHOLD: float {2.1}
+        ...
+    burnin_steps: int
+        The number of steps for each burnin loop
+    idir: str
+        The results directory for this iteration
+    all_init_pars: [ncomps, npars] float array_like
+        The initial parameters around which to initialise emcee walkers
+    all_init_pos: [ncomps, nwalkers, npars] float array_like
+        The actual exact positions at which to initialise emcee walkers
+        (from, say, the output of a previous emcee run)
+    plot_it: bool {False}
+        Whether to plot lnprob chains (from burnin, etc) as we go
+    pool: MPIPool object {None}
+        pool of threads to execute walker steps concurrently
+    convergence_tol: float {0.25}
+        How many standard devaitions an lnprob chain is allowed to vary
+        from its mean over the course of a burnin stage and still be
+        considered "converged". Default value allows the median of the
+        final 20 steps to differ by 0.25 of its standard deviations from
+        the median of the first 20 steps.
+    ignore_dead_comps : bool {False}
+        if componennts have fewer than 2(?) expected members, then ignore
+        them
+    ignore_stable_comps : bool {False}
+        If components have been deemed to be stable, then disregard them
+    Component: Implementation of AbstractComponent {Sphere Component}
+        The class used to convert raw parametrisation of a model to
+        actual model attributes.
+    trace_orbit_func: function {None}
+        A function to trace cartesian oribts through the Galactic potential.
+        If left as None, will use traceorbit.trace_cartesian_orbit (base
+        signature of any alternate function on this ones)
+    optimisation_method: str {'emcee'}
+        Optimisation method to be used in the maximisation step to fit
+        the model. Default: emcee. Available: scipy.optimise.minimize with
+        the Nelder-Mead method. Note that in case of the gradient descent,
+        no chain is returned and meds and spans cannot be determined.
+        
+    Returns
+    -------
+    best_comp:
+        The best fitting component.
+    chain:
+        
+    lnprob:
+        
+    final_pos:
+        The final positions of walkers for this maximisation. 
+        Useful for restarting the next emcee run.
+    """
+
+
+    log_message('Fitting comp {}'.format(i), symbol='.', surround=True)
+    gdir = idir + "comp{}/".format(i)
+    mkpath(gdir)
+
+    #~ # If component has too few stars, skip fit, and use previous best walker
+    #~ if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
+        #~ logging.info("Skipped component {} with nstars {}".format(
+                #~ i, np.sum(memb_probs[:, i])
+        #~ ))
+    #~ elif ignore_stable_comps and not unstable_comps[i]:
+        #~ logging.info("Skipped stable component {}".format(i))
+    # Otherwise, run maximisation and sampling stage
+    #~ else:
+    print('start compfitter.fit_comp')
+    best_comp, chain, lnprob = compfitter.fit_comp(
+            data=data, memb_probs=memb_probs[:, i],
+            burnin_steps=burnin_steps, plot_it=plot_it,
+            pool=pool, convergence_tol=convergence_tol,
+            plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[i],
+            init_pars=all_init_pars[i], Component=Component,
+            trace_orbit_func=trace_orbit_func,
+            store_burnin_chains=store_burnin_chains,
+            nthreads=nthreads, 
+            optimisation_method=optimisation_method,
+    )
+    logging.info("Finished fit")
+    logging.info("Best comp pars:\n{}".format(
+            best_comp.get_pars()
+    ))
+    
+    if optimisation_method=='emcee':
+        final_pos = chain[:, -1, :]
+        logging.info("With age of: {:.3} +- {:.3} Myr".
+                     format(np.median(chain[:,:,-1]),
+                            np.std(chain[:,:,-1])))
+    elif optimisation_method=='Nelder-Mead':
+        final_pos = chain
+        logging.info("With age of: {:.3} Myr".
+                     format(np.median(chain)))
+
+
+    best_comp.store_raw(gdir + 'best_comp_fit.npy')
+    np.save(gdir + "best_comp_fit_bak.npy", best_comp) # can remove this line when working
+    np.save(gdir + 'final_chain.npy', chain)
+    np.save(gdir + 'final_lnprob.npy', lnprob)
+    
+    print('return...')
+    return best_comp, chain, lnprob, final_pos
+    
 
 def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                  all_init_pars, all_init_pos=None, plot_it=False, pool=None,
@@ -624,6 +755,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                  unstable_comps=None,
                  ignore_stable_comps=False,
                  nthreads=1, optimisation_method=None,
+                 nprocess_ncomp=False,
                  ):
     """
     Performs the 'maximisation' step of the EM algorithm
@@ -675,7 +807,10 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
         the model. Default: emcee. Available: scipy.optimise.minimize with
         the Nelder-Mead method. Note that in case of the gradient descent,
         no chain is returned and meds and spans cannot be determined.
-
+    nprocess_ncomp: bool {False}
+        How many processes to use in the maximisation of ncomps with
+        python's multiprocessing library in case Nelder-Mead is used.
+        
     Returns
     -------
     new_comps: [ncomps] Component array
@@ -713,64 +848,162 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     log_message('Ignoring stable comps? {}'.format(ignore_stable_comps))
     log_message('Unstable comps are {}'.format(unstable_comps))
 
-    for i in range(ncomps):
-        log_message('Fitting comp {}'.format(i), symbol='.', surround=True)
-        gdir = idir + "comp{}/".format(i)
-        mkpath(gdir)
 
-        # If component has too few stars, skip fit, and use previous best walker
-        if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
-            logging.info("Skipped component {} with nstars {}".format(
-                    i, np.sum(memb_probs[:, i])
-            ))
-        elif ignore_stable_comps and not unstable_comps[i]:
-            logging.info("Skipped stable component {}".format(i))
-        # Otherwise, run maximisation and sampling stage
-        else:
-            best_comp, chain, lnprob = compfitter.fit_comp(
-                    data=data, memb_probs=memb_probs[:, i],
+    ### MULTIPROCESSING
+    if nprocess_ncomp and ncomps>1:
+        print('MULTIPROC')
+        manager = multiprocessing.Manager()
+        return_dict = manager.dict()
+
+        def worker(i, return_dict):
+            print('worker ', i)
+            
+            
+            
+
+
+            #~ print(memb_probs, i, all_init_pars, idir, 
+                #~ ignore_stable_comps, 
+                #~ ignore_dead_comps,
+                #~ DEATH_THRESHOLD, unstable_comps,
+                #~ burnin_steps, plot_it,
+                #~ pool, )
+                #~ all_init_pos,)
+                #~ Component,
+                #~ trace_orbit_func,
+                #~ store_burnin_chains,
+                #~ nthreads, 
+                #~ optimisation_method,)
+            print('AFTER')
+            best_comp, chain, lnprob, final_pos = maximise_one_comp(data,
+                memb_probs, i, all_init_pars=all_init_pars, 
+                all_init_pos=all_init_pos, idir=idir, 
+                ignore_stable_comps=ignore_stable_comps, 
+                ignore_dead_comps=ignore_dead_comps,
+                DEATH_THRESHOLD=DEATH_THRESHOLD, unstable_comps=unstable_comps,
+                burnin_steps=burnin_steps, plot_it=plot_it,
+                pool=pool, convergence_tol=0.25,
+                Component=Component,
+                trace_orbit_func=trace_orbit_func,
+                store_burnin_chains=store_burnin_chains,
+                nthreads=nthreads, 
+                optimisation_method=optimisation_method,
+                )
+            
+            #TODO: optimize_one_comp might not return anything...
+            return_dict[i] = {'best_comp': best_comp, 'chain': chain, 'lnprob': lnprob, 'final_pos': final_pos}
+
+        jobs = []
+        for i in range(ncomps):
+            # If component has too few stars, skip fit, and use previous best walker
+            if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
+                logging.info("Skipped component {} with nstars {}".format(
+                        i, np.sum(memb_probs[:, i])
+                ))
+            elif ignore_stable_comps and not unstable_comps[i]:
+                logging.info("Skipped stable component {}".format(i))
+            else:
+                process = multiprocessing.Process(target=worker, args=(i, return_dict))
+                jobs.append(process)
+
+        # Start the threads (i.e. calculate the random number lists)
+        for j in jobs:
+            j.start()
+
+        # Ensure all of the threads have finished
+        for j in jobs:
+            j.join()
+
+
+
+        #~ print(return_dict)
+        keys = return_dict.keys()
+        keys = sorted(keys)
+        
+        for i in keys:
+            v = return_dict[i]
+            best_comp = v['best_comp']
+            chain = v['chain']
+            lnprob = v['lnprob']
+            final_pos = v['final_pos']
+
+            new_comps.append(best_comp)
+            all_samples.append(chain)
+            all_lnprob.append(lnprob)
+
+        # Keep track of the components that weren't ignored
+            success_mask.append(i)
+
+        # record the final position of the walkers for each comp
+            all_final_pos[i] = final_pos
+
+    else:
+        print('FOR LOOP')
+        for i in range(ncomps):
+            
+            print(data,
+                memb_probs, i, all_init_pars, 
+                all_init_pos,
+                store_burnin_chains,
+                optimisation_method,)
+            print('AFTER PRINT0')
+            
+            print(data,
+                memb_probs, i, all_init_pars, 'idir=', idir, 
+                'ignore_stable_comps=', ignore_stable_comps, 
+                'ignore_dead_comps=', ignore_dead_comps,
+                'DEATH_THRESHOLD=', DEATH_THRESHOLD, 'unstable_comps=', unstable_comps,
+                'burnin_steps=', burnin_steps, 'plot_it=', plot_it,
+                'pool=', pool, 'convergence_tol=', 0.25,
+                'all_init_pos=', all_init_pos,
+                'Component=', Component,
+                'trace_orbit_func=', trace_orbit_func,
+                'store_burnin_chains=', store_burnin_chains,
+                'nthreads=', nthreads, 
+                'optimisation_method=', optimisation_method,)
+            
+            print('AFTER PRINTTTT')
+            
+            # If component has too few stars, skip fit, and use previous best walker
+            if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
+                logging.info("Skipped component {} with nstars {}".format(
+                        i, np.sum(memb_probs[:, i])
+                ))
+            elif ignore_stable_comps and not unstable_comps[i]:
+                logging.info("Skipped stable component {}".format(i))
+            else:
+                #TODO: this function needs to return something in any case!!!
+                best_comp, chain, lnprob, final_pos = maximise_one_comp(data,
+                    memb_probs, i, all_init_pars=all_init_pars, 
+                    all_init_pos=all_init_pos, idir=idir, 
+                    ignore_stable_comps=ignore_stable_comps, 
+                    ignore_dead_comps=ignore_dead_comps,
+                    DEATH_THRESHOLD=DEATH_THRESHOLD, unstable_comps=unstable_comps,
                     burnin_steps=burnin_steps, plot_it=plot_it,
-                    pool=pool, convergence_tol=convergence_tol,
-                    plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[i],
-                    init_pars=all_init_pars[i], Component=Component,
+                    pool=pool, convergence_tol=0.25,
+                    Component=Component,
                     trace_orbit_func=trace_orbit_func,
                     store_burnin_chains=store_burnin_chains,
                     nthreads=nthreads, 
                     optimisation_method=optimisation_method,
-            )
-            logging.info("Finished fit")
-            logging.info("Best comp pars:\n{}".format(
-                    best_comp.get_pars()
-            ))
-            
-            if optimisation_method=='emcee':
-                final_pos = chain[:, -1, :]
-                logging.info("With age of: {:.3} +- {:.3} Myr".
-                             format(np.median(chain[:,:,-1]),
-                                    np.std(chain[:,:,-1])))
-            elif optimisation_method=='Nelder-Mead':
-                final_pos = chain
-                logging.info("With age of: {:.3} Myr".
-                             format(np.median(chain)))
+                    )
 
-            new_comps.append(best_comp)
-            best_comp.store_raw(gdir + 'best_comp_fit.npy')
-            np.save(gdir + "best_comp_fit_bak.npy", best_comp) # can remove this line when working
-            np.save(gdir + 'final_chain.npy', chain)
-            np.save(gdir + 'final_lnprob.npy', lnprob)
-            all_samples.append(chain)
-            all_lnprob.append(lnprob)
+                new_comps.append(best_comp)
+                all_samples.append(chain)
+                all_lnprob.append(lnprob)
 
-            # Keep track of the components that weren't ignored
-            success_mask.append(i)
+                # Keep track of the components that weren't ignored
+                success_mask.append(i)
 
-            # record the final position of the walkers for each comp
-            all_final_pos[i] = final_pos
+                # record the final position of the walkers for each comp
+                all_final_pos[i] = final_pos
 
     # # TODO: Maybe need to this outside of this call, so as to include
     # # reference to stable comps
     # Component.store_raw_components(idir + 'best_comps.npy', new_comps)
     # np.save(idir + 'best_comps_bak.npy', new_comps)
+
+    print(new_comps, all_samples, all_lnprob, all_final_pos, success_mask)
 
     return new_comps, all_samples, all_lnprob, \
            all_final_pos, success_mask
@@ -865,7 +1098,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    use_background=False, store_burnin_chains=False,
                    ignore_stable_comps=False, max_em_iterations=100,
                    record_len=30, bic_conv_tol=0.1, min_em_iterations=30,
-                   nthreads=1, optimisation_method=None,
+                   nthreads=1, optimisation_method=None, 
+                   nprocess_ncomp = False,
                    **kwargs):
     """
 
@@ -934,6 +1168,9 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         the model. Default: emcee. Available: scipy.optimise.minimize with
         the Nelder-Mead method. Note that in case of the gradient descent,
         no chain is returned and meds and spans cannot be determined.
+    nprocess_ncomp: bool {False}
+        How many processes to use in the maximisation of ncomps with
+        python's multiprocessing library in case Nelder-Mead is used.
         
 
     Return
@@ -1155,15 +1392,20 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                          ignore_stable_comps=ignore_stable_comps_iter,
                          nthreads=nthreads, 
                          optimisation_method=optimisation_method,
+                         nprocess_ncomp=nprocess_ncomp,
                          )
 
         for i in range(ncomps):
             if i in success_mask:
                 j = success_mask.index(i)
-                all_med_and_spans[i] = compfitter.calc_med_and_span(
-                        all_samples[j], intern_to_extern=True,
-                        Component=Component,
-                )
+                if optimisation_method=='emcee':
+                    all_med_and_spans[i] = compfitter.calc_med_and_span(
+                            all_samples[j], intern_to_extern=True,
+                            Component=Component,
+                    )
+                else: # Nelder-Mead
+                    all_med_and_spans[i] = None
+                    
             # If component is stable, then it wasn't fit, so just duplicate
             # from last fit
             else:
