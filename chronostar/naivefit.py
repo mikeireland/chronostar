@@ -26,6 +26,7 @@ import sys
 import logging
 from distutils.dir_util import mkpath
 import random
+import uuid
 
 #~ from emcee.utils import MPIPool
 #~ from multiprocessing import Pool
@@ -87,6 +88,11 @@ class NaiveFit(object):
         # Can be a filename to a astropy table, or an actual table
         'data_table':None,
 
+        # Column name for stellar IDs. This is used at the end when generating
+        # final fits table with IDs and membership probabilities.
+        # This is optional.
+        'stellar_id_colname': None,
+
         # File name that points to a stored list of components, typically from
         # a previous fit. Some example filenames could be:
         #  - 'some/prev/fit/final_comps.npy
@@ -136,6 +142,9 @@ class NaiveFit(object):
         
         # Optimise components in parallel in expectmax.maximise.
         'nprocess_ncomp': False,
+        
+        # Overwrite final results in a fits file
+        'overwrite_fits': False,
 
         'par_log_file':'fit_pars.log',
     }
@@ -583,6 +592,28 @@ class NaiveFit(object):
                 np.save(self.rdir + self.final_memb_probs_file, prev_result['memb_probs'])
                 np.save(self.rdir + 'final_likelihood_post_and_bic',
                         prev_score)
+
+
+                # Save components in fits file
+                tabcomps = self.Component.convert_components_array_into_astropy_table(prev_result['comps'])
+                
+                if self.fit_pars['overwrite_fits']:
+                    tabcomps.write(os.path.join(self.rdir, 'final_comps_%d.fits'%len(prev_result['comps'])), overwrite=self.fit_pars['overwrite_fits'])
+                else:
+                    filename_comps_fits_random = os.path.join(self.rdir, 'final_comps_%d_%s.fits'%(len(prev_result['comps']), str(uuid.uuid4().hex)))
+                    tabcomps.write(filename_comps_fits_random, overwrite=self.fit_pars['overwrite_fits'])
+
+                # Save membership fits file
+                #~ try:
+                if self.fit_pars['overwrite_fits']:
+                    tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], prev_result['memb_probs'], prev_result['comps'], os.path.join(self.rdir, 'final_memberships_%d.fits'%len(prev_result['comps'])), get_background_overlaps=True, stellar_id_colname = self.fit_pars['stellar_id_colname'], overwrite_fits = self.fit_pars['overwrite_fits'])
+                else:
+                    filename_memb_probs_fits_random = os.path.join(self.rdir, 'final_memberships_%d_%s.fits'%(len(prev_result['comps']), str(uuid.uuid4().hex)))
+                    tabletool.construct_an_astropy_table_with_gaia_ids_and_membership_probabilities(self.fit_pars['data_table'], prev_result['memb_probs'], prev_result['comps'], filename_memb_probs_fits_random, get_background_overlaps=True, stellar_id_colname = self.fit_pars['stellar_id_colname'], overwrite_fits = self.fit_pars['overwrite_fits'])
+                    
+                    
+                #~ except:
+                    #~ logging.info("[WARNING] Couldn't print membership.fits file. Check column id.")
 
                 self.log_final_log(prev_result, prev_score)
                 break
