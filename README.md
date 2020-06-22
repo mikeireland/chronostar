@@ -332,7 +332,12 @@ A non-exhaustive list of data preparation parameters are listed here:
      If you wish to overwrite the input file, then as a safety precaution, you
      must both set the `output_file` to the same filename as `input_file` AND
      set this flag to True.
-     
+
+   - overwrite_fits: True or False [default = False] [optional]
+   
+     Overwrite final fits files in the results_dir? If False, append a random
+     string to the end of the filename and save.
+
    - return_data_table: True or False [default = True] [optional]
    
      If true, `prepare_data` will return the resulting table. This is useful
