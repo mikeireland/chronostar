@@ -423,6 +423,10 @@ A non-exhaustive list of data preparation parameters are listed here:
     
     Optimisation method in the maximisation step of the EM algorithm. Besides `emcee`, `Nelder-Mead` is implemented.
  
+  - nprocess_ncomp: bool [default = False] [optional]
+  
+    Optimise components in each iteration in parallel.
+ 
   - par_log_file: string [default = 'fit_pars.log'] [optional]
     
     Filename to (over)write parameters used in run. It will state
