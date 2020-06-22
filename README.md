@@ -426,6 +426,12 @@ A non-exhaustive list of data preparation parameters are listed here:
   - nprocess_ncomp: bool [default = False] [optional]
   
     Optimise components in each iteration in parallel.
+  
+  - stellar_id_colname: string [default = None] [optional]
+  
+    Column name of stellar IDs in the input data table. This is used 
+    for the final fits table with results including stellar IDs and 
+    their component memberships.
  
   - par_log_file: string [default = 'fit_pars.log'] [optional]
     
