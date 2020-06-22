@@ -438,6 +438,11 @@ A non-exhaustive list of data preparation parameters are listed here:
      Overwrite final fits files in the `results_dir`? If `False`, append a random
      string to the end of the filename and save.
  
+   - overwrite_prev_run: True or False [default = False] [optional] 
+   
+     Overwrite `results_dir`? If `False`, a random number is appended to
+     the end of the `results_dir` name.
+ 
   - par_log_file: string [default = 'fit_pars.log'] [optional]
     
     Filename to (over)write parameters used in run. It will state
