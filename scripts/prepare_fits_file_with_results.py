@@ -75,6 +75,7 @@ tab = Table((ids,), names=('source_id',))
 memb = np.load(filename_membership)
 for i, c in enumerate(compnames):
     tab['membership%s'%c.replace('comp', '')] = memb[:,i]
+tab['membership_bg'] = memb[:,-1]
 
 tab.write(os.path.join(root, root_comp, 'final/final_membership.fits'), format='fits')
 

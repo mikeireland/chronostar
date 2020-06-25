@@ -564,9 +564,19 @@ class AbstractComponent(object):
 
     def splitGroupSpatial(self):
         """
-        Split the component into two parts along its semimajor axis.
+        Split the component into two parts along its major axis.
+        Major axis is defined as component eigenvector with the biggest
+        eigenvalue.
         
-        Covariance matrix is generated automatically?
+        Create new components with its centres of the new ellipses are at
+        # mean_today +/- eigenvector * sqrt(eigenvalue)/2
+        
+        When age of the component is 0-1 Myr, it is not very meaningful 
+        to split in age.
+        Also, if a component is 'bent' and has a complex structure but
+        comparable age, it makes more sense to split in spatial coordinates.
+        
+        Covariance matrix: Keep the same?
 
 
         Parameters
@@ -575,22 +585,66 @@ class AbstractComponent(object):
 
         Returns
         -------
-        lo_comp : Component
-            A component that matches `self` in current-day mean and initial
-            covariance matrix but with a younger age
-        hi_comp : Component
-            A component that matches `self` in current-day mean and initial
-            covariance matrix but with an older age
+        comps: [2*Component]
+            List of the new components
         """
+        
+        
+        # Components are stored at t=0. Project them to the current day
+        # because we want to split at t=now.
+        mean_today, cov_today = self.get_currentday_projection()
+
+        
+        #~ print('cov_today[:3,:3]', cov_today[:3,:3])
+        #~ print('cov_today[3:,3:]', cov_today[3:,3:])
+        
+        # Determine the shape of this component
+        def eigsorted(cov):
+            vals, vecs = np.linalg.eigh(cov)
+            order = vals.argsort()[::-1]
+            return vals[order], vecs[:, order]
+
+        # largest eigenvalue is first
+        vals, vecs = eigsorted(cov_today[:3,:3])
+        #~ theta = np.arctan2(*vecs[:, 0][::-1])
+
+        # Component 1
+        mean_today_comp1 = np.copy(mean_today)
+        
+        mean_today_comp1[:3] = mean_today_comp1[:3] + vecs[0]*np.sqrt(vals[0])/2.0 #+ vecs[1]*vals[1]/2.0
+
+        #~ print('mean_today_comp1', mean_today_comp1)
+        #~ print('mean_today      ', mean_today)
+
+        # Component 2
+        mean_today_comp2 = np.copy(mean_today)
+        #~ print('mean_today_comp2', mean_today_comp2)
+        mean_today_comp2[:3] = mean_today_comp2[:3] - vecs[0]*np.sqrt(vals[0])/2.0 #+ vecs[1]*vals[1]/2.0
+        
+        
+        #~ print('mean_today_comp2', mean_today_comp2)
+        
+        
+        # New covariance matrix. NO IDEA if this is correct!
+        cov_today_halved = np.copy(cov_today)
+        for i in range(3):
+            cov_today_halved[i,i] = (np.sqrt(cov_today_halved[i,i])/2.0)**2
+        
+        
+        # Split was done at t=today. Now trace them back to t=0: that's
+        # where they should be for the fitting procedure.
+        age = self.get_age()
+        
         comps = []
-        for new_age in [lo_age, hi_age]:
+        for new_mean_today in [mean_today_comp1, mean_today_comp2]:
             # Give new component identical initial covmatrix, and a initial
             # mean chosen to yield identical mean_now
-            new_mean = self.trace_orbit_func(self.get_mean_now(),
-                                             times=-new_age)
+            new_mean = self.trace_orbit_func(new_mean_today,
+                                             times=-age)
             new_comp = self.__class__(attributes={'mean':new_mean,
-                                                  'covmatrix':self._covmatrix,
-                                                  'age':new_age})
+                                                  #~ 'covmatrix':cov_today_halved,
+                                                  'covmatrix':cov_today,
+                                                  'age':age})
             comps.append(new_comp)
 
         return comps
@@ -961,7 +1015,7 @@ class AbstractComponent(object):
         width, height = 2 * nstd * np.sqrt(vals)
         # MZ: just printing. Delete this
         #print('width, height, angle', width, height, theta)
-        print(width, height, theta)
+        #~ print(width, height, theta)
         ellip = Ellipse(xy=pos, width=width, height=height, angle=theta, **kwargs)
 
         if 'alpha' not in kwargs.keys():
@@ -1022,8 +1076,8 @@ class AbstractComponent(object):
             dim2 = labels.index(dim2.upper())
 
         # MZ added. Delete later
-        dim3 = labels.index('Z'.upper())
-        print(self.get_mean_now()[dim1], self.get_mean_now()[dim2], self.get_mean_now()[dim3])
+        #~ dim3 = labels.index('Z'.upper())
+        #~ print(self.get_mean_now()[dim1], self.get_mean_now()[dim2], self.get_mean_now()[dim3])
 
         if comp_now:
             ax.scatter(self.get_mean_now()[dim1], self.get_mean_now()[dim2], color=color,
@@ -1037,7 +1091,7 @@ class AbstractComponent(object):
                                   color=color, **kwargs)
         # MZ added. Delete later
         #print(self.get_mean_now()[dim1], self.get_mean_now()[dim2])
-        print('')
+        #~ print('')
         if comp_then:
             ax.scatter(self.get_mean()[dim1], self.get_mean()[dim2], color=color,
                        # linewidth=0.0,
@@ -1123,8 +1177,10 @@ class SphereComponent(AbstractComponent):
         return intern_pars
 
     def _set_covmatrix(self, covmatrix=None):
-        """Builds covmatrix from self.pars. If setting from an externally
-        provided covariance matrix then updates self.pars for consistency"""
+        """
+        Builds covmatrix from self.pars. If setting from an externally
+        provided covariance matrix then updates self.pars for consistency
+        """
         # If covmatrix hasn't been provided, generate from self._pars
         # and set.
         if covmatrix is None:
@@ -1293,8 +1349,6 @@ class FreeComponent(AbstractComponent):
                                             c_zu, c_zv, c_zw, \
                                                   c_uv, c_uw, \
                                                         c_uw
-
-
 
 
 class FilamentComponent(AbstractComponent):

@@ -145,6 +145,9 @@ class NaiveFit(object):
         
         # Overwrite final results in a fits file
         'overwrite_fits': False,
+        
+        # How to split group: in age or in space?
+        'split_group': 'age',
 
         'par_log_file':'fit_pars.log',
     }
@@ -352,15 +355,19 @@ class NaiveFit(object):
         # Decompose and replace the ith component with two new components
         # by using the 16th and 84th percentile ages from previous run
         
-        if self.fit_pars['optimisation_method']=='emcee':
-            split_comps = target_comp.splitGroup(
-                lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
-                hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
-        elif self.fit_pars['optimisation_method']=='Nelder-Mead':
-            age = target_comp.get_age()
-            split_comps = target_comp.splitGroup( # TODO: Maybe even smaller change
-            lo_age=0.8*age,
-            hi_age=1.2*age)
+        if self.fit_pars['split_group']=='age':
+            if self.fit_pars['optimisation_method']=='emcee':
+                    split_comps = target_comp.splitGroup(
+                        lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
+                        hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
+            elif self.fit_pars['optimisation_method']=='Nelder-Mead':
+                age = target_comp.get_age()
+                split_comps = target_comp.splitGroup( # TODO: Maybe even smaller change
+                lo_age=0.8*age,
+                hi_age=1.2*age)
+        elif self.fit_pars['split_group']=='spatial':
+            split_comps = target_comp.splitGroupSpatial()
+            
         init_comps = list(prev_comps)
         init_comps.pop(split_comp_ix)
         init_comps.insert(split_comp_ix, split_comps[1])
