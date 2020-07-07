@@ -322,7 +322,8 @@ class NaiveFit(object):
         logging.info("lnpost: {} | {}".format(new['lnpost'], prev['lnpost']))
 
 
-    def build_init_comps(self, prev_comps, split_comp_ix, prev_med_and_spans):
+    def build_init_comps(self, prev_comps, split_comp_ix, prev_med_and_spans,
+                                memb_probs):
         """
         Given a list of converged components from a N component fit, generate
         a list of N+1 components with which to initialise an EM run.
@@ -362,11 +363,12 @@ class NaiveFit(object):
                         hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
             elif self.fit_pars['optimisation_method']=='Nelder-Mead':
                 age = target_comp.get_age()
-                split_comps = target_comp.splitGroup( # TODO: Maybe even smaller change
+                split_comps = target_comp.split_group( # TODO: Maybe even smaller change
                 lo_age=0.8*age,
                 hi_age=1.2*age)
         elif self.fit_pars['split_group']=='spatial':
-            split_comps = target_comp.splitGroupSpatial()
+            split_comps = target_comp.split_group_spatial(self.data_dict, 
+                                            memb_probs[:,split_comp_ix])
             
         init_comps = list(prev_comps)
         init_comps.pop(split_comp_ix)
@@ -554,7 +556,8 @@ class NaiveFit(object):
 
                 self.fit_pars['init_comps'] = self.build_init_comps(
                         prev_result['comps'], split_comp_ix=i,
-                        prev_med_and_spans=prev_result['med_and_spans'])
+                        prev_med_and_spans=prev_result['med_and_spans'],
+                        memb_probs = prev_result['memb_probs'])
 
                 result = self.run_em_unless_loadable(run_dir)
                 all_results.append(result)

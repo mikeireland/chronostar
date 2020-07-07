@@ -24,9 +24,13 @@ import os
 import multiprocessing
 import scipy.optimize
 
-from .component import SphereComponent
 from . import likelihood
 from . import tabletool
+from . import component
+from .component import SphereComponent
+#~ SphereComponent = component.SphereComponent
+#~ from .component import SphereComponent
+
 
 try:
     import matplotlib.pyplot as plt
@@ -74,39 +78,6 @@ def calc_med_and_span(chain, perc=34, intern_to_extern=False,
                             zip(*np.percentile(flat_chain,
                                                [50-perc, 50, 50+perc],
                                                axis=0)))))
-
-
-def approx_currentday_distribution(data, membership_probs):
-    """
-    Get the approximate, (membership weighted) mean and covariance of data.
-
-    The result can be used to help inform where to initialise an emcee
-    fit.
-
-    Parameters
-    ----------
-    data: dict
-        'means': [nstars, 6] float array_like
-            the central estimates of stellar phase-space properties
-        'covs': [nstars,6,6] float array_like
-            phase-space covariance matrices of stars
-    membership_probs: [nstars] array_like
-        Membership probabilites of each star to component being fitted.
-
-    Returns
-    -------
-    mean_of_means: [6] float np.array
-        The weighted mean of data
-    cov_of_means: [6,6] float np.array
-        The collective (weighted) covariance of the stars
-    """
-    means = data['means']
-    if membership_probs is None:
-        membership_probs = np.ones(len(means))
-    # approximate the (weighted) mean and covariance of star distribution
-    mean_of_means = np.average(means, axis=0, weights=membership_probs)
-    cov_of_means = np.cov(means.T, ddof=0., aweights=membership_probs)
-    return mean_of_means, cov_of_means
 
 
 def stuck_walker(walker_lnprob, max_repeat=100):
@@ -229,7 +200,7 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
     """
     if init_pars is None:
         rough_mean_now, rough_cov_now = \
-            approx_currentday_distribution(data=data,
+            Component.approx_currentday_distribution(data=data,
                                            membership_probs=memb_probs)
         # Exploit the component logic to generate closest set of pars
         dummy_comp = Component(attributes={'mean':rough_mean_now,

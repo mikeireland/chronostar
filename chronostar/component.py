@@ -52,6 +52,9 @@ import string
 
 from . import transform
 from .traceorbit import trace_cartesian_orbit
+from .transform import transform_covmatrix
+#~ from chronostar.compfitter import approx_currentday_distribution
+#~ from . import compfitter
 
 # Including plotting capabilities
 
@@ -510,6 +513,40 @@ class AbstractComponent(object):
             )
         return self._covmatrix_now
 
+
+    @staticmethod
+    def approx_currentday_distribution(data, membership_probs):
+        """
+        Get the approximate, (membership weighted) mean and covariance of data.
+
+        The result can be used to help inform where to initialise an emcee
+        fit.
+
+        Parameters
+        ----------
+        data: dict
+            'means': [nstars, 6] float array_like
+                the central estimates of stellar phase-space properties
+            'covs': [nstars,6,6] float array_like
+                phase-space covariance matrices of stars
+        membership_probs: [nstars] array_like
+            Membership probabilites of each star to component being fitted.
+
+        Returns
+        -------
+        mean_of_means: [6] float np.array
+            The weighted mean of data
+        cov_of_means: [6,6] float np.array
+            The collective (weighted) covariance of the stars
+        """
+        means = data['means']
+        if membership_probs is None:
+            membership_probs = np.ones(len(means))
+        # approximate the (weighted) mean and covariance of star distribution
+        mean_of_means = np.average(means, axis=0, weights=membership_probs)
+        cov_of_means = np.cov(means.T, ddof=0., aweights=membership_probs)
+        return mean_of_means, cov_of_means
+
     def get_currentday_projection(self):
         """
         Calculate (as needed) and return the current day projection of Component
@@ -525,7 +562,7 @@ class AbstractComponent(object):
         """
         return self.get_mean_now(), self.get_covmatrix_now()
 
-    def splitGroup(self, lo_age, hi_age):
+    def split_group_age(self, lo_age, hi_age):
         """
         Generate two new components that share the current day mean, and
         initial covariance matrix of this component but with different ages:
@@ -562,26 +599,38 @@ class AbstractComponent(object):
 
         return comps
 
-    def splitGroupSpatial(self):
+
+    def split_group_spatial(self, data_dict, memb_probs):
         """
         Split the component into two parts along its major axis.
-        Major axis is defined as component eigenvector with the biggest
-        eigenvalue.
-        
+        Major axis is computed from the data (cov_today), not the 
+        component itself (because the component is spherical).
         Create new components with its centres of the new ellipses are at
         # mean_today +/- eigenvector * sqrt(eigenvalue)/2
+        
+        New covariance matrices are determined from 
+        approx_currentday_distribution where new memberships for the
+        two new components are determined from their distance from the
+        means of new components, e.g. new component 
+        
+        
+        Note that covariance matrix from the data is valid at t=now, 
+        but components are defined at t=0. We must thus trace this new 
+        component back in time.
+        
         
         When age of the component is 0-1 Myr, it is not very meaningful 
         to split in age.
         Also, if a component is 'bent' and has a complex structure but
         comparable age, it makes more sense to split in spatial coordinates.
-        
-        Covariance matrix: Keep the same?
-
 
         Parameters
         ----------
-
+        data_dict: dict
+            means, covs, ...
+        
+        membership_probs: [nstars]
+            Membership probabilities for the component we are splitting.
 
         Returns
         -------
@@ -589,14 +638,14 @@ class AbstractComponent(object):
             List of the new components
         """
         
+        # Get the approximate, membership weighted mean and 
+        # covariance of data for the component we are splitting.
+        mean_today, cov_today = \
+            self.approx_currentday_distribution(data_dict, memb_probs)
         
-        # Components are stored at t=0. Project them to the current day
-        # because we want to split at t=now.
-        mean_today, cov_today = self.get_currentday_projection()
-
+        #~ print('init number of stars', np.sum(memb_probs))
         
-        #~ print('cov_today[:3,:3]', cov_today[:3,:3])
-        #~ print('cov_today[3:,3:]', cov_today[3:,3:])
+        #~ print('mean_today', mean_today)
         
         # Determine the shape of this component
         def eigsorted(cov):
@@ -607,6 +656,8 @@ class AbstractComponent(object):
         # largest eigenvalue is first
         vals, vecs = eigsorted(cov_today[:3,:3])
         #~ theta = np.arctan2(*vecs[:, 0][::-1])
+
+        #~ print(vals, vecs)
 
         # Component 1
         mean_today_comp1 = np.copy(mean_today)
@@ -625,29 +676,65 @@ class AbstractComponent(object):
         #~ print('mean_today_comp2', mean_today_comp2)
         
         
-        # New covariance matrix. NO IDEA if this is correct!
-        cov_today_halved = np.copy(cov_today)
-        for i in range(3):
-            cov_today_halved[i,i] = (np.sqrt(cov_today_halved[i,i])/2.0)**2
+        # New covariance matrices for new components
+        # Determine distances of stars from the center of a new component
+        # Take only stars that are np.sqrt(vals[0]) or closer to the
+        # component. That way stars are split between the new two components
         
+        #~ print(data_dict['means'][:,:3], mean_today_comp1[:3])
+        
+        dist1 = np.sqrt(np.sum((data_dict['means'][:,:3]-mean_today_comp1[:3])**2, axis=1))
+        #~ mask1 = dist1<np.sqrt(vals[0])
+        #~ print('mask1', np.sum(mask1))
+        
+        dist2 = np.sqrt(np.sum((data_dict['means'][:,:3]-mean_today_comp2[:3])**2, axis=1))
+        #~ mask2 = dist2<np.sqrt(vals[0])
+        #~ print('mask2', np.sum(mask2))
+        
+        
+        mask1 = dist1<dist2
+        mask2 = dist2<dist1
+        
+        #~ print('mask1', np.sum(mask1))
+        #~ print('mask2', np.sum(mask2))
+        
+        # Probabilities of stars masked as False are set to 0
+        memb_probs1 = memb_probs * mask1
+        memb_probs2 = memb_probs * mask2
+
+
+        mean_today1, cov_today1 = \
+            self.approx_currentday_distribution(data_dict, 
+                                                    memb_probs1) 
+
+        mean_today2, cov_today2 = \
+            self.approx_currentday_distribution(data_dict, 
+                                                    memb_probs2) 
+
+        #~ print('memb_probs1', np.sum(memb_probs1))
+        #~ print('memb_probs2', np.sum(memb_probs2))
+
         
         # Split was done at t=today. Now trace them back to t=0: that's
         # where they should be for the fitting procedure.
         age = self.get_age()
         
         comps = []
-        for new_mean_today in [mean_today_comp1, mean_today_comp2]:
-            # Give new component identical initial covmatrix, and a initial
-            # mean chosen to yield identical mean_now
-            new_mean = self.trace_orbit_func(new_mean_today,
-                                             times=-age)
-            new_comp = self.__class__(attributes={'mean':new_mean,
-                                                  #~ 'covmatrix':cov_today_halved,
-                                                  'covmatrix':cov_today,
+        for mean_today, cov_today in zip([mean_today1, mean_today2], 
+                                            [cov_today1, cov_today2]):
+            mean_t0 = self.trace_orbit_func(mean_today, times=-age)
+                                             
+            cov_t0 = transform_covmatrix(cov_today, 
+                        self.trace_orbit_func, mean_today, args=(-age,))
+            
+            new_comp = self.__class__(attributes={'mean':mean_t0,
+                                                  'covmatrix':cov_t0,
                                                   'age':age})
             comps.append(new_comp)
 
-        return comps
+        #~ print(self.__str__)
+
+        return comps#, memb_probs1, memb_probs2
 
     def get_peak(self, amplitude=1.):
         """

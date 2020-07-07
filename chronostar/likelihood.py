@@ -30,7 +30,10 @@ P(D|M) = P(x_1|M) * P(x_2|M) * .. * P(x_N|M) = \prod_i^N P(x_i|M)
 """
 import numpy as np
 
-from .component import SphereComponent
+from chronostar.component import SphereComponent
+#~ from chronostar import component
+#~ SphereComponent = component.SphereComponent
+#~ from . import component
 USE_C_IMPLEMENTATION = True
 try:
     from ._overlap import get_lnoverlaps as c_get_lnoverlaps
@@ -43,7 +46,7 @@ def slow_get_lnoverlaps(g_cov, g_mn, st_covs, st_mns, dummy=None):
     A pythonic implementation of overlap integral calculation.
     Left here in case swigged _overlap doesn't work.
 
-    Paramters
+    Parameters
     ---------
     g_cov: ([6,6] float array)
         Covariance matrix of the group
@@ -80,6 +83,9 @@ def calc_alpha(dx, dv, nstars):
     """
     Assuming we have identified 100% of star mass, and that average
     star mass is 1 M_sun.
+    
+    alpha>1: gravitationally unbound, it is expanding.
+    alpha<1: gravitationally bound, it is collapsing.
 
     Calculated alpha is unitless
     """
