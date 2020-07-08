@@ -1132,9 +1132,11 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                     best_ix = np.argmax(lnprob)
                     best_pars    = chain.reshape(-1, npars)[best_ix]
                     old_comps[i] = Component(emcee_pars=best_pars)
+                    print('Now start with calc_med_and_spans')
                     all_med_and_spans[i] = compfitter.calc_med_and_span(
                             chain, intern_to_extern=True, Component=Component,
                     )
+                    print('DOOONE')
 
             all_init_pars = [old_comp.get_emcee_pars()
                              for old_comp in old_comps]
