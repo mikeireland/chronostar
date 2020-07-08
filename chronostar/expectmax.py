@@ -321,9 +321,6 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     using_bg = 'bg_lnols' in data.keys()
 
     lnols = np.zeros((nstars, ncomps + using_bg))
-    
-    
-    print(comps, old_memb_probs, inc_posterior, amp_prior)
 
     # Set up old membership probabilities
     if old_memb_probs is None:

@@ -201,6 +201,8 @@ def get_lnoverlaps(comp, data, star_mask=None):
 
     # Get current day projection of component
     mean_now, cov_now = comp.get_currentday_projection()
+    
+    print('go to c')
 
     # Calculate overlap integral of each star
     if USE_C_IMPLEMENTATION:
