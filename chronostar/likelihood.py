@@ -205,7 +205,7 @@ def get_lnoverlaps(comp, data, star_mask=None):
 
     # Calculate overlap integral of each star
     if USE_C_IMPLEMENTATION:
-        print(cov_now, mean_now, star_count)
+        #~ print(cov_now, mean_now, star_count)
         lnols = c_get_lnoverlaps(cov_now, mean_now, star_covs, star_means,
                                  star_count)
     else:
