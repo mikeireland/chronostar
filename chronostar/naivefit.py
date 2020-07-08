@@ -389,7 +389,7 @@ class NaiveFit(object):
 
         """
         try:
-            print('self.final_med_and_spans_file', self.final_med_and_spans_file)
+            print('self.final_med_and_spans_file', os.path.join(run_dir, 'final/', self.final_med_and_spans_file))
             med_and_spans = np.load(os.path.join(run_dir, 'final/', self.final_med_and_spans_file))
             memb_probs = np.load(os.path.join(
                 run_dir, 'final/', self.final_memb_probs_file))
