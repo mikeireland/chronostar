@@ -1164,6 +1164,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # Until convergence is achieved (or max_iters is exceeded) iterate through
     # the Expecation and Maximisation stages
 
+    logging.info("MZ: Start EM algorithm")
+
     # TODO: put convergence checking at the start of the loop so restarting doesn't repeat an iteration
     while not all_converged and stable_state and iter_count < max_em_iterations:
         ignore_stable_comps_iter = ignore_stable_comps and (iter_count % 5 != 0)
