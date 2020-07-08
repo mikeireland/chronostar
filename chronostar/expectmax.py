@@ -1109,6 +1109,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     else:
         unstable_comps = None
 
+    logging.info("MZ: Search for previous iterations")
+    
     # Look for previous iterations and update values as appropriate
     prev_iters       = True
     iter_count       = 0
