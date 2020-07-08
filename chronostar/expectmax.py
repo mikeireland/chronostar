@@ -482,10 +482,14 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
                                     old_memb_probs=memb_probs,
                                     inc_posterior=inc_posterior)
 
+    logging.info('here')
+
     # multiplies each log overlap by the star's membership probability
     # (In linear space, takes the star's overlap to the power of its
     # membership probability)
     weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
+    
+    logging.info('here2')
     if return_memb_probs:
         return np.sum(weighted_lnols), memb_probs
     else:
