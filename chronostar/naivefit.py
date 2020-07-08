@@ -40,6 +40,7 @@ from . import tabletool
 from . import component
 from . import traceorbit
 
+# python3 throws FileNotFoundError that is essentially the same as IOError
 try:
     FileNotFoundError
 except NameError:
@@ -389,12 +390,12 @@ class NaiveFit(object):
 
         """
         try:
-            #~ print('self.final_med_and_spans_file', os.path.join(run_dir, 'final/', self.final_med_and_spans_file))
+            # This fails when gradient descent is used and med_and_spans are not meaningful.
             try:
                 med_and_spans = np.load(os.path.join(run_dir, 'final/', self.final_med_and_spans_file))
             except ValueError:
                 logging.info('med_and_spans not read. Presumably you are using gradient descent optimisation procedure?')
-                med_and_spans = None
+                med_and_spans = [None]
             memb_probs = np.load(os.path.join(
                 run_dir, 'final/', self.final_memb_probs_file))
             comps = self.Component.load_raw_components(
