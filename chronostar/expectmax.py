@@ -478,6 +478,9 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     memb_probs = expectation(data, comps,
                              old_memb_probs=old_memb_probs,
                              inc_posterior=inc_posterior)
+    
+    logging.info('here0')
+    
     all_ln_ols = get_all_lnoverlaps(data, comps,
                                     old_memb_probs=memb_probs,
                                     inc_posterior=inc_posterior)
