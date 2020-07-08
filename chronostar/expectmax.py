@@ -439,6 +439,8 @@ def expectation(data, comps, old_memb_probs=None,
     if old_memb_probs is None:
         old_memb_probs = np.ones((nstars, ncomps+using_bg)) / (ncomps+using_bg)
 
+    logging.info('start with get_allnoverlaps')
+
     # Calculate all log overlaps
     lnols = get_all_lnoverlaps(data, comps, old_memb_probs,
                                inc_posterior=inc_posterior, amp_prior=amp_prior)
@@ -486,14 +488,11 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
                                     old_memb_probs=memb_probs,
                                     inc_posterior=inc_posterior)
 
-    logging.info('here')
-
     # multiplies each log overlap by the star's membership probability
     # (In linear space, takes the star's overlap to the power of its
     # membership probability)
     weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
     
-    logging.info('here2')
     if return_memb_probs:
         return np.sum(weighted_lnols), memb_probs
     else:
@@ -1131,10 +1130,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                 old_comps = Component.load_raw_components(idir + 'best_comps.npy')
             # End up here if components aren't loadable due to change in module
             # So we rebuild from chains
-                logging.info('loaded raw comps')
             except AttributeError:
                 old_comps = ncomps * [None]
-                logging.info('raw comps are [none]')
                 for i in range(ncomps):
                     chain   = np.load(idir + 'comp{}/final_chain.npy'.format(i))
                     lnprob  = np.load(idir + 'comp{}/final_lnprob.npy'.format(i))
@@ -1146,9 +1143,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                     all_med_and_spans[i] = compfitter.calc_med_and_span(
                             chain, intern_to_extern=True, Component=Component,
                     )
-                    logging.info('DOOONE')
 
-            logging.info('all_init_pars')
             all_init_pars = [old_comp.get_emcee_pars()
                              for old_comp in old_comps]
             logging.info('old_overall_lnlike')
