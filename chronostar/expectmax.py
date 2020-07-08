@@ -1109,7 +1109,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     else:
         unstable_comps = None
 
-    logging.info("MZ: Search for previous iterations")
+    logging.info("Search for previous iterations")
     
     # Look for previous iterations and update values as appropriate
     prev_iters       = True
@@ -1123,6 +1123,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                 old_comps = Component.load_raw_components(idir + 'best_comps.npy')
             # End up here if components aren't loadable due to change in module
             # So we rebuild from chains
+                logging.info('loaded raw comps')
             except AttributeError:
                 old_comps = ncomps * [None]
                 for i in range(ncomps):
