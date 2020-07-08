@@ -52,13 +52,6 @@ except:
     logging.info("WARNING: Couldn't import C implementation, using slow pythonic overlap instead")
     from .likelihood import slow_get_lnoverlaps as get_lnoverlaps
 
-#TODO check if this is needed
-try:
-    from pathos.multiprocessing import ProcessingPool
-    use_pathos = True
-except:
-    print("WARNING: Couldn't import pathos")
-    use_pathos = False
 #from functools import partial
 
 def log_message(msg, symbol='.', surround=False):
@@ -214,123 +207,6 @@ def get_background_overlaps_with_covariances(background_means, star_means,
 
     return bg_lnols
 
-
-def get_background_overlaps_with_covariances_multiprocessing(background_means, star_means,
-                                             star_covs):
-    """
-    author: Marusa Zerjal 2019 - 05 - 25
-
-    Determine background overlaps using means and covariances for both
-    background and stars.
-    Covariance matrices for the background are Identity*bandwidth.
-
-    Parameters
-    ----------
-    background_means: [nstars,6] float array_like
-        Phase-space positions of some star set that greatly envelops points
-        in question. Typically contents of gaia_xyzuvw.npy, or the output of
-        >> tabletool.build_data_dict_from_table(
-                   '../data/gaia_cartesian_full_6d_table.fits',
-                    historical=True)['means']
-    star_means: [npoints,6] float array_like
-        Phase-space positions of stellar data that we are fitting components to
-    star_covs: [npoints,6,6] float array_like
-        Phase-space covariances of stellar data that we are fitting components to
-
-    Returns
-    -------
-    bg_lnols: [nstars] float array_like
-        Background log overlaps of stars with background probability density
-        function.
-
-    Notes
-    -----
-    We invert the vertical values (Z and U) because the typical background
-    density should be symmetric along the vertical axis, and this distances
-    stars from their siblings. I.e. association stars aren't assigned
-    higher background overlaps by virtue of being an association star.
-
-    Edits
-    -----
-    TC 2019-05-28: changed signature such that it follows similar usage as
-                   get_kernel_densitites
-    """
-    #TODO: this import should happen at the beginning of the file
-    from multiprocessing import Pool
-    import contextlib
-    import time
-
-    # Inverting the vertical values
-    star_means = np.copy(star_means)
-    star_means[:, 2] *= -1
-    star_means[:, 5] *= -1
-
-    # Background covs with bandwidth using Scott's rule
-    d = 6.0 # number of dimensions
-    nstars = background_means.shape[0]
-    bandwidth = nstars**(-1.0 / (d + 4.0))
-    background_cov = np.cov(background_means.T) * bandwidth ** 2
-    background_covs = np.array(nstars * [background_cov]) # same cov for every star
-
-    # shapes of the c_get_lnoverlaps input must be: (6, 6), (6,), (120, 6, 6), (120, 6)
-    # So I do it in a loop for every star
-
-
-    # This should be parallelized
-    #bg_lnols = [np.sum(get_lnoverlaps(star_cov, star_mean, background_covs, background_means, nstars)) for star_mean, star_cov in zip(star_means, star_covs)]
-    #print(bg_lnols)
-
-    #def func_bg(background_covs, background_means, nstars, index):
-    def func_bg(index):
-        """
-        Author: Marusa Zerjal, 2019 - 07 - 18
-
-        Multiprocessing function should be pickable
-
-        :param index:
-        :return:
-        """
-        star_mean = star_means[index]
-        star_cov = star_covs[index]
-        try:
-            bg_lnol = get_lnoverlaps(star_cov, star_mean, background_covs,
-                                     background_means, nstars)
-            bg_lnol = logsumexp(bg_lnol) # sum in linear space
-
-        # Do we really want to make exceptions here? If the sum fails then
-        # there's something wrong with the data.
-        except:
-            # TC: Changed sign to negative (surely if it fails, we want it to
-            # have a neglible background overlap?
-            print('bg ln overlap failed, setting it to -inf')
-            bg_lnol = -np.inf
-        return bg_lnol
-
-    pool = ProcessingPool(nodes=16)
-    #func = partial(func_bg, background_covs, background_means, nstars)
-    #start = time.time()
-    indices=range(len(star_means))
-    #result = pool.map(func, indices)
-    bg_lnols = pool.map(func_bg, indices)
-    #end = time.time()
-    #print(end - start, 'pathos')
-    pool.close()
-    pool.join()
-
-
-    #num_threads = 8
-    #start = time.time()
-    #indices = range(len(star_means))
-    #print('indices', indices)
-    #with contextlib.closing(Pool(num_threads)) as pool:
-    #    results = pool.map(func, tuple(indices))
-    #end = time.time()
-    #print(end - start, 'multiprocessing')
-    #print('results', results)
-
-    print(bg_lnols)
-
-    return bg_lnols
 
 def check_convergence(old_best_comps, new_chains, perc=40):
     """Check if the last maximisation step yielded is consistent to new fit

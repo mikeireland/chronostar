@@ -400,7 +400,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         while (not converged) and cnt != max_iter:
             logging.info("Burning in cnt: {}".format(cnt))
             sampler.reset()
-            init_pos, lnprob, state = sampler.run_mcmc(init_pos, burnin_steps, state)
+            init_pos, lnprob, state = sampler.run_mcmc(init_pos, burnin_steps)
             np.save(plot_dir+'lnprob_last.npy', sampler.lnprobability)
             stable = burnin_convergence(sampler.lnprobability, tol=convergence_tol)
             no_stuck = no_stuck_walkers(sampler.lnprobability)
@@ -449,7 +449,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             ))
             sampler.reset()
             # Don't need to keep track of any outputs
-            sampler.run_mcmc(init_pos, sampling_steps, state)
+            #~ sampler.run_mcmc(init_pos, sampling_steps, state)
+            sampler.run_mcmc(init_pos, sampling_steps)
             logging.info("Sampling done")
 
         # save the chain for later inspection

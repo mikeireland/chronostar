@@ -40,6 +40,11 @@ from . import tabletool
 from . import component
 from . import traceorbit
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 def dummy_trace_orbit_func(loc, times=None):
     """
     Purely for testing purposes
@@ -358,12 +363,12 @@ class NaiveFit(object):
         
         if self.fit_pars['split_group']=='age':
             if self.fit_pars['optimisation_method']=='emcee':
-                    split_comps = target_comp.splitGroup(
+                    split_comps = target_comp.split_group_age(
                         lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
                         hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
             elif self.fit_pars['optimisation_method']=='Nelder-Mead':
                 age = target_comp.get_age()
-                split_comps = target_comp.split_group( # TODO: Maybe even smaller change
+                split_comps = target_comp.split_group_age( # TODO: Maybe even smaller change
                 lo_age=0.8*age,
                 hi_age=1.2*age)
         elif self.fit_pars['split_group']=='spatial':
@@ -384,12 +389,12 @@ class NaiveFit(object):
 
         """
         try:
-            med_and_spans = np.load(run_dir + 'final/'
-                                         + self.final_med_and_spans_file)
-            memb_probs = np.load(
-                run_dir + 'final/' + self.final_memb_probs_file)
+            med_and_spans = np.load(os.path.join(run_dir, 'final/',
+                                         self.final_med_and_spans_file))
+            memb_probs = np.load(os.path.join(
+                run_dir, 'final/', self.final_memb_probs_file))
             comps = self.Component.load_raw_components(
-                    str(run_dir + 'final/' + self.final_comps_file))
+                str(os.path.join(run_dir, 'final/', self.final_comps_file)))
             logging.info('Loaded from previous run')
 
             # Handle case where Component class has been modified and can't
@@ -400,6 +405,7 @@ class NaiveFit(object):
 
             # Handle the case where files are missing, which means we must
             # perform the fit.
+        #~ except (IOError, FileNotFoundError) as e:
         except IOError:
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
