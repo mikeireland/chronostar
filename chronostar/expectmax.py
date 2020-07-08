@@ -1126,6 +1126,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                 logging.info('loaded raw comps')
             except AttributeError:
                 old_comps = ncomps * [None]
+                logging.info('raw comps are [none]')
                 for i in range(ncomps):
                     chain   = np.load(idir + 'comp{}/final_chain.npy'.format(i))
                     lnprob  = np.load(idir + 'comp{}/final_lnprob.npy'.format(i))
@@ -1139,14 +1140,17 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                     )
                     logging.info('DOOONE')
 
+            logging.info('all_init_pars')
             all_init_pars = [old_comp.get_emcee_pars()
                              for old_comp in old_comps]
+            logging.info('old_overall_lnlike')
             old_overall_lnlike, old_memb_probs = \
                     get_overall_lnlikelihood(data, old_comps,
                                              inc_posterior=False,
                                              return_memb_probs=True,)
             ref_counts = np.sum(old_memb_probs, axis=0)
 
+            logging.info('append')
             list_prev_comps.append(old_comps)
             list_prev_memberships.append(old_memb_probs)
             list_all_init_pos.append(all_init_pos)
