@@ -151,7 +151,8 @@ def lnprior(comp, memb_probs):
     if np.min(comp.get_mean()) < -100000 or np.max(comp.get_mean()) > 100000:
         return -np.inf
     # Components can be quite large. Lets let them be as large as they like.
-    if np.min(stds) <= 0.0: # or np.max(stds) > 10000.0:
+    #~ if np.min(stds) <= 0.0: # or np.max(stds) > 10000.0:
+    if np.min(stds) <= 0.0 or np.max(stds) > 1e+6:
         return -np.inf
     if comp.get_age() < 0.0 or comp.get_age() > MAX_AGE:
         return -np.inf
