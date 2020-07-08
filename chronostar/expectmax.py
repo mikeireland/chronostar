@@ -475,6 +475,7 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     -------
     overall_lnlikelihood: float
     """
+    logging.info('here00')
     memb_probs = expectation(data, comps,
                              old_memb_probs=old_memb_probs,
                              inc_posterior=inc_posterior)
