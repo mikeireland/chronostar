@@ -157,7 +157,7 @@ def test_split_group():
         age_offset = 1.
         assert age_offset < comp._age    #check that we won't get negative ages
         lo_age, hi_age = comp._age - age_offset, comp._age + age_offset
-        lo_comp, hi_comp = comp.splitGroup(lo_age, hi_age)
+        lo_comp, hi_comp = comp.split_group_age(lo_age, hi_age)
 
         assert lo_age == lo_comp.get_age()
         assert hi_age == hi_comp.get_age()

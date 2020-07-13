@@ -220,6 +220,7 @@ class NaiveFit(object):
         log_message(msg='Iteration count cap set to {}'.format(
                 self.fit_pars['max_em_iterations']),
                 symbol='+', surround=True)
+        print('printed')
 
         # Check nthreads does not exceed hardware
         if self.fit_pars['nthreads'] > cpu_count() - 1:
