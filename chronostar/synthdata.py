@@ -54,7 +54,8 @@ class SynthData():
 
     def __init__(self, pars, starcounts, measurement_error=1.0,
                  Components=SphereComponent, savedir=None,
-                 tablefilename=None, background_density=None):
+                 tablefilename=None, background_density=None,
+                 bg_span_scale=1.2):
         """
         Generates a set of astrometry data based on multiple star bursts with
         simple, Gaussian origins.
@@ -112,6 +113,7 @@ class SynthData():
             )
 
         self.background_density = background_density
+        self.bg_span_scale = bg_span_scale
 
         if savedir is None:
             self.savedir = ''
@@ -181,7 +183,7 @@ class SynthData():
     def generate_background_stars(self):
         """
         Embed association stars in a sea of background stars with
-        twice the span as current data
+        `self.bg_span_scale` * the span as current data
         """
 
         # Get the 6D means of all stars currently in table
@@ -201,7 +203,7 @@ class SynthData():
         box_centre = (data_upper_bound + data_lower_bound) / 2.
 
         data_span = data_upper_bound - data_lower_bound
-        box_span = 1.2 * data_span
+        box_span = self.bg_span_scale * data_span
         box_low = box_centre - 0.5*box_span
         box_high = box_centre + 0.5*box_span
 

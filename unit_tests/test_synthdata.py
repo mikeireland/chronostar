@@ -263,7 +263,8 @@ def test_background_component():
 
     synth_data = SynthData(pars=[upper_pars, lower_pars],
                            starcounts=starcounts,
-                           background_density=background_density)
+                           background_density=background_density,
+                           bg_span_scale=2.0)
     # synth_data.generate_all_init_cartesian()
     # synth_data.project_stars()
     synth_data.synthesise_everything()
