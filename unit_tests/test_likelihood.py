@@ -172,6 +172,12 @@ def test_lnprob_func():
                                                 data=data['comp2'])
     lnprob_comp2_data2 = likelihood.lnprob_func(pars=comps['comp2'].get_pars(),
                                                 data=data['comp2'])
+    
+    print(lnprob_comp1_data1)
+    print(lnprob_comp2_data1)
+    print(lnprob_comp1_data2)
+    print(lnprob_comp2_data2)
+    
     assert lnprob_comp1_data1 > lnprob_comp2_data1
     assert lnprob_comp2_data2 > lnprob_comp1_data2
 

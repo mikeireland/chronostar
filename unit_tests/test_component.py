@@ -147,7 +147,7 @@ def test_simple_projection():
         assert np.allclose(comp.get_covmatrix(), comp.get_covmatrix_now(),
                            atol=1e-4)
 
-def test_split_group():
+def test_split_group_age():
     """
     Splitting group by provided ages yields identical initial cov matrix,
     and identical current day mean

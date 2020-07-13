@@ -271,7 +271,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
 
 
 def lnprob_func(pars, data, memb_probs=None,
-                trace_orbit_func=None, optimisation_method=None,
+                trace_orbit_func=None, optimisation_method='emcee',
                 Component=SphereComponent, **kwargs):
     """Computes the log-probability for a fit to a group.
 

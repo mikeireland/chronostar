@@ -11,6 +11,7 @@ from chronostar import expectmax as em
 from chronostar.synthdata import SynthData
 from chronostar.component import SphereComponent
 from chronostar import tabletool
+from chronostar import expectmax
 import chronostar.synthdata as syn
 # import chronostar.retired2.measurer as ms
 # import chronostar.retired2.converter as cv
@@ -92,6 +93,85 @@ def test_expectation():
 
     assert np.allclose(true_memb_probs, fitted_memb_probs, atol=1e-10)
 
+'''
+@pytest.mark.skip
+def test_fit_many_comps_gradient_descent_with_multiprocessing():
+    """
+    Added by MZ 2020 - 07 - 13
+    
+    Test if maximisation works when using gradient descent and multiprocessing.
+    """
+    
+    
+    age = 1e-5
+    ass_pars1 = np.array([0, 0, 0, 0, 0, 0, 5., 2., age])
+    comp1 = SphereComponent(ass_pars1)
+    starcounts = [100,]
+    synth_data = SynthData(pars=[ass_pars1,],
+                           starcounts=starcounts)
+    synth_data.synthesise_everything()
+    tabletool.convert_table_astro2cart(synth_data.table)
+
+    true_memb_probs = np.zeros((np.sum(starcounts), 2))
+    true_memb_probs[:starcounts[0], 0] = 1.
+    true_memb_probs[starcounts[0]:, 1] = 1.
+    
+    
+    ncomps = len(starcounts)
+    
+    best_comps, med_and_spans, memb_probs = \
+        expectmax.fit_many_comps(synth_data.table, ncomps, 
+                   rdir='test_gradient_descent_multiprocessing', 
+                   #~ init_memb_probs=None,
+                   #~ init_comps=None,
+                   trace_orbit_func=None,
+                   optimisation_method='Nelder-Mead', 
+                   nprocess_ncomp = True,
+                   )
+'''
+
+def test_maximisation_gradient_descent_with_multiprocessing_tech():
+    """
+    Added by MZ 2020 - 07 - 13
+    
+    Test if maximisation works when using gradient descent and multiprocessing.
+    NOTE: this is not a test if maximisation returns appropriate results but
+    it only tests if the code runs withour errors. This is mainly to test
+    multiprocessing.
+    """
+    
+    
+    age = 1e-5
+    ass_pars1 = np.array([0, 0, 0, 0, 0, 0, 5., 2., age])
+    comp1 = SphereComponent(ass_pars1)
+    starcounts = [100,]
+    synth_data = SynthData(pars=[ass_pars1,],
+                           starcounts=starcounts)
+    synth_data.synthesise_everything()
+    tabletool.convert_table_astro2cart(synth_data.table)
+
+    true_memb_probs = np.zeros((np.sum(starcounts), 1))
+    true_memb_probs[:starcounts[0], 0] = 1.
+    #~ true_memb_probs[starcounts[0]:, 1] = 1.
+    
+    ncomps = len(starcounts)
+    
+    noise = np.random.rand(ass_pars1.shape[0])*5
+    
+    all_init_pars = [ass_pars1 + noise]
+
+    new_comps, all_samples, _, all_init_pos, success_mask =\
+        expectmax.maximisation(synth_data.table, ncomps, 
+                true_memb_probs, 100, 'iter00',
+                all_init_pars,
+                optimisation_method='Nelder-Mead',
+                nprocess_ncomp=True,
+                )
+
+    # TODO: test if new_comps, all_samples, _, all_init_pos, success_mask are of the right format.
+
+
+
 # def test_background_overlaps():
 #     """
 #     Author: Marusa Zerjal, 2019 - 05 - 26
@@ -108,3 +188,6 @@ def test_expectation():
     # ln_bg_ols_kde = em.get_kernel_densities(background_means,
     # #                                           star_means, )
 
+
+if __name__=='__main__':
+    test_maximisation_gradient_descent_with_multiprocessing_tech()
