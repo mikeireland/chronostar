@@ -13,6 +13,12 @@ Probably should transition to YAML format, and utilise pre-existing
 libraries for parameter input.
 """
 
+# python3 throws FileNotFoundError that is essentially the same as IOError
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 def log_used_pars(custom_pars, default_pars=None):
     """
     Write parameter record to file, making a note which have been

@@ -17,6 +17,12 @@ import logging
 import numpy as np
 import multiprocessing
 
+# python3 throws FileNotFoundError that is essentially the same as IOError
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 # The placement of logsumexp varies wildly between scipy versions
 import scipy
 _SCIPY_VERSION= [int(v.split('rc')[0])

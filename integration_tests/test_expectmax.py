@@ -25,6 +25,12 @@ from chronostar import traceorbit
 PY_VERS = sys.version[0]
 
 
+# python3 throws FileNotFoundError that is essentially the same as IOError
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 def dummy_trace_orbit_func(loc, times=None):
     """Dummy trace orbit func to skip irrelevant computation"""
     if times is not None:

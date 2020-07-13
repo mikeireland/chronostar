@@ -20,6 +20,12 @@ PARS =  np.array([
 STARCOUNTS = [50, 30]
 COMPONENTS = SphereComponent
 
+# python3 throws FileNotFoundError that is essentially the same as IOError
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 def test_initialisation():
     """Basic sanity check to see if things start off ok"""
     sd = SynthData(pars=PARS, starcounts=STARCOUNTS, Components=COMPONENTS)
