@@ -2,9 +2,11 @@ import os
 import subprocess
 from subprocess import Popen, PIPE
 import sys
+import pytest
 
 encoding = 'utf-8'
 
+@pytest.mark.skip()
 def test_mpi():
     print('test_mpi.py using python {}.{}'.format(
         *sys.version.split('.')[:2]
