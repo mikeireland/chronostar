@@ -264,7 +264,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
              pool=None, convergence_tol=0.25, plot_dir='', save_dir='',
              sampling_steps=None, max_iter=None, trace_orbit_func=None,
              store_burnin_chains=False, nthreads=1, 
-             optimisation_method=None):
+             optimisation_method=None, nprocess_ncomp=False):
     """Fits a single 6D gaussian to a weighted set (by membership
     probabilities) of stellar phase-space positions.
 
@@ -342,7 +342,13 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         the model. Default: emcee. Available: scipy.optimise.minimize with
         the Nelder-Mead method. Note that in case of the gradient descent,
         no chain is returned and meds and spans cannot be determined.
-
+    nprocess_ncomp: bool {False}
+        Compute maximisation in parallel? This is relevant only in case
+        Nelder-Mead method is used: This method computes optimisation
+        many times with different initial positions. The result is the 
+        one with the best likelihood. These optimisations are computed
+        in parallel if nprocess_ncomp equals True.
+        
     Returns
     -------
     best_component
@@ -481,40 +487,53 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         Run optimisation multiple times and select result with the
         best lnprob value as the best. Reason is that Nelder-Mead method
         turned out not to be robust enough so we need to run optimisation
-        with a few different starting points. This is done in parallel 
-        with the nwalker processes.
+        with a few different starting points. 
         
         scipy.optimize.minimize is using -likelihood.lnprob_func because
         it is minimizing rather than optimizing.
-        """
-        
+        """        
         # Initialise the initial positions (use emcee because
         # this works in this case just well).
         init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
                                           init_pars=init_pars, Component=Component,
                                           nwalkers=nwalkers)
 
-        manager = multiprocessing.Manager()
-        return_dict = manager.dict()
+        if nprocess_ncomp:
+            """
+            This is done in parallel with the nwalker processes.
+            """
 
-        def worker(pos, return_dict):
-            result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
-            return_dict[result.fun] = result
-        #TODO: tol: is this value optimal?
+            manager = multiprocessing.Manager()
+            return_dict = manager.dict()
+
+            def worker(pos, return_dict):
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
+                return_dict[result.fun] = result
+            #TODO: tol: is this value optimal?
 
 
-        jobs = []
-        for i in range(nwalkers):
-            process = multiprocessing.Process(target=worker, args=(init_pos[i], return_dict))
-            jobs.append(process)
+            jobs = []
+            for i in range(nwalkers):
+                process = multiprocessing.Process(target=worker, args=(init_pos[i], return_dict))
+                jobs.append(process)
 
-        # Start the processes
-        for j in jobs:
-            j.start()
+            # Start the processes
+            for j in jobs:
+                j.start()
 
-        # Ensure all of the processes have finished
-        for j in jobs:
-            j.join()
+            # Ensure all of the processes have finished
+            for j in jobs:
+                j.join()
+
+        else:
+            """
+            Compute optimisations in a for loop. This is slow.
+            """
+            return_dict=dict()
+            for pos in init_pos:
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
+                return_dict[result.fun] = result
+
 
         # Select the best result. Keys are lnprob values.
         keys = return_dict.keys()

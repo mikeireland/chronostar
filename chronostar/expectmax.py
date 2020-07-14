@@ -515,6 +515,7 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
                 store_burnin_chains=False,
                 nthreads=1, 
                 optimisation_method=None,
+                nprocess_ncomp=False,
                 ):
 
     """
@@ -570,6 +571,12 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
         the model. Default: emcee. Available: scipy.optimise.minimize with
         the Nelder-Mead method. Note that in case of the gradient descent,
         no chain is returned and meds and spans cannot be determined.
+    nprocess_ncomp: bool {False}
+        Compute maximisation in parallel? This is relevant only in case
+        Nelder-Mead method is used: This method computes optimisation
+        many times with different initial positions. The result is the 
+        one with the best likelihood. These optimisations are computed
+        in parallel if nprocess_ncomp equals True.
         
     Returns
     -------
@@ -609,6 +616,7 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
             store_burnin_chains=store_burnin_chains,
             nthreads=nthreads, 
             optimisation_method=optimisation_method,
+            nprocess_ncomp=nprocess_ncomp,
     )
     logging.info("Finished fit")
     logging.info("Best comp pars:\n{}".format(
