@@ -408,7 +408,8 @@ A non-exhaustive list of data preparation parameters are listed here:
   - trace_orbit_func: string or function [default = chronostar.traceorbit.trace_cartesian_orbit] [optional]
   
     The function used to calculate orbits. A string keyword can also be
-    provided: 'epicyclic', or 'dummy_trace_orbit_func'
+    provided: 'epicyclic', or 'dummy_trace_orbit_func'. Note that 'epicyclic' 
+    is epicyclic approximation that is valid only for the first few 10 Myr.
     
     Advanced:
     A custom function may be provided, as long as the signature matches:
