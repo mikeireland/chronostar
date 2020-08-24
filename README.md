@@ -452,7 +452,11 @@ A non-exhaustive list of data preparation parameters are listed here:
     a provided parameter has no default, which is typically a sign of a
     mistyped parameter name. 
    
-  
+### Read results
+Chronostar produces a set of auxiliary folders where temporary results from all the iterations are stored. This allows it to restart when it finished last time if required. When the fit has converged, a set of `npy` files is saved in your results folder. You can read these files in python with `np.load('filename.npy')`.
+- `final_comps.npy`: Array, [#comps, 9]. An array with components. Each row represents one component. Columns are `[X, Y, Z, U, V, W, dX, dV, Age]` in units pc, km/s and Myr, respectively.
+- `final_membership.npy`: Array, [#stars, #comps+1]. An array with membership probabilities for all stars from the `data_table`. The last column is background membership probability. All probabilities are normalised so that the probability for each star belonging to any of the components or background equals 1.
+
  ******** 
   
 
