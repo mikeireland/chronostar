@@ -205,7 +205,11 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
         # Exploit the component logic to generate closest set of pars
         dummy_comp = Component(attributes={'mean':rough_mean_now,
                                            'covmatrix':rough_cov_now,})
+        print("dummy: ", dummy_comp.get_pars())
+        print(dummy_comp)
+        print("Covmatrx Rough", rough_cov_now)
         init_pars = dummy_comp.get_emcee_pars()
+    # print("init_pars Check", init_pars)
 
     init_std = Component.get_sensible_walker_spread()
 
@@ -381,7 +385,6 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
                                           init_pars=init_pars, Component=Component,
                                           nwalkers=nwalkers)
-        
         # MZ: What does this line do?
         # TC: hacky (probs broken) way of forcing spawned threads to not be
         # stuck on the same cpu. TC faced some issues when trying to do multithreading
@@ -390,7 +393,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         
         sampler = emcee.EnsembleSampler(
                 nwalkers, npars, likelihood.lnprob_func,
-                args=[data, memb_probs, trace_orbit_func, optimisation_method],
+                args=[data, memb_probs, trace_orbit_func, optimisation_method, Component],
                 pool=pool,
                 threads=nthreads,
         )
@@ -471,10 +474,10 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             logging.info("Plotting done")
 
         # Identify the best component
-        best_component = get_best_component(sampler.chain, sampler.lnprobability)
+        best_component = get_best_component(sampler.chain, sampler.lnprobability, Component=Component)
 
         # Determining the median and span of each parameter
-        med_and_span = calc_med_and_span(sampler.chain)
+        med_and_span = calc_med_and_span(sampler.chain, Component=Component)
         logging.info("Results:\n{}".format(med_and_span))
 
         return best_component, sampler.chain, sampler.lnprobability
@@ -531,7 +534,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             """
             return_dict=dict()
             for pos in init_pos:
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method, Component], tol=0.01, method=optimisation_method)
                 return_dict[result.fun] = result
 
 
