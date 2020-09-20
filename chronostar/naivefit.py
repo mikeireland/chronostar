@@ -190,8 +190,10 @@ class NaiveFit(object):
         # Import suitable component class
         if self.fit_pars['component'] == 'sphere':
             self.Component = component.SphereComponent
+            print("Sphere selected in naivefit")
         elif self.fit_pars['component'] == 'ellip':
             self.Component = component.EllipComponent
+            print("Ellipse selected in naivefit")
         else:
             raise UserWarning('Unknown (or missing) component parametrisation')
 
@@ -416,6 +418,7 @@ class NaiveFit(object):
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
+                                         Component=self.Component,
                                          **self.fit_pars)
 
         # Since init_comps and init_memb_probs are only meant for one time uses
