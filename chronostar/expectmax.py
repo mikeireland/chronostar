@@ -824,9 +824,9 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                 logging.info("Skipped stable component {}".format(i))
             else:
                 best_comp, chain, lnprob, final_pos = maximise_one_comp(data,
-                    memb_probs, i, all_init_pars=all_init_pars, 
-                    all_init_pos=all_init_pos, idir=idir, 
-                    ignore_stable_comps=ignore_stable_comps, 
+                    memb_probs, i, all_init_pars=all_init_pars,
+                    all_init_pos=all_init_pos, idir=idir,
+                    ignore_stable_comps=ignore_stable_comps,
                     ignore_dead_comps=ignore_dead_comps,
                     DEATH_THRESHOLD=DEATH_THRESHOLD, unstable_comps=unstable_comps,
                     burnin_steps=burnin_steps, plot_it=plot_it,
@@ -834,7 +834,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                     Component=Component,
                     trace_orbit_func=trace_orbit_func,
                     store_burnin_chains=store_burnin_chains,
-                    nthreads=nthreads, 
+                    nthreads=nthreads,
                     optimisation_method=optimisation_method,
                     )
 
@@ -1174,7 +1174,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             list_all_med_and_spans.append(all_med_and_spans)
             list_prev_bics.append(calc_bic(data, len(old_comps),
                                            lnlike=old_overall_lnlike,
-                                           memb_probs=old_memb_probs))
+                                           memb_probs=old_memb_probs,
+                                           Component=Component))
 
             all_bics.append(list_prev_bics[-1])
 
@@ -1240,6 +1241,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                          memb_probs=memb_probs_new, idir=idir,
                          all_init_pars=all_init_pars,
                          all_init_pos=all_init_pos,
+                         Component=Component,
                          ignore_dead_comps=ignore_dead_comps,
                          trace_orbit_func=trace_orbit_func,
                          store_burnin_chains=store_burnin_chains,
@@ -1247,7 +1249,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                          ignore_stable_comps=ignore_stable_comps_iter,
                          nthreads=nthreads, 
                          optimisation_method=optimisation_method,
-                         nprocess_ncomp=nprocess_ncomp,
+                         nprocess_ncomp=nprocess_ncomp
                          )
 
         for i in range(ncomps):
