@@ -51,6 +51,7 @@ from astropy import units as u
 import string
 
 from . import transform
+from . import quaternion_rotation as quat
 from .traceorbit import trace_cartesian_orbit
 from .transform import transform_covmatrix
 #~ from chronostar.compfitter import approx_currentday_distribution
@@ -152,6 +153,9 @@ class AbstractComponent(object):
         'age':1.,
         'angle_rad':0.25*np.pi,
         'angle_deg':45.,
+        'quat':1,
+        'scaled_log_vel_std':0.5,
+        'scaled_log_std':0.5,
     }
 
     def __init__(self, pars=None, emcee_pars=None, attributes=None,
@@ -240,6 +244,7 @@ class AbstractComponent(object):
         if pars is not None or emcee_pars is not None:
             par_length = len(pars) if pars is not None else len(emcee_pars)
             if par_length != len(self.PARAMETER_FORMAT):
+                print("Parametrs difference: parameter format is {} and par_length is {}".format(len(self.PARAMETER_FORMAT),par_length))
                 raise UserWarning('Parameter length does not match '
                                   'implementation of {}. Are you using the '
                                   'correct Component class?'.\
@@ -545,6 +550,7 @@ class AbstractComponent(object):
         # approximate the (weighted) mean and covariance of star distribution
         mean_of_means = np.average(means, axis=0, weights=membership_probs)
         cov_of_means = np.cov(means.T, ddof=0., aweights=membership_probs)
+        print(cov_of_means)
         return mean_of_means, cov_of_means
 
     def get_currentday_projection(self):
@@ -1270,6 +1276,7 @@ class SphereComponent(AbstractComponent):
         """
         # If covmatrix hasn't been provided, generate from self._pars
         # and set.
+        print("Sphereeee")
         if covmatrix is None:
             dx = self._pars[6]
             dv = self._pars[7]
@@ -1295,11 +1302,29 @@ class SphereComponent(AbstractComponent):
 
 
 class EllipComponent(AbstractComponent):
+    """
+    Elliptical Component -NA
+
+    External Pars: X, Y, Z, U, V  W,
+                   dX, dY, dU, dV,
+                   x_rot, y_rot, z_rot,
+                   cov_xv, age
+    Internal Pars: X, Y, Z, U, V, W,
+                   log_dX/dY, log_dU/dY, log_dV/dY,
+                   q1, q2, q3, q4,
+                   cov_xv, age
+    Here,
+    log_dX/dY = alpha
+    log_dU/dY = beta
+    log_dV/dY = gamma
+    """
+
+    # Internal
     PARAMETER_FORMAT = ['pos', 'pos', 'pos', 'vel', 'vel', 'vel',
-                        'log_pos_std', 'log_pos_std', 'log_pos_std',
-                        'log_vel_std',
-                        'corr', 'corr', 'corr',
-                        'age']
+                        'scaled_log_std', 'scaled_log_vel_std', 'scaled_log_vel_std',
+                        'quat', 'quat', 'quat', 'quat',
+                        'corr', 'age']
+
 
     @staticmethod
     def externalise(pars):
@@ -1307,9 +1332,14 @@ class EllipComponent(AbstractComponent):
         Take parameter set in internal form (as used by emcee) and
         convert to external form (as used to build attributes).
         """
-        extern_pars = np.copy(pars)
-        extern_pars[6:10] = np.exp(extern_pars[6:10])
-        return extern_pars
+
+        size = np.linalg.norm(pars[6:9])
+        scaled_extern_pars = np.exp(pars[6:9])*size
+        euler_angles = quat.to_euler(pars[9:13])
+        return np.concatenate((pars[:6], scaled_extern_pars[0],
+                               [size],
+                               scaled_extern_pars[1:], euler_angles,
+                               pars[-2:]))
 
     @staticmethod
     def internalise(pars):
@@ -1317,27 +1347,31 @@ class EllipComponent(AbstractComponent):
         Take parameter set in external form (as used to build attributes)
         and convert to internal form (as used by emcee).
         """
+        print("Parameters sent in:", pars)
+        scaling_factor = pars[7]
+        print("scaling_factor =", scaling_factor)
         intern_pars = np.copy(pars)
-        intern_pars[6:10] = np.log(intern_pars[6:10])
-        return intern_pars
+        sigma_pars = np.delete(np.log(intern_pars[6:10]/scaling_factor), 1)
+        print("test0", intern_pars[6:10])
+        print("test1:", np.log(intern_pars[6:10]/scaling_factor))
+        print("sigma_pars =", sigma_pars)
+        quaternion = scaling_factor*quat.to_quat(intern_pars[10], intern_pars[11], intern_pars[12])
+        print("quaternion =", quaternion)
+        a = np.concatenate((intern_pars[0:6], sigma_pars, quaternion, intern_pars[-2:]))
+        print("Internalise used:", a)
+        return a
 
     def _set_covmatrix(self, covmatrix=None):
         """Builds covmatrix from self.pars. If setting from an externally
         provided covariance matrix then updates self.pars for consistency"""
         # If covmatrix hasn't been provided, generate from self._pars
         # and set.
+        print("Ellipse")
         if covmatrix is None:
-            dx, dy, dz = self._pars[6:9]
-            dv = self._pars[9]
-            c_xy, c_xz, c_yz = self._pars[10:13]
-            self._covmatrix = np.array([
-                [dx**2,      c_xy*dx*dy, c_xz*dx*dz, 0.,    0.,    0.],
-                [c_xy*dx*dy, dy**2,      c_yz*dy*dz, 0.,    0.,    0.],
-                [c_xz*dx*dz, c_yz*dy*dz, dz**2,      0.,    0.,    0.],
-                [0.,         0.,         0.,         dv**2, 0.,    0.],
-                [0.,         0.,         0.,         0.,    dv**2, 0.],
-                [0.,         0.,         0.,         0.,    0.,    dv**2],
-            ])
+            alpha, beta, gamma = self.get_emcee_pars()[6:9]
+            cov_xv = self.get_emcee_pars()[-2]
+            quatern = self.get_emcee_pars()[9:13]
+            self._covmatrix = quat.rotate(alpha, beta, gamma, cov_xv, quatern)
         # If covmatrix has been provided, reverse engineer the most
         # suitable set of parameters and update self._pars accordingly
         # (e.g. take the geometric mean of the (square-rooted) velocity
@@ -1345,18 +1379,17 @@ class EllipComponent(AbstractComponent):
         # in velocity space).
         else:
             self._covmatrix = np.copy(covmatrix)
-            pos_stds = np.sqrt(np.diagonal(self._covmatrix[:3, :3]))
-            dx, dy, dz = pos_stds
-            pos_corr_matrix = (self._covmatrix[:3, :3]
-                               / pos_stds
-                               / pos_stds.reshape(1,3).T)
-            c_xy, c_xz, c_yz = pos_corr_matrix[np.triu_indices(3,1)]
-            dv = gmean(np.sqrt(
-                np.linalg.eigvalsh(self._covmatrix[3:, 3:]))
-            )
-            self._pars[6:9] = dx, dy, dz
-            self._pars[9] = dv
-            self._pars[10:13] = c_xy, c_xz, c_yz
+            gamma = gmean(np.sqrt(
+                np.linalg.eigvalsh(self._covmatrix[-2:-1, -2:-1])))
+
+            scale_factor = gmean(np.sqrt(
+                np.linalg.eigvalsh(self._covmatrix[-2:-1, -2:-1])))
+
+            alpha = self._covmatrix[0, 0]
+            beta = self._covmatrix[3, 3]
+            cov_xv = self._covmatrix[1, 4]
+            self._pars[6:9] = alpha, beta, gamma
+            self._pars[-2] = cov_xv
 
 
 class FreeComponent(AbstractComponent):
@@ -1446,6 +1479,7 @@ class FilamentComponent(AbstractComponent):
 
     Still in demo phase.
     """
+
     # PARAMETER_FORMAT in internal format (emcee format)
     PARAMETER_FORMAT = ['pos', 'pos', 'pos', 'vel', 'vel', 'vel',
                         'log_pos_std', 'log_pos_std',
