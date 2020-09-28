@@ -1,0 +1,15 @@
+results_dir         = /priv/mulga1/marusa/bPic/result/
+#data_table          = /Users/marusa/chronostar/data/paper1/beta_Pictoris_with_gaia_small_everything_final_radial_velocity_reinit_masked.fits
+data_table 	    = /priv/mulga1/marusa/chronostar_projects/bpic/beta_Pictoris_with_gaia_small_everything_final_radial_velocity_reinit_masked.fits
+init_comps          = /priv/mulga1/marusa/bPic/result/final_comps6_from_mash_THE_FIT.npy
+
+trace_orbit_func    = epicyclic
+overwrite_prev_run  = True
+max_comp_count      = 8
+ids_colname         = gaia_dr2
+
+#input_file          = /Users/marusa/chronostar/data/paper1/beta_Pictoris_with_gaia_small_everything_final_radial_velocity.fits
+#output_file         = /Users/marusa/chronostar/data/paper1/beta_Pictoris_with_gaia_small_everything_final_radial_velocity_reinit.fits
+#convert_astrometry  = True
+#calc_overlaps       = True
+#bg_ref_table        = /Users/marusa/chronostar/data/gaia_cartesian_full_6d_table.fits

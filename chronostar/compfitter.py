@@ -393,7 +393,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         
         sampler = emcee.EnsembleSampler(
                 nwalkers, npars, likelihood.lnprob_func,
-                args=[data, memb_probs, trace_orbit_func, optimisation_method, Component],
+                args=[data, memb_probs, trace_orbit_func, Component], #optimisation_method before Component.
                 pool=pool,
                 threads=nthreads,
         )

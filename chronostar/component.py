@@ -1379,17 +1379,17 @@ class EllipComponent(AbstractComponent):
         # in velocity space).
         else:
             self._covmatrix = np.copy(covmatrix)
-            gamma = gmean(np.sqrt(
-                np.linalg.eigvalsh(self._covmatrix[-2:-1, -2:-1])))
+            #!!! This is totally not correct as we're fixing the rotation rather
+            #then getting it from the covariance matrix. We should of course
+            #diagonalise the covariance matrix and set covariance parameters to the
+            #eigenvalues. But at least this shouldn't completely fail !!!
 
-            scale_factor = gmean(np.sqrt(
-                np.linalg.eigvalsh(self._covmatrix[-2:-1, -2:-1])))
-
-            alpha = self._covmatrix[0, 0]
-            beta = self._covmatrix[3, 3]
-            cov_xv = self._covmatrix[1, 4]
-            self._pars[6:9] = alpha, beta, gamma
-            self._pars[-2] = cov_xv
+            self._pars[6] = self._covmatrix[0, 0]
+            self._pars[7] = gmean([self._covmatrix[1, 1], self._covmatrix[2, 2]])
+            self._pars[8] = self._covmatrix[3, 3]
+            self._pars[9] = gmean([self._covmatrix[1, 1], self._covmatrix[2, 2]])
+            self._pars[10:13]=0.0
+            self._cov_xv = self._covmatrix[1, 4]
 
 
 class FreeComponent(AbstractComponent):

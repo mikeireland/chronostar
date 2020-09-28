@@ -1,0 +1,7 @@
+results_dir         = result_bpic
+data_table          = /Users/marusa/chronostar/data/paper1/beta_Pictoris_with_gaia_small_everything_final_radial_velocity_reinit_masked.fits
+
+trace_orbit_func    = epicyclic
+overwrite_prev_run  = True
+max_comp_count      = 8
+ids_colname         = gaia_dr2
