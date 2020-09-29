@@ -1300,6 +1300,13 @@ class SphereComponent(AbstractComponent):
             self._pars[7] = dv
             self.set_sphere_stds()
 
+    def __str__(self):
+        x,y,z,u,v,w = self.get_mean_now()
+        return 'Spherical - Currentday(' \
+               'X: {:5.1f}pc, Y: {:5.1f}pc, Z: {:5.1f}pc, '  \
+               'U {:4.1f}km/s, V {:4.1f}km/s, W {:4.1f}km/s, ' \
+               'age: {:4.1f}Myr)'.format(x,y,z,u,v,w, self._age)
+
 
 class EllipComponent(AbstractComponent):
     """
@@ -1318,7 +1325,7 @@ class EllipComponent(AbstractComponent):
     log_dU/dY = beta
     log_dV/dY = gamma
     """
-
+# TODO: Add documentation -NA
     # Internal
     PARAMETER_FORMAT = ['pos', 'pos', 'pos', 'vel', 'vel', 'vel',
                         'scaled_log_std', 'scaled_log_vel_std', 'scaled_log_vel_std',
@@ -1336,7 +1343,7 @@ class EllipComponent(AbstractComponent):
         size = np.linalg.norm(pars[6:9])
         scaled_extern_pars = np.exp(pars[6:9])*size
         euler_angles = quat.to_euler(pars[9:13])
-        return np.concatenate((pars[:6], scaled_extern_pars[0],
+        return np.concatenate((pars[:6], [scaled_extern_pars[0]],
                                [size],
                                scaled_extern_pars[1:], euler_angles,
                                pars[-2:]))
@@ -1347,18 +1354,18 @@ class EllipComponent(AbstractComponent):
         Take parameter set in external form (as used to build attributes)
         and convert to internal form (as used by emcee).
         """
-        print("Parameters sent in:", pars)
+        # print("Parameters sent in:", pars)
         scaling_factor = pars[7]
-        print("scaling_factor =", scaling_factor)
+        # print("scaling_factor =", scaling_factor)
         intern_pars = np.copy(pars)
         sigma_pars = np.delete(np.log(intern_pars[6:10]/scaling_factor), 1)
-        print("test0", intern_pars[6:10])
-        print("test1:", np.log(intern_pars[6:10]/scaling_factor))
-        print("sigma_pars =", sigma_pars)
+        # print("test0", intern_pars[6:10])
+        # print("test1:", np.log(intern_pars[6:10]/scaling_factor))
+        # print("sigma_pars =", sigma_pars)
         quaternion = scaling_factor*quat.to_quat(intern_pars[10], intern_pars[11], intern_pars[12])
-        print("quaternion =", quaternion)
+        # print("quaternion =", quaternion)
         a = np.concatenate((intern_pars[0:6], sigma_pars, quaternion, intern_pars[-2:]))
-        print("Internalise used:", a)
+        # print("Internalise used:")
         return a
 
     def _set_covmatrix(self, covmatrix=None):
@@ -1366,18 +1373,25 @@ class EllipComponent(AbstractComponent):
         provided covariance matrix then updates self.pars for consistency"""
         # If covmatrix hasn't been provided, generate from self._pars
         # and set.
-        print("Ellipse")
+        # print("Ellipse")
         if covmatrix is None:
-            alpha, beta, gamma = self.get_emcee_pars()[6:9]
-            cov_xv = self.get_emcee_pars()[-2]
-            quatern = self.get_emcee_pars()[9:13]
-            self._covmatrix = quat.rotate(alpha, beta, gamma, cov_xv, quatern)
+            # print("new cov_mat")
+            internal_pars = np.copy(self.get_emcee_pars())
+            external_pars = np.copy(self.get_pars())
+            alpha, beta, gamma = internal_pars[6:9]
+            scaling_factor = external_pars[7]
+            cov_xv = internal_pars[-2]/scaling_factor
+            quatern = internal_pars[9:13]
+            internal_covmat = quat.rotate(alpha, beta, gamma, cov_xv, quatern)
+            self._covmatrix = internal_covmat*scaling_factor
+
         # If covmatrix has been provided, reverse engineer the most
         # suitable set of parameters and update self._pars accordingly
         # (e.g. take the geometric mean of the (square-rooted) velocity
         # eigenvalues as dv, as this at least ensures constant volume
         # in velocity space).
         else:
+            # print("given cov_mat")
             self._covmatrix = np.copy(covmatrix)
             #!!! This is totally not correct as we're fixing the rotation rather
             #then getting it from the covariance matrix. We should of course
@@ -1390,6 +1404,13 @@ class EllipComponent(AbstractComponent):
             self._pars[9] = gmean([self._covmatrix[1, 1], self._covmatrix[2, 2]])
             self._pars[10:13]=0.0
             self._cov_xv = self._covmatrix[1, 4]
+
+    def __str__(self):
+        x,y,z,u,v,w = self.get_mean_now()
+        return 'Elliptical - Currentday(' \
+               'X: {:5.1f}pc, Y: {:5.1f}pc, Z: {:5.1f}pc, '  \
+               'U {:4.1f}km/s, V {:4.1f}km/s, W {:4.1f}km/s, ' \
+               'age: {:4.1f}Myr)'.format(x,y,z,u,v,w, self._age)
 
 
 class FreeComponent(AbstractComponent):

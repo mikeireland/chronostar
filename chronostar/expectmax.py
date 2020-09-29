@@ -814,7 +814,6 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     else:
         logging.info("Maximising components in a for loop")
         for i in range(ncomps):
-            
             # If component has too few stars, skip fit, and use previous best walker
             if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
                 logging.info("Skipped component {} with nstars {}".format(

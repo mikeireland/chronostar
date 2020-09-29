@@ -206,8 +206,8 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
         dummy_comp = Component(attributes={'mean':rough_mean_now,
                                            'covmatrix':rough_cov_now,})
         print("dummy: ", dummy_comp.get_pars())
-        print(dummy_comp)
-        print("Covmatrx Rough", rough_cov_now)
+        # print(dummy_comp)
+        # print("Covmatrx Rough", rough_cov_now)
         init_pars = dummy_comp.get_emcee_pars()
     # print("init_pars Check", init_pars)
 
@@ -390,10 +390,10 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         # stuck on the same cpu. TC faced some issues when trying to do multithreading
         # on mash. Maybe MZ will have better luck :P
         # os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
-        
+
         sampler = emcee.EnsembleSampler(
                 nwalkers, npars, likelihood.lnprob_func,
-                args=[data, memb_probs, trace_orbit_func, Component], #optimisation_method before Component.
+                args=[data, memb_probs, trace_orbit_func, optimisation_method, Component], #optimisation_method before Component.
                 pool=pool,
                 threads=nthreads,
         )
