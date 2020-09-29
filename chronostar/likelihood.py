@@ -337,7 +337,9 @@ def lnprob_func(pars, data, memb_probs=None,
     if optimisation_method=='emcee':
         if not np.isfinite(lp):
             return -np.inf
-        return lp + lnlike(comp, data, memb_probs, **kwargs)
+        a =  lp + lnlike(comp, data, memb_probs, **kwargs)
+        # print(pars)
+        return a
     
     elif optimisation_method=='Nelder-Mead':
         if not np.isfinite(lp):

@@ -153,7 +153,7 @@ class AbstractComponent(object):
         'age':1.,
         'angle_rad':0.25*np.pi,
         'angle_deg':45.,
-        'quat':1,
+        'quat':0.5,
         'scaled_log_vel_std':0.5,
         'scaled_log_std':0.5,
     }
@@ -1358,14 +1358,14 @@ class EllipComponent(AbstractComponent):
         scaling_factor = pars[7]
         # print("scaling_factor =", scaling_factor)
         intern_pars = np.copy(pars)
-        sigma_pars = np.delete(np.log(intern_pars[6:10]/scaling_factor), 1)
         # print("test0", intern_pars[6:10])
         # print("test1:", np.log(intern_pars[6:10]/scaling_factor))
         # print("sigma_pars =", sigma_pars)
         quaternion = scaling_factor*quat.to_quat(intern_pars[10], intern_pars[11], intern_pars[12])
+        sigma_pars = np.delete(np.log(intern_pars[6:10]/scaling_factor), 1)
         # print("quaternion =", quaternion)
         a = np.concatenate((intern_pars[0:6], sigma_pars, quaternion, intern_pars[-2:]))
-        # print("Internalise used:")
+        # print("Internalise used:", a)
         return a
 
     def _set_covmatrix(self, covmatrix=None):

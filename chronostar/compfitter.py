@@ -199,17 +199,18 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
         The starting positions of emcee walkers
     """
     if init_pars is None:
+        print("init pars is none")
         rough_mean_now, rough_cov_now = \
             Component.approx_currentday_distribution(data=data,
                                            membership_probs=memb_probs)
         # Exploit the component logic to generate closest set of pars
         dummy_comp = Component(attributes={'mean':rough_mean_now,
                                            'covmatrix':rough_cov_now,})
-        print("dummy: ", dummy_comp.get_pars())
+        # print("dummy: ", dummy_comp.get_pars())
         # print(dummy_comp)
         # print("Covmatrx Rough", rough_cov_now)
         init_pars = dummy_comp.get_emcee_pars()
-    # print("init_pars Check", init_pars)
+    print("init_pars Check", init_pars)
 
     init_std = Component.get_sensible_walker_spread()
 
@@ -222,6 +223,8 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
                                        size=nwalkers)
     # force ages to be positive
     init_pos[:, -1] = abs(init_pos[:, -1])
+    print("init_pos: ", init_pos)
+    print("nwalkers: ", nwalkers)
     return init_pos
 
 
