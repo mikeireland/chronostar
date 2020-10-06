@@ -82,6 +82,7 @@ def to_euler(quaternion):
     :param quaternion: Quaternion to be converted
     :return: [x-axis, y-axis, z-axis] rotation
     """
+    quaternion = quat_normalise(quaternion)
     q_r = quaternion[0]
     q_i = quaternion[1]
     q_j = quaternion[2]
@@ -173,8 +174,8 @@ def quat_normalise(quaternion):
 # print("Quaternion normalised -> Euler:", euler2)
 # print("Quaternion original -> Euler -> quaternion:", to_quat(euler[0], euler[1], euler[2]))
 # print("Quaternion normalised -> Euler -> quaternion:", to_quat(euler2[0], euler2[1], euler2[2]))
-# rot_mat_ex, rot_mat_transpose_ex = rotation_matrix(q1)
-# rot_mat2_ex, rot_mat_transpose2_ex = rotation_matrix(q2)
+# # rot_mat_ex, rot_mat_transpose_ex = rotation_matrix(q1)
+# # rot_mat2_ex, rot_mat_transpose2_ex = rotation_matrix(q2)
 # # print("6D rotation matrix: \n", rot_mat_ex)
 # # print("6D rotation matrix normalised: \n", rot_mat2_ex)
 # # print("Quaternion original -> non_norm Euler:", non_norm_to_euler(q1))

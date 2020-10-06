@@ -1338,9 +1338,11 @@ class EllipComponent(AbstractComponent):
         """
         Take parameter set in internal form (as used by emcee) and
         convert to external form (as used to build attributes).
+
+        Algorithm: Takes in
         """
 
-        size = np.linalg.norm(pars[6:9])
+        size = np.linalg.norm(pars[9:13])
         scaled_extern_pars = np.exp(pars[6:9])*size
         euler_angles = quat.to_euler(pars[9:13])
         return np.concatenate((pars[:6], [scaled_extern_pars[0]],
