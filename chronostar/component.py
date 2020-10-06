@@ -1339,7 +1339,12 @@ class EllipComponent(AbstractComponent):
         Take parameter set in internal form (as used by emcee) and
         convert to external form (as used to build attributes).
 
-        Algorithm: Takes in
+        Algorithm: Takes in a parameters in internal format.
+        - size is the norm of the quaternion.
+        - size is used to scale the standard deviations back to its
+        original size.
+        - The quaternions are converted to euler angles.
+        - The edited parts are concatenated and returned.
         """
 
         size = np.linalg.norm(pars[9:13])
@@ -1355,6 +1360,16 @@ class EllipComponent(AbstractComponent):
         """
         Take parameter set in external form (as used to build attributes)
         and convert to internal form (as used by emcee).
+
+        Algorithm: Takes in parameters in external format.
+        - scaling_factor is the size of the dispersion in Y and Z directions.
+        - quaternion is derived from the euler angles and are scaled to hold the
+        scaling factor.
+        - The standard deviations are divided by the scaling_factor.
+        - This means the deviation in Y and Z directions are 1, so it is
+        removed using np.delete (Note: std in Y and Z are the same in ellipse,
+        so it is saved as a single element)
+        - The edited parts are concatenated and returned.
         """
         # print("Parameters sent in:", pars)
         scaling_factor = pars[7]
@@ -1372,7 +1387,16 @@ class EllipComponent(AbstractComponent):
 
     def _set_covmatrix(self, covmatrix=None):
         """Builds covmatrix from self.pars. If setting from an externally
-        provided covariance matrix then updates self.pars for consistency"""
+        provided covariance matrix then updates self.pars for consistency
+
+        Algorithm: If the covariance matrix is not given:
+        - collect required parameters from internal and external pars.
+        - Required- scaled std dev (alpha, beta and gamma), scaling factor,
+        covariance (scaled, as it will be rescaled to original after being
+        inserted into the matrix), quaternion (for rotation)
+        - quat.rotate returns a rotated covariance matrix.
+        - the covariance matrix is rescaled to hold external parameters.
+        """
         # If covmatrix hasn't been provided, generate from self._pars
         # and set.
         # print("Ellipse")
@@ -1380,7 +1404,7 @@ class EllipComponent(AbstractComponent):
             # print("new cov_mat")
             internal_pars = np.copy(self.get_emcee_pars())
             external_pars = np.copy(self.get_pars())
-            alpha, beta, gamma = internal_pars[6:9]
+            alpha, beta, gamma = np.exp(internal_pars[6:9])
             scaling_factor = external_pars[7]
             cov_xv = internal_pars[-2]/scaling_factor
             quatern = internal_pars[9:13]
