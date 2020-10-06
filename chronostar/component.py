@@ -1431,14 +1431,6 @@ class EllipComponent(AbstractComponent):
             self._pars[10:13]=0.0
             self._cov_xv = self._covmatrix[1, 4]
 
-    def __str__(self):
-        x,y,z,u,v,w = self.get_mean_now()
-        return 'Elliptical - Currentday(' \
-               'X: {:5.1f}pc, Y: {:5.1f}pc, Z: {:5.1f}pc, '  \
-               'U {:4.1f}km/s, V {:4.1f}km/s, W {:4.1f}km/s, ' \
-               'age: {:4.1f}Myr)'.format(x,y,z,u,v,w, self._age)
-
-
 class FreeComponent(AbstractComponent):
     PARAMETER_FORMAT = ['pos', 'pos', 'pos', 'vel', 'vel', 'vel',
                         'log_pos_std', 'log_pos_std', 'log_pos_std',
