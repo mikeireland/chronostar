@@ -6,6 +6,7 @@ from __future__ import print_function, division, unicode_literals
 
 from astropy.table import Table, join
 import numpy as np
+import pytest
 
 import sys
 sys.path.insert(0,'..')
@@ -278,6 +279,87 @@ def test_background_component():
     assert np.allclose(1.0, np.max(means, axis=0), atol=0.1)
     assert np.allclose(0.0, np.min(means, axis=0), atol=0.1)
     assert len(synth_data.table) == background_density + 2
+
+def test_non_spherical_component():
+    from chronostar.component import FreeComponent
+
+
+    XU_CORR = 0.5
+    NSTARS = 1000
+
+    # Initialise pars with everything = 0
+    my_free_pars = np.zeros(len(FreeComponent.PARAMETER_FORMAT))
+
+    # Set standard deviations to 1.
+    # WARNING! Rederivation of correlation relies on standard deviations
+    # being set to 1.
+    my_free_pars[6:12] = 1.
+    my_free_pars[14] = XU_CORR  # Set XU correlation to XU_CORR
+
+    my_free_comp = FreeComponent(pars=my_free_pars)
+
+    my_synth_data = SynthData(pars=my_free_pars, starcounts=NSTARS,
+                              Components=FreeComponent)
+    my_synth_data.generate_all_init_cartesian()
+    ##  Don't actually need everything
+    ##  my_synth_data.synthesise_everything()
+
+    # Use this for initial star positions
+    mean_colnames = [el + '0' for el in
+                     'xyzuvw']
+    ##  Use this for current day star positions, will need to uncomment
+    ##  synthesise_everything() though
+    ##  mean_colnames = [el+'_now' for el in 'xyzuvw']
+
+    means = tabletool.build_data_dict_from_table(
+            my_synth_data.table[2:],
+            main_colnames=mean_colnames,
+            only_means=True,
+    )
+
+    # Extract only the X and U positions
+    xu_pos = means[:,np.array([0,3])]
+
+    # Calculate xu correlation of synthesised stars via their covariance
+    calc_xu_corr = np.cov(xu_pos.T)[0,1]
+
+    assert np.isclose(calc_xu_corr, XU_CORR, atol=0.05)
+
+
+@pytest.mark.skip(reason="Need Neelish to insert (and initialise) his component")
+def test_neelish_component():
+    from chronostar.component import SomeComponent as NeelishComponent
+
+    XU_CORR = 0.5
+    NSTARS = 1000
+
+    # Initialise pars with everything = 0
+    my_pars = np.zeros(len(NeelishComponent.PARAMETER_FORMAT))
+
+    # Initialise other parameters
+    # !<TODO: Initialise your desired parameters here to yield required xu correlation >
+    # !<TODO: For simplicity set standard deviations to 1. >
+
+    # Generate synthetic data, but only initial mean positions
+    my_synth_data = SynthData(pars=my_pars, starcounts=NSTARS,
+                              Components=NeelishComponent)
+    my_synth_data.generate_all_init_cartesian()
+
+    # Build an array of means from stars' initial positions
+    mean_colnames = [el + '0' for el in 'xyzuvw']
+    means = tabletool.build_data_dict_from_table(
+            my_synth_data.table[2:],
+            main_colnames=mean_colnames,
+            only_means=True,
+    )
+
+    # Extract only the X and U positions
+    xu_pos = means[:,np.array([0,3])]
+
+    # Calculate xu correlation of synthesised stars via their covariance
+    calc_xu_corr = np.cov(xu_pos.T)[0,1]
+
+    assert np.isclose(calc_xu_corr, XU_CORR, atol=0.05)
 
 if __name__ == '__main__':
     pass
