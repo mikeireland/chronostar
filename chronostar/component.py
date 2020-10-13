@@ -1147,11 +1147,32 @@ class AbstractComponent(object):
         Conveniently displays the component on the provided axes (or most
         recently used axes) on the provided phase-space plane.
 
-        :param ax:
-        :param comp_now:
-        :param comp_then:
-        :param color:
-        :return:
+        Parameters
+        ----------
+            dim1: integer (0-5) -or- character from 'xyzuvw' or 'XYZUVW'
+                dimension to be plotted on the x axis
+            dim2: integer (0-5) -or- character from 'xyzuvw' or 'XYZUVW'
+                dimension to be plotted on the y axis
+            ax: axes object {None}
+                Can optionally provide the pyplot axes object on which you
+                wish to plot
+                If not provided, automatically grabs most recently used axes
+                object.
+            comp_now : bool {True}
+                Set True to plot an ellipse for the current day distrubtion
+            comp_then : bool {False}
+                Set True to plot an ellipse for the initial distribution (at
+                the components "birth")
+            color : string {'red'}
+                The color of the ellipses
+            comp_orbit : bool {False}
+                Set True to plot a line with arrow heads that denotes the
+                trajectory of the centre of the component from birth to
+                current day
+            mzorder: Integer
+                The priority of overlay. The higher the number, the more 'ontop
+                of' the plot the ellipse will be.
+            Additional keyword arguments are pass on to the ellipse patch.
         """
         if ax is None:
             ax = plt.gca()
