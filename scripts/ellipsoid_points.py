@@ -62,5 +62,7 @@ fig = plt.figure()
 ax = fig.add_subplot(111)
 # ~ ax.scatter(pnts[:,0], pnts[:,1], pnts[:,2], s=2)
 ax.scatter(pnts[:, 0], pnts[:, 1], s=2)
+print(pnts[:,0])
+
 # ~ ax.scatter(pnts2[:,0], pnts2[:,1], pnts2[:,2], s=2)
 plt.show()
