@@ -179,6 +179,10 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
     # Generate means
     if table.masked:
         raise UserWarning('Table is masked! Replace or remove problem columns')
+    if not isinstance(main_colnames, list):
+        main_colnames = [main_colnames]
+    print("main col names: ", main_colnames)
+    print("table[col]: ", table.colnames)
     means = np.vstack([table[col] for col in main_colnames]).T
     if only_means:
         return means

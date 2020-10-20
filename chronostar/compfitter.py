@@ -210,7 +210,7 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
         # print(dummy_comp)
         # print("Covmatrx Rough", rough_cov_now)
         init_pars = dummy_comp.get_emcee_pars()
-    print("init_pars Check", init_pars)
+    # print("init_pars Check", init_pars)
 
     init_std = Component.get_sensible_walker_spread()
 
@@ -223,8 +223,8 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
                                        size=nwalkers)
     # force ages to be positive
     init_pos[:, -1] = abs(init_pos[:, -1])
-    print("init_pos: ", init_pos)
-    print("nwalkers: ", nwalkers)
+    # print("init_pos: ", init_pos)
+    # print("nwalkers: ", nwalkers)
     return init_pos
 
 

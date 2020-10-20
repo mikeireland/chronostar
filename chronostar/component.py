@@ -1276,7 +1276,6 @@ class SphereComponent(AbstractComponent):
         """
         # If covmatrix hasn't been provided, generate from self._pars
         # and set.
-        print("Sphereeee")
         if covmatrix is None:
             dx = self._pars[6]
             dv = self._pars[7]

@@ -38,7 +38,7 @@ apply_cart_cuts     = False
 # cut_colname         = None
 
 # Parameters for calculating overlaps
-calc_overlaps       = True
+calc_overlaps       = False
 bg_ref_table        = gaia_cartesian_full_6d_table.fits
 #bg_col_name         = background_log_overlap
-bg_main_colnames    = bg_lnols
+bg_main_colnames    = background_log_overlap
