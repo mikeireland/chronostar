@@ -38,7 +38,7 @@ class SynthData():
 
     DEFAULT_NAMES = (
         'name', 'component', 'age',
-        'X', 'Y', 'Z', 'U', 'V', 'W',
+        'x0', 'y0', 'z0', 'u0', 'v0', 'w0',
         'x_now', 'y_now', 'z_now', 'u_now', 'v_now', 'w_now',
         'ra', 'ra_error', 'dec', 'dec_error', 'parallax', 'parallax_error',
         'pmra', 'pmra_error', 'pmdec', 'pmdec_error',
@@ -50,7 +50,7 @@ class SynthData():
 
     # Define here, because apparently i can't be trusted to type a string
     # in a correct order
-    cart_labels = 'XYZUWVW'
+    cart_labels = 'xyzuvw'
 
     def __init__(self, pars, starcounts, measurement_error=1.0,
                  Components=SphereComponent, savedir=None,

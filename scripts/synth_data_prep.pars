@@ -1,0 +1,44 @@
+# This is an example parameter file for prepare_data.py
+# To see detailed description of each parameter, see the main README.md
+# document.
+# It is advised to not edit this file directly, but to copy it into
+# your working directory. Replace relevant file paths below with the
+# relative path from the working directory. Then perform data preparation
+# with:
+# > python /path/to/chronostar/prepare_data.py your_data_prep.pars
+
+# Some filenames
+part_log_file       = data_pars_record.pars
+input_file          = data_table.fits
+output_file         = synth_data_table.fits
+
+# General usage flags
+overwrite_datafile  = True
+return_data_table   = False
+
+# Can optionally convert from astrometry to LSR, helio(ish) centred
+# cartesian data.
+convert_astrometry  = True
+
+# Can optionally provide custom column names
+astr_main_colnames  = [ra,dec,parallax,pmra,pmdec,radial_velocity] # The default, leaving
+                                                                   # blank would have same effect
+astr_error_colnames = [ra_error,dec_error,parallax_error,pmra_error,pmdec_error,radial_velocity_error]
+cart_main_colnames  = [X,Y,Z,U,V,W]         # This is the default, leaving
+                                            # blank would have same effect
+cart_error_colnames = [X_error,Y_error,Z_error,U_error,V_error,W_error]
+#cart_corr_colnames  =
+
+# Parameters for applying data cuts in cartesian space
+apply_cart_cuts     = False
+# cut_on_region       = False
+# cut_ref_table       = None
+# convert_ref_table   = False
+# cut_assoc_name      = None
+# cut_colname         = None
+
+# Parameters for calculating overlaps
+calc_overlaps       = True
+bg_ref_table        = gaia_cartesian_full_6d_table.fits
+#bg_col_name         = background_log_overlap
+bg_main_colnames    = bg_lnols

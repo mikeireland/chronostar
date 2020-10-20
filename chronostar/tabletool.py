@@ -455,6 +455,8 @@ def insert_column(table, col_data, col_name, filename=''):
     table: astropy table
         The same table, with the modification.
     """
+    print("col_data length: ",len(col_data))
+    print("table length: ", len(table))
     table[col_name] = col_data
     if filename != '':
         # TODO work out proper way to writ etables that is consistnet across python

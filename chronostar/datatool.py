@@ -339,7 +339,8 @@ def prepare_data(custom_pars):
                 error_colnames=data_pars['cart_error_colnames'],
                 corr_colnames=data_pars['cart_corr_colnames'],
         )
-
+        print("bg_star_means: ",len(bg_star_means))
+        print("input_data_dict: ", input_data_dict)
         #TODO: A parallelised version of this exists, incorporate it?
         #TODO: Check database for precomputed bgoverlaps
         ln_bg_ols = expectmax.get_background_overlaps_with_covariances(
@@ -348,6 +349,7 @@ def prepare_data(custom_pars):
                 star_covs=input_data_dict['covs'],
         )
 
+        print("ln_bg_ols length: ", len(ln_bg_ols))
         tabletool.insert_column(table=data_table,
                                 col_data=ln_bg_ols,
                                 col_name=data_pars['bg_col_name'],

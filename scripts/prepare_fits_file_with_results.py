@@ -24,8 +24,8 @@ import string
 
 import os
 import sys
-#sys.path.insert(0, '../')
-sys.path.insert(0, '/home/marusa/chronostar/chronostar/') # TODO: hardcoded
+sys.path.insert(0, '../')
+# sys.path.insert(0, '/home/marusa/chronostar/chronostar/') # TODO: hardcoded
 import readparam
 
 if len(sys.argv)<3:
