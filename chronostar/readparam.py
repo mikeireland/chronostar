@@ -91,7 +91,6 @@ def readParam(param_file, default_pars=None, noCheck=False):
 
         # Read the file
         for line in fp:
-
             # Skip blank and comment lines
             if line == '\n':
                 continue
@@ -103,17 +102,14 @@ def readParam(param_file, default_pars=None, noCheck=False):
             if len(linesplit) < 2:
                 print("Error parsing input line: " + line)
                 raise IOError
-    #         if linesplit[1] == '':
-    #             print("Error parsing input line: " + line)
-    #             raise IOError
 
             # Trim trailing comments from portion after equal sign
             linesplit2 = linesplit[1].split('#')
 
-            # Store token-value pairs, as strings for now. Type conversion
-            # happens below.
-            if linesplit2 != '':
-                # linesplit2[0].replace("'",'')
+            # If right side has a non empty value, then we
+            # store token-value pairs, as strings for now.
+            # Type conversion happens below.
+            if linesplit2[0].strip() != '':
                 custom_pars[linesplit[0].strip()] = linesplit2[0].strip()
 
     # Try converting parameters to bools or numbers, for convenience

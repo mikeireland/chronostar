@@ -16,7 +16,7 @@ from . import expectmax
 
 DEFAULT_PARS = {
     'input_file':'',
-    'convert_astrometry':False,
+    'convert_astrometry':True,
 
     'astr_main_colnames':None,
     'astr_error_colnames':None,
@@ -272,7 +272,10 @@ def prepare_data(custom_pars):
                               ' bg_ref_table`.')
 
     # Establish what column names are
-    data_table = Table.read(data_pars['input_file'])
+    try:
+        data_table = Table.read(data_pars['input_file'])
+    except AttributeError:
+        data_table = data_pars['input_file']
 
     if data_pars['convert_astrometry']:
         # --------------------------------------------------

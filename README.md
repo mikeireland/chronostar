@@ -150,7 +150,7 @@ A non-exhaustive list of data preparation parameters are listed here:
     proper motions, radial velocity [optional]). This file can be the
     output of a previous call to `prepare_data()`, with cartesian data,
     background overlaps etc.
-  - convert_astrometry: "True" or "False" [def = 'False'] [optional]
+  - convert_astrometry: "True" or "False" [def = 'True'] [optional]
     
     If "True", convert astrometric data in table into cartesian, adding
     designated columns for storing these.
