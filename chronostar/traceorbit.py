@@ -286,7 +286,7 @@ def convert_cart2curvilin(data, ro=8., vo=220.,
 
     curvilin_coordinates = np.array([xi, eta, zeta, xidot, etadot, zetadot])
 
-    return curvilin_coordinates
+    return curvilin_coordinates.T
 
 
 def convert_curvilin2cart(data, ro=8., vo=220.,

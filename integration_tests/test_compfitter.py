@@ -9,7 +9,7 @@ from chronostar.component import SphereComponent
 from chronostar.synthdata import SynthData
 from chronostar.traceorbit import trace_cartesian_orbit
 from chronostar import tabletool
-import chronostar.compfitter as gf
+from chronostar import compfitter
 
 PY_VERS = sys.version[0]
 
@@ -40,7 +40,7 @@ def run_fit_helper(true_comp, starcounts, measurement_error,
     tabletool.convert_table_astro2cart(synth_data.table,
                                        write_table=True,
                                        filename=data_filename)
-    res = gf.fit_comp(
+    res = compfitter.fit_comp(
             data=synth_data.table,
             plot_it=True,
             burnin_steps=burnin_step,
