@@ -8,6 +8,7 @@ sys.path.insert(0,'..')
 from chronostar.component import SphereComponent
 from chronostar.synthdata import SynthData
 from chronostar.traceorbit import trace_cartesian_orbit
+from chronostar.traceorbit import trace_epicyclic_orbit
 from chronostar import tabletool
 from chronostar import compfitter
 
@@ -99,6 +100,7 @@ def test_stationary_component():
     assert np.allclose(true_comp.get_covmatrix(),
                        best_comp.get_covmatrix(),
                        atol=2.0)
+    return best_comp, chain, lnprob
 
 def test_lcc_like():
     """
@@ -128,6 +130,7 @@ def test_lcc_like():
             true_comp=true_comp, starcounts=nstars,
             measurement_error=tiny_measurement_error,
             burnin_step=short_burnin_step,
+            trace_orbit_func=trace_epicyclic_orbit,
             run_name='lcc_like',
     )
 
@@ -144,4 +147,4 @@ def test_lcc_like():
                        atol=5.0)
 
 if __name__ == '__main__':
-    true_comp, best_comp = test_stationary_component()
+    true_comp, best_comp, lnprob = test_stationary_component()
