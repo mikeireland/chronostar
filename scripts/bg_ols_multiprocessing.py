@@ -70,7 +70,7 @@ size=comm.Get_size()
 rank=comm.Get_rank()
 if rank == 0:
     # PREPARE STELLAR DATA
-    datafile = 'neeleshs_ellipse_synth_data.fits' # SHOULD BE CARTESIAN
+    datafile = 'synthData_ellip.fits' # SHOULD BE CARTESIAN
     data_table = tabletool.read(datafile)
     historical = 'c_XU' in data_table.colnames
     #data_table = data_table[:20] #TODO for testing
