@@ -37,9 +37,12 @@ my_free_pars[5] = 0.5
 my_free_pars[6] = 5     # dX pc
 my_free_pars[7] = 2     # dV or dU? km/s
 my_free_pars[8] = 2     # dV or dU? km/s
-my_free_pars[9:13] = 1.      # Set quaternians to 1(?)
+my_free_pars[9] = 0.9     # Set quaternians to 1(?)
+my_free_pars[10] = 0.3
+my_free_pars[11] = 0.7
+my_free_pars[12] = 0.5
 my_free_pars[13] = XU_CORR   # Set XU correlation to XU_CORR
-my_free_pars[-1] = 18. # Age in Myr
+my_free_pars[-1] = 19. # Age in Myr
 
 print('my_free_pars', my_free_pars)
 # my_free_comp = EllipComponent(pars=my_free_pars)
@@ -70,16 +73,32 @@ plt.plot(my_table['x0'], my_table['u0'], '.', c='b')
 my_synth_data.components[0].plot('X', 'U', comp_then=True, comp_now=True, comp_orbit=True)
 plt.xlabel('X')
 plt.ylabel('U')
-plt.savefig('xu.png')
+plt.savefig('../scripts/synthData_plot_of_xu.png')
+plt.clf()
+
+plt.plot(my_table['x_now'], my_table['y_now'], '.', c='r')
+plt.plot(my_table['x0'], my_table['y0'], '.', c='b')
+my_synth_data.components[0].plot('X', 'Y', comp_then=True, comp_now=True, comp_orbit=True)
+plt.xlabel('X')
+plt.ylabel('Y')
+plt.savefig('../scripts/synthData_plot_of_xy.png')
+plt.clf()
+
+plt.plot(my_table['z_now'], my_table['w_now'], '.', c='r')
+plt.plot(my_table['z0'], my_table['w0'], '.', c='b')
+my_synth_data.components[0].plot('Z', 'W', comp_then=True, comp_now=True, comp_orbit=True)
+plt.xlabel('Z')
+plt.ylabel('W')
+plt.savefig('../scripts/synthData_plot_of_zw.png')
 plt.clf()
 
 # plt.plot(means[:,0], means[:,4], '.')
-plt.plot(my_table['x_now'], my_table['v_now'], '.', c='r')
-plt.plot(my_table['x0'], my_table['v0'], '.', c='b')
-my_synth_data.components[0].plot('X', 'V', comp_then=True)
-plt.xlabel('X')
+plt.plot(my_table['y_now'], my_table['v_now'], '.', c='r')
+plt.plot(my_table['y0'], my_table['v0'], '.', c='b')
+my_synth_data.components[0].plot('Y', 'V', comp_then=True, comp_now=True, comp_orbit=True)
+plt.xlabel('Y')
 plt.ylabel('V')
-plt.savefig('xv.png')
+plt.savefig('../scripts/synthData_plot_of_yv.png')
 plt.clf()
 
 xu_pos = means[:,np.array([0,3])]
@@ -87,7 +106,7 @@ xu_pos = means[:,np.array([0,3])]
 print('means')
 print(means)
 
-data_filename = '../scripts/neeleshs_ellipse_synth_data.fits'
+data_filename = '../scripts/synthData_ellip.fits'
 tt.convert_table_astro2cart(my_synth_data.table, write_table=True,
                                        filename=data_filename)
 #  res = compfitter.fit_comp(
