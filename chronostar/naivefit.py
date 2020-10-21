@@ -117,7 +117,10 @@ class NaiveFit(object):
         #'init_memb_probs':None,     # TODO: IMPLEMENT THIS
 
         # Provide a string name that corresponds to a ComponentClass
+        # An actual Component Class will be inserted into the paramter
+        # dictionary to be passed into expectmax
         'component':'sphere',
+
         'max_comp_count':20,
         'max_em_iterations':200,
         'nthreads':1,     # TODO: NOT IMPLEMENTED
@@ -190,8 +193,10 @@ class NaiveFit(object):
         # Import suitable component class
         if self.fit_pars['component'] == 'sphere':
             self.Component = component.SphereComponent
+            self.fit_pars['Component'] = component.SphereComponent
         elif self.fit_pars['component'] == 'ellip':
             self.Component = component.EllipComponent
+            self.fit_pars['Component'] = component.EllipComponent
         else:
             raise UserWarning('Unknown (or missing) component parametrisation')
 
