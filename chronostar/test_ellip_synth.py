@@ -24,10 +24,10 @@ print('my_free_pars', len(my_free_pars))
          #~ 6.88541797e+00,   1.03224232e-01,   1.71029792e-02,
         #~ -5.83117935e-01,   2.59619018e+00,   1.77044518e+01]
 
-#     PARAMETER_FORMAT = [‘pos’, ‘pos’, ‘pos’, ‘vel’, ‘vel’, ‘vel’,
-#                         ‘scaled_log_std’, ‘scaled_log_vel_std’, ‘scaled_log_vel_std’,
-#                         ‘quat’, ‘quat’, ‘quat’, ‘quat’,
-#                         ‘corr’, ‘age’]`
+# PARAMETER_FORMAT = ['pos', 'pos', 'pos', 'vel', 'vel', 'vel',
+#                     'scaled_log_std', 'scaled_log_vel_std', 'scaled_log_vel_std',
+#                     'quat', 'quat', 'quat', 'quat',
+#                     'corr', 'age']
 my_free_pars[0] = 31.0
 my_free_pars[1] = 50.0
 my_free_pars[2] = 24.0
