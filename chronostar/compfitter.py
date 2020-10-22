@@ -100,7 +100,8 @@ def stuck_walker(walker_lnprob, max_repeat=100):
 
 def no_stuck_walkers(lnprob):
     """
-    Examines lnprob to see if any walkers have flatlined far from pack
+    Examines lnprob to see if any walkers have flatlined far from pack.
+    Good walkers are True, stuck walkers are False.
 
     Parameters
     ----------
@@ -111,6 +112,8 @@ def no_stuck_walkers(lnprob):
     -------
     res: boolean
         True if no walkers have flat-lined far from the pack
+    stuck_walker_checks: [boolean]
+        List of boolean values for all the walkers
     """
 
     stuck_walker_checks = []
@@ -119,7 +122,7 @@ def no_stuck_walkers(lnprob):
 
     res = not np.any(stuck_walker_checks)
     logging.info("No stuck walkers? {}".format(res))
-    return res
+    return res, stuck_walker_checks
 
 
 def burnin_convergence(lnprob, tol=0.25, slice_size=100, cutoff=0, debug=False):
@@ -409,7 +412,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             init_pos, lnprob, state = sampler.run_mcmc(init_pos, burnin_steps)
             np.save(plot_dir+'lnprob_last.npy', sampler.lnprobability)
             stable = burnin_convergence(sampler.lnprobability, tol=convergence_tol)
-            no_stuck = no_stuck_walkers(sampler.lnprobability)
+            no_stuck, stuck_walker_checks = no_stuck_walkers(sampler.lnprobability)
 
             # For debugging cases where walkers have stabilised but apparently some are stuck
             if (stable and not no_stuck) or store_burnin_chains:
@@ -428,9 +431,11 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             # If about to burnin again, help out the struggling walkers by shifting
             # them to the best walker's position
             if not converged:
-                best_ix = np.argmax(lnprob)
+                lnprob_not_stuck = lnprob[stuck_walker_checks]
+                
+                best_ix = np.argmax(lnprob_not_stuck)
                 #TODO : Identify walkers with NaNs!
-                poor_ixs = np.where(lnprob < np.percentile(lnprob, 33))
+                poor_ixs = np.where(lnprob_not_stuck < np.percentile(lnprob_not_stuck, 33))
                 for ix in poor_ixs:
                     init_pos[ix] = init_pos[best_ix]
 
