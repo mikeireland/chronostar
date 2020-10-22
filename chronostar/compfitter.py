@@ -122,7 +122,7 @@ def no_stuck_walkers(lnprob):
 
     res = not np.any(stuck_walker_checks)
     logging.info("No stuck walkers? {}".format(res))
-    return res, stuck_walker_checks
+    return res, [not x for x in stuck_walker_checks]
 
 
 def burnin_convergence(lnprob, tol=0.25, slice_size=100, cutoff=0, debug=False):
