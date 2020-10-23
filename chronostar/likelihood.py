@@ -31,6 +31,7 @@ P(D|M) = P(x_1|M) * P(x_2|M) * .. * P(x_N|M) = \prod_i^N P(x_i|M)
 import numpy as np
 
 from chronostar.component import SphereComponent
+from chronostar.component import EllipComponent
 #~ from chronostar import component
 #~ SphereComponent = component.SphereComponent
 #~ from . import component
@@ -163,6 +164,13 @@ def lnprior(comp, memb_probs):
     # Check correlations are valid
     if not np.all(np.linalg.eigvals(covmatrix) > 0):
         return -np.inf
+
+    if isinstance(comp, EllipComponent):
+        pars = comp.get_pars()
+        if pars[7]>pars[6]:
+            return -np.inf
+        if pars[9]>pars[8]:
+            return -np.inf
 
     return ln_alpha_prior(comp, memb_probs, sig=1.0)
 
