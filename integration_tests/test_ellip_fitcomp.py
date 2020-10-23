@@ -216,7 +216,7 @@ def test_any_age_comp(age=19):
     best_comp, chain, lnprob = run_fit_helper(
             true_comp=true_comp, starcounts=nstars,
             measurement_error=measurement_error,
-            run_name='03_age_%.1e'%true_comp_age,
+            run_name='07_age_%.1e'%true_comp_age,
             burnin_step=burnin_step,
             trace_orbit_func=trace_epicyclic_orbit,
     )
@@ -231,14 +231,12 @@ def test_any_age_comp(age=19):
     edited_best_comp, edited_chain, edited_lnprob = run_fit_helper(
             true_comp=true_comp, starcounts=nstars,
             measurement_error=measurement_error,
-            run_name='03_Edited_age_%.1e'%true_comp_age,
+            run_name='07_Edited_age_%.1e'%true_comp_age,
             burnin_step=burnin_step,
             trace_orbit_func=trace_epicyclic_orbit,
             init_pars=edited_init_pars
     )
-    if max(lnprob.max())<max(edited_lnprob.max()):
-        print("lnProb - shape", lnprob.shape())
-        print("edited _ lnProb - shape", edited_lnprob.shape())
+    if lnprob.max() < edited_lnprob.max():
         print("lnProb - max", lnprob.max())
         print("edited _ lnProb - max", edited_lnprob.max())
 
