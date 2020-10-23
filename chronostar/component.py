@@ -154,8 +154,8 @@ class AbstractComponent(object):
         'angle_rad':0.25*np.pi,
         'angle_deg':45.,
         'quat':0.5,
-        'scaled_log_vel_std':0.5,
-        'scaled_log_std':0.5,
+        'scaled_log_vel_std':1,
+        'scaled_log_std':1,
     }
 
     def __init__(self, pars=None, emcee_pars=None, attributes=None,
@@ -1423,12 +1423,13 @@ class EllipComponent(AbstractComponent):
             #diagonalise the covariance matrix and set covariance parameters to the
             #eigenvalues. But at least this shouldn't completely fail !!!
 
-            self._pars[6] = self._covmatrix[0, 0]
-            self._pars[7] = gmean([self._covmatrix[1, 1], self._covmatrix[2, 2]])
-            self._pars[8] = self._covmatrix[3, 3]
-            self._pars[9] = gmean([self._covmatrix[1, 1], self._covmatrix[2, 2]])
+            self._pars[6] = gmean([self._covmatrix[0, 0], self._covmatrix[1, 1], self._covmatrix[2, 2]])
+            self._pars[7] = gmean([self._covmatrix[0, 0], self._covmatrix[1, 1], self._covmatrix[2, 2]])
+            self._pars[8] = gmean([self._covmatrix[4, 4], self._covmatrix[5, 5], self._covmatrix[3, 3]])
+            self._pars[9] = gmean([self._covmatrix[4, 4], self._covmatrix[5, 5], self._covmatrix[3, 3]])
             self._pars[10:13]=0.0
-            self._cov_xv = self._covmatrix[1, 4]
+            self._cov_xv = 0
+
 
 class FreeComponent(AbstractComponent):
     PARAMETER_FORMAT = ['pos', 'pos', 'pos', 'vel', 'vel', 'vel',
