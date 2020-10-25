@@ -154,8 +154,8 @@ class AbstractComponent(object):
         'angle_rad':0.25*np.pi,
         'angle_deg':45.,
         'quat':0.5,
-        'scaled_log_vel_std':1,
-        'scaled_log_std':1,
+        'scaled_log_vel_std':0.5,
+        'scaled_log_std':0.5,
     }
 
     def __init__(self, pars=None, emcee_pars=None, attributes=None,

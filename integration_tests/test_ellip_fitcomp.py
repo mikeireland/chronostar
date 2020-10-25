@@ -48,7 +48,7 @@ def plot_results(true_comp, best_fit_comp, star_pars, plt_dir=''):
         best_fit_comp.plot(dim1, dim2, comp_now=True, comp_then=True, color='red', ax=ax,
                            comp_orbit=True, orbit_color='red')
 
-    fig.savefig(plt_dir+'ellip_comps.png')
+    fig.savefig(plt_dir+'ellip_comps.pdf')
 
     return
 
@@ -185,13 +185,13 @@ def test_any_age_comp(age=19):
     burnin_step = 2000
 
     true_comp_mean = [0., 0., 0., 2., 2., 2.]
-    true_comp_dx = 7.
+    true_comp_dx = 8.
     true_comp_dy = 5.
-    true_comp_du = 4.
+    true_comp_du = 5.
     true_comp_dv = 2.
     true_comp_roll  = 0.
-    true_comp_pitch = 0.4
-    true_comp_yaw   = np.pi/2
+    true_comp_pitch = 0.5
+    true_comp_yaw   = 0.9
     true_comp_cov_xv = 2.5
     true_comp_age = age
 
@@ -216,7 +216,7 @@ def test_any_age_comp(age=19):
     best_comp, chain, lnprob = run_fit_helper(
             true_comp=true_comp, starcounts=nstars,
             measurement_error=measurement_error,
-            run_name='priorTest_03_age_%.1e'%true_comp_age,
+            run_name='priorTest_09_age_%.1e'%true_comp_age,
             burnin_step=burnin_step,
             trace_orbit_func=trace_epicyclic_orbit,
     )
