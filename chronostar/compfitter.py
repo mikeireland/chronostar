@@ -76,7 +76,7 @@ def calc_med_and_span(chain, perc=34, intern_to_extern=False,
                                                axis=0)))))
 
 
-def stuck_walker(walker_lnprob, max_repeat=100):
+def stuck_walker(walker_lnprob, max_repeat=500):
     """
     Check if a walker is stuck by analysing its lnprob values across
     its whole walk.
