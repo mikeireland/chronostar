@@ -20,6 +20,7 @@ import logging
 import os
 import multiprocessing
 import scipy.optimize
+import itertools
 
 from . import likelihood
 from . import tabletool
@@ -427,7 +428,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
                 # Add walkers with NaNs
                 #poor_ixs.extend(np.argwhere(np.isnan(     AAAAAA      )).flatten())
 
-                poor_ixs = list(np.array(poor_ixs).flatten())
+                poor_ixs = list(itertools.chain(*poor_ixs))
                 print(poor_ixs)
 
                 for ix in set(poor_ixs):
