@@ -1,16 +1,13 @@
 """
 compfitter.py
-
 Fit a single component to a set of stellar 6D phase-space data, along
 with an optional membership probability array. The fitting uses a
 monte carlo markov chain approach (emcee by Dan Foreman-Mackay(?))
 to explore the parameter space of the model.
-
 The default model is SphereComponent, which is a Gaussain distribution,
 spherical in position and spherical in velocity. Alternative models can
 be used by writing a new Component class that extends AbstractComponent,
 and passing the class to the Component argument.
-
 Main entry point is `fit_comp`.
 """
 from __future__ import division, print_function
@@ -44,7 +41,6 @@ def calc_med_and_span(chain, perc=34, intern_to_extern=False,
     """
     Given a set of aligned samples, calculate the 50th, (50-perc)th and
      (50+perc)th percentiles.
-
     Parameters
     ----------
     chain : [nwalkers, nsteps, npars] array -or- [nwalkers*nsteps, npars] array
@@ -58,7 +54,6 @@ def calc_med_and_span(chain, perc=34, intern_to_extern=False,
     Component : Subclass of AbstractComponent
         The class used in the fitting process. This class's static methods
         are used to interpret
-
     Returns
     -------
     result : [npars,3] float array
@@ -84,7 +79,6 @@ def stuck_walker(walker_lnprob, max_repeat=100):
     """
     Check if a walker is stuck by analysing its lnprob values across
     its whole walk.
-
     Notes
     -----
     A stuck walker is defined to be one which has not changed it's value
@@ -100,17 +94,18 @@ def stuck_walker(walker_lnprob, max_repeat=100):
 
 def no_stuck_walkers(lnprob):
     """
-    Examines lnprob to see if any walkers have flatlined far from pack
-
+    Examines lnprob to see if any walkers have flatlined far from pack.
+    Good walkers are True, stuck walkers are False.
     Parameters
     ----------
     lnprob: [nwalkers,nsteps] array_like
         A record of the log probability of each sample from an emcee run
-
     Returns
     -------
     res: boolean
         True if no walkers have flat-lined far from the pack
+    stuck_walker_checks: [boolean]
+        List of boolean values for all the walkers
     """
 
     stuck_walker_checks = []
@@ -119,28 +114,23 @@ def no_stuck_walkers(lnprob):
 
     res = not np.any(stuck_walker_checks)
     logging.info("No stuck walkers? {}".format(res))
-    return res
+    return res, [not x for x in stuck_walker_checks]
 
 
 def burnin_convergence(lnprob, tol=0.25, slice_size=100, cutoff=0, debug=False):
     """Checks early lnprob vals with final lnprob vals for convergence
-
     Takes the first `slice_size` and the final `slice_size` lnprob values.
     Chain is deemed converged if the mean of these two slices are within
     0.25 sigma of each other, where sigma is the standard deviation
     of the final slice.
-
     Parameters
     ----------
     lnprob : [nwalkers, nsteps] array
-
     tol : float
         The number of standard deviations the final mean lnprob should be
         within of the initial mean lnprob
-
     slice_size : int
         Number of steps at each end to use for mean lnprob calcultions
-
     Returns
     -------
     res: bool
@@ -174,11 +164,9 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
                        init_pars=None, Component=SphereComponent):
     """
     Get the initial position of emcee walkers
-
     This can use an initial sample (`init_pars`) around which to scatter
     walkers, or can infer a sensible initial fit based on the data, and
     initialise walkers around the best corresponding parameter list.
-
     Parameters
     ----------
     data: dict
@@ -192,25 +180,19 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
         An initial model around which to initialise walkers
     Component:
         See fit_comp
-
     Returns
     -------
     init_pos: [nwalkers, npars] array_like
         The starting positions of emcee walkers
     """
     if init_pars is None:
-        print("init pars is none")
         rough_mean_now, rough_cov_now = \
             Component.approx_currentday_distribution(data=data,
                                            membership_probs=memb_probs)
         # Exploit the component logic to generate closest set of pars
         dummy_comp = Component(attributes={'mean':rough_mean_now,
                                            'covmatrix':rough_cov_now,})
-        # print("dummy: ", dummy_comp.get_pars())
-        # print(dummy_comp)
-        # print("Covmatrx Rough", rough_cov_now)
         init_pars = dummy_comp.get_emcee_pars()
-    # print("init_pars Check", init_pars)
 
     init_std = Component.get_sensible_walker_spread()
 
@@ -223,8 +205,6 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
                                        size=nwalkers)
     # force ages to be positive
     init_pos[:, -1] = abs(init_pos[:, -1])
-    # print("init_pos: ", init_pos)
-    # print("nwalkers: ", nwalkers)
     return init_pos
 
 
@@ -232,7 +212,6 @@ def get_best_component(chain, lnprob, Component=SphereComponent):
     """
     Simple tool to extract the sample that yielded the highest log prob
     and return the corresponding Component object
-
     Parameters
     ----------
     chain: [nwalkers, nsteps, npars] float array --or-- file name
@@ -242,7 +221,6 @@ def get_best_component(chain, lnprob, Component=SphereComponent):
         The log probabilities of each walker at each step.
     Component: Component Class {SphereComponent}
         An implmentation of chronostar.component.AbstractComponent
-
     Returns
     -------
     component: Component object
@@ -270,20 +248,17 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
              burnin_steps=1000, Component=SphereComponent, plot_it=False,
              pool=None, convergence_tol=0.25, plot_dir='', save_dir='',
              sampling_steps=None, max_iter=None, trace_orbit_func=None,
-             store_burnin_chains=False, nthreads=1, 
-             optimisation_method=None, nprocess_ncomp=False):
+             store_burnin_chains=False, nthreads=1,
+             optimisation_method='emcee', nprocess_ncomp=False):
     """Fits a single 6D gaussian to a weighted set (by membership
     probabilities) of stellar phase-space positions.
-
     Stores the final sampling chain and lnprob in `save_dir`, but also
     returns the best fit (walker step corresponding to maximum lnprob),
     sampling chain and lnprob.
-
     If neither init_pos nor init_pars are provided, then the weighted
     mean and covariance of the provided data set are calculated, then
     used to generate a sample parameter list (using Component). Walkers
     are then initialised around this parameter list.
-
     Parameters
     ----------
     data: dict -or- astropy.table.Table -or- path to astrop.table.Table
@@ -352,10 +327,10 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
     nprocess_ncomp: bool {False}
         Compute maximisation in parallel? This is relevant only in case
         Nelder-Mead method is used: This method computes optimisation
-        many times with different initial positions. The result is the 
+        many times with different initial positions. The result is the
         one with the best likelihood. These optimisations are computed
         in parallel if nprocess_ncomp equals True.
-        
+
     Returns
     -------
     best_component
@@ -378,7 +353,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             os.mkdir(plot_dir)
     npars = len(Component.PARAMETER_FORMAT)
     nwalkers = 2*npars
-    
+
     #########################################
     ### OPTIMISE WITH EMCEE #################
     if optimisation_method=='emcee':
@@ -388,6 +363,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
                                           init_pars=init_pars, Component=Component,
                                           nwalkers=nwalkers)
+
         # MZ: What does this line do?
         # TC: hacky (probs broken) way of forcing spawned threads to not be
         # stuck on the same cpu. TC faced some issues when trying to do multithreading
@@ -396,7 +372,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
         sampler = emcee.EnsembleSampler(
                 nwalkers, npars, likelihood.lnprob_func,
-                args=[data, memb_probs, trace_orbit_func, optimisation_method, Component], #optimisation_method before Component.
+                args=[data, memb_probs, trace_orbit_func, optimisation_method, Component],
                 pool=pool,
                 threads=nthreads,
         )
@@ -415,7 +391,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             init_pos, lnprob, state = sampler.run_mcmc(init_pos, burnin_steps)
             np.save(plot_dir+'lnprob_last.npy', sampler.lnprobability)
             stable = burnin_convergence(sampler.lnprobability, tol=convergence_tol)
-            no_stuck = no_stuck_walkers(sampler.lnprobability)
+            no_stuck, stuck_walker_checks = no_stuck_walkers(sampler.lnprobability)
 
             # For debugging cases where walkers have stabilised but apparently some are stuck
             if (stable and not no_stuck) or store_burnin_chains:
@@ -436,11 +412,20 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             # If about to burnin again, help out the struggling walkers by shifting
             # them to the best walker's position
             if not converged:
-                best_ix = np.argmax(lnprob)
-                #TODO : Identify walkers with NaNs!
-                print("Non-converged")
-                poor_ixs = np.where(lnprob < np.percentile(lnprob, 33))
-                for ix in poor_ixs:
+                lnprob_not_stuck = lnprob[stuck_walker_checks]
+                best_ix = np.argmax(lnprob_not_stuck)
+
+                # Walkers with poor lnprob
+                poor_ixs = np.where(lnprob_not_stuck < np.percentile(lnprob_not_stuck, 33))
+
+                # Add stuck walkers
+                ixs = np.where(~np.array(stuck_walker_checks))
+                poor_ixs.extend(ixs)
+
+                # Add walkers with NaNs
+                #poor_ixs.extend(np.argwhere(np.isnan(     AAAAAA      )).flatten())
+
+                for ix in set(poor_ixs):
                     init_pos[ix] = init_pos[best_ix]
 
             burnin_lnprob_res = np.hstack((
@@ -500,7 +485,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         
         scipy.optimize.minimize is using -likelihood.lnprob_func because
         it is minimizing rather than optimizing.
-        """        
+        """
         # Initialise the initial positions (use emcee because
         # this works in this case just well).
         init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
