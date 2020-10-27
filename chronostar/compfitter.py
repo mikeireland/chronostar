@@ -422,7 +422,9 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
                 np.save(plot_dir+'burnin_lnprob{:02}.npy'.format(cnt), sampler.lnprobability)
                 np.save(plot_dir+'burnin_chain{:02}.npy'.format(cnt), sampler.chain)
                 logging.info('Lnprob and chain saved')
-
+            print("Not stuck and stable")
+            print(no_stuck)
+            print(stable)
             converged = stable and no_stuck
             logging.info("Burnin status: {}".format(converged))
 
@@ -436,6 +438,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             if not converged:
                 best_ix = np.argmax(lnprob)
                 #TODO : Identify walkers with NaNs!
+                print("Non-converged")
                 poor_ixs = np.where(lnprob < np.percentile(lnprob, 33))
                 for ix in poor_ixs:
                     init_pos[ix] = init_pos[best_ix]
