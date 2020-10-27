@@ -427,7 +427,9 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
                 # Add walkers with NaNs
                 #poor_ixs.extend(np.argwhere(np.isnan(     AAAAAA      )).flatten())
 
+                poor_ixs = list(np.array(poor_ixs).flatten())
                 print(poor_ixs)
+
                 for ix in set(poor_ixs):
                     init_pos[ix] = init_pos[best_ix]
 
