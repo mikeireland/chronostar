@@ -435,11 +435,11 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
                 best_ix = np.argmax(lnprob_not_stuck)
                 
                 # Walkers with poor lnprob
-                poor_ixs = np.where(lnprob_not_stuck < np.percentile(lnprob_not_stuck, 33))
+                poor_ixs = set(np.where(lnprob_not_stuck < np.percentile(lnprob_not_stuck, 33))[0])
 
                 # Add stuck walkers
-                ixs = np.where(~np.array(stuck_walker_checks))
-                poor_ixs.extend(ixs)
+                ixs = np.where(~np.array(stuck_walker_checks))[0]
+                poor_ixs.update(ixs)
                         
                 # Add walkers with NaNs
                 #poor_ixs.extend(np.argwhere(np.isnan(     AAAAAA      )).flatten())
