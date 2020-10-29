@@ -94,6 +94,10 @@ class NaiveFit(object):
         # Can be a filename to a astropy table, or an actual table
         'data_table':None,
 
+        # Whether to look for dX, .. c_XY or X_error, .. corr_X_Y in
+        # the column names
+        'historical_colnames':False,
+
         # Column name for stellar IDs. This is used at the end when generating
         # final fits table with IDs and membership probabilities.
         # This is optional.
@@ -185,7 +189,8 @@ class NaiveFit(object):
 
         # Data prep should already have been completed, so we simply build
         # the dictionary of arrays from the astropy table
-        self.data_dict = tabletool.build_data_dict_from_table(self.fit_pars['data_table'])
+        self.data_dict = tabletool.build_data_dict_from_table(self.fit_pars['data_table'],
+                                                              historical=self.fit_pars['historical_colnames'])
 
         # The NaiveFit approach is to assume staring with 1 component
         self.ncomps = 1

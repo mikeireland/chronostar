@@ -26,8 +26,14 @@ DEFAULT_PARS = {
     'cart_error_colnames':None,
     'cart_corr_colnames':None,
 
+#     'modernise_colnames':False,         # If table has "historic" column names,
+#                                         # like dX, dY,... c_XY, .. etc
+#                                         # then update to X_error, ... corr_X_Y
+
     'apply_cart_cuts':False,
     'cut_on_region':False,
+    'pos_margin':10.,
+    'vel_margin':2.,
     'cut_ref_table':None,
     'convert_ref_table':False,
     'cut_assoc_name':None,
@@ -49,7 +55,7 @@ DEFAULT_PARS = {
 }
 
 def get_region(ref_table, assoc_name=None,
-               pos_margin=30., vel_margin=5.,
+               pos_margin=10., vel_margin=2.,
                scale_margin=None, mg_colname=None):
     """
     Get a 6D box surrounding a set of stars identified in a fits table,
@@ -303,7 +309,9 @@ def prepare_data(custom_pars):
             bounds_min, bounds_max = get_region(
                     ref_table=data_pars['cut_ref_table'],
                     assoc_name=data_pars['cut_assoc_name'],
-                    mg_colname=data_pars['cut_colname']
+                    mg_colname=data_pars['cut_colname'],
+                    pos_margin=data_pars['pos_margin'],
+                    vel_margin=data_pars['vel_margin'],
             )
         # Otherwise, use some mins and maxs from the pars file
         elif data_pars['cut_on_bounds']:
