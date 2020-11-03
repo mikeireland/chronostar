@@ -127,7 +127,7 @@ def test_2comps_and_background():
         'data_table':data_filename,
         'trace_orbit_func':'dummy_trace_orbit_func',
         'return_results':True,
-        'par_log_file':savedir + 'fit_pars.log',
+        'par_log_file':'fit_pars.log',
         'overwrite_prev_run':True,
         # 'nthreads':18,
         'nthreads':3,
