@@ -91,6 +91,8 @@ def get_kernel_densities(background_means, star_means, amp_scale=1.0):
     moving groups/associations. The idea is that the Galactic density is
     vertically symmetric about the plane, and any deviations are temporary.
 
+    Because background density is assumed to be mostly flat over typical
+    spans of stellar uncertainties, we can ignore star covariance matrices.
 
     Parameters
     ----------
@@ -1063,8 +1065,17 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         logging.info('Initialised by components')
         all_init_pars = [ic.get_emcee_pars() for ic in init_comps]
         skip_first_e_step = False
-        memb_probs_old = np.ones((nstars, ncomps+use_background))\
-                         / (ncomps+use_background)
+        # Memberships are only used at this point to inform amplitude of components
+        # If memberships are provided, use those
+        if init_memb_probs is not None:
+            memb_probs_old = init_memb_probs
+
+        # Otherwise, we initialise memb_probs_old such that each component as an equal
+        # amplitude. We do this by assuming each star is equal member of every component
+        # (including background)
+        else:
+            memb_probs_old = np.ones((nstars, ncomps+use_background))\
+                             / (ncomps+use_background)
 
     # If initialising with membership probabilities, we need to skip first
     # expectation step, but make sure other values are iterable

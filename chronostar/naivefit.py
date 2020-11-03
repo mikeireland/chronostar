@@ -29,7 +29,7 @@ import random
 import uuid
 
 #~ from emcee.utils import MPIPool
-#~ from multiprocessing import Pool
+from multiprocessing import Pool
 
 from multiprocessing import cpu_count
 
@@ -118,7 +118,11 @@ class NaiveFit(object):
         # Array is [nstars, ncomps] float array
         # Each row should sum to 1.
         # Same as in 'final_membership.npy'
-        #'init_memb_probs':None,     # TODO: IMPLEMENT THIS
+        # TODO: implement this in a way that info can be passed in from text file
+        #       e.g. a path to a file name
+        #       for now, can only be used from within a script, i.e. given a numpy
+        #       array object
+        'init_memb_probs':None,
 
         # Provide a string name that corresponds to a ComponentClass
         # An actual Component Class will be inserted into the paramter
@@ -192,7 +196,7 @@ class NaiveFit(object):
         self.data_dict = tabletool.build_data_dict_from_table(self.fit_pars['data_table'],
                                                               historical=self.fit_pars['historical_colnames'])
 
-        # The NaiveFit approach is to assume staring with 1 component
+        # The NaiveFit approach is to assume starting with 1 component
         self.ncomps = 1
 
         # Import suitable component class
@@ -532,15 +536,23 @@ class NaiveFit(object):
         # Either by fitting one component (default) or by using `init_comps`
         # to initialise the EM fit.
 
-        # If beginning with 1 component, assume all stars are members
-        if self.ncomps == 1:
+        # Check if not provided with init comps or membs
+        if (self.fit_pars['init_comps'] is None) and (self.fit_pars['init_memb_probs'] is None):
+            # NaiveFit doesn't know how to blindly intiialise runs with ncomps > 1
+            assert self.ncomps == 1, 'If no initialisation set, can only accept ncomp==1'
+            # If no init conditions provided, assume all stars are members and begine
+            # fit with 1 component.
             init_memb_probs = np.zeros((len(self.data_dict['means']),
-                                        self.ncomps + self.fit_pars['use_background']))
+                                        self.ncomps + self.fit_pars[
+                                            'use_background']))
             init_memb_probs[:, 0] = 1.
         # Otherwise, we must have been given an init_comps, or an init_memb_probs
         #  to start things with
         else:
-            assert self.fit_pars['init_comps'] is not None or self.fit_pars['init_memb_probs'] is not None
+            log_message(msg='Initialising with init_comps or init_memb_probs with'
+                            '%i components'%self.ncomps, symbol='*', surround=True)
+            pass
+
         log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
                     symbol='*', surround=True)
         run_dir = self.rdir + '{}/'.format(self.ncomps)
