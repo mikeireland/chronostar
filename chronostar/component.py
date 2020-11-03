@@ -744,6 +744,12 @@ class AbstractComponent(object):
         with the option to scale by the amplitude of the Gaussian. Note, the
         height of the peak is only dependent on the covariance matrix.
 
+        Parameters
+        ----------
+        amplitude: float {1.}
+            The number of stars assigned to this component. i.e. the sum of the
+            component's membership column.
+
         Notes
         -----
         since we are evaluating the distribution at the mean, the exponent
@@ -753,6 +759,57 @@ class AbstractComponent(object):
         det = np.linalg.det(self.get_covmatrix_now())
         coeff = 1./np.sqrt((2*np.pi)**6 * det)
         return amplitude * coeff
+
+    def get_two_sigma_density(self, amplitude=1.):
+        """
+        Get the 6D density at 2 sigma boundary (where ellipses are drawn
+        in plots)
+
+        Use this to get an idea how far the component extends to. In
+        other words, at 2 sigma, if the density of the component is less
+        than the typical background density, then stars further out won't
+        be assigned members. However, it the density is much much larger,
+        then you can expect members to extend much further out.
+
+        Don't forget to take the natural log of the result in order to
+        directly compare to background log overlaps.
+
+        Parameters
+        ----------
+        amplitude: float {1.}
+            The number of stars assigned to this component. i.e. the sum of the
+            component's membership column.
+        """
+        def evaluate_mv_gaussian(mean, cov, point):
+            """
+            Evalute a multivariate gaussian defined by mean and covariance
+            matrix at point `point`.
+            """
+            dist = point - mean
+            coeff = 1./np.sqrt((2*np.pi)**6 * np.linalg.det(cov))
+            exponent = -0.5*(np.dot(dist.T, np.dot(np.linalg.inv(cov),dist)))
+            res = coeff * np.exp(exponent)
+            return res
+
+        # To get a point 2 standard deviations away from the mean, we
+        # can use eigen vectors.
+        vals, vecs = np.linalg.eigh(self.get_covmatrix_now())
+
+        # Any will work, so we just take the first eigval-vec pair
+        eigval = vals[0]
+        eigvec = vecs[0]
+
+        # We find the point 2 std away. The eigval is equal to std^2
+        two_sig_point = 2*np.sqrt(eigval) * eigvec + self.get_mean_now()
+
+        dens_at_two_sig = evaluate_mv_gaussian(self.get_mean_now(),
+                                               self.get_covmatrix_now(),
+                                               two_sig_point)
+        # Scale the density up by the amplitude
+        dens_at_two_sig *= amplitude
+
+        return dens_at_two_sig
+
 
     @staticmethod
     def load_components(filename):
@@ -828,7 +885,7 @@ class AbstractComponent(object):
         Convert np.array with component parameters into an astropy table.
         Parameters
         ----------
-        comp: [Component] list
+        components: [Component] list
             The list of components that we are saving
         Returns
         -------
