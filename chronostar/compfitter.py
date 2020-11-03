@@ -549,7 +549,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
 
         # Select the best result. Keys are lnprob values.
-        keys = return_dict.keys()
+        keys = list(return_dict.keys())
         key = np.nanmin(keys)
         best_result = return_dict[key]
 
