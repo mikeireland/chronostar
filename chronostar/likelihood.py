@@ -165,7 +165,8 @@ def lnprior(comp, memb_probs):
     if not np.all(np.linalg.eigvals(covmatrix) > 0):
         return -np.inf
 
-    if isinstance(comp, EllipComponent):
+    if isinstance(comp, EllipComponent) \
+            or (comp.COMPONENT_NAME == 'EllipticalComponent'):
         pars = comp.get_pars()
         if pars[7]>pars[6]:
             return -np.inf

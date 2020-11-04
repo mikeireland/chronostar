@@ -1330,6 +1330,7 @@ class EllipComponent(AbstractComponent):
                         'scaled_log_std', 'scaled_log_vel_std', 'scaled_log_vel_std',
                         'quat', 'quat', 'quat', 'quat',
                         'corr', 'age']
+    COMPONENT_NAME = 'EllipticalComponent'
 
 
     @staticmethod
@@ -1423,12 +1424,63 @@ class EllipComponent(AbstractComponent):
             #diagonalise the covariance matrix and set covariance parameters to the
             #eigenvalues. But at least this shouldn't completely fail !!!
 
-            self._pars[6] = gmean([self._covmatrix[0, 0], self._covmatrix[1, 1], self._covmatrix[2, 2]])
-            self._pars[7] = gmean([self._covmatrix[0, 0], self._covmatrix[1, 1], self._covmatrix[2, 2]])
-            self._pars[8] = gmean([self._covmatrix[4, 4], self._covmatrix[5, 5], self._covmatrix[3, 3]])
-            self._pars[9] = gmean([self._covmatrix[4, 4], self._covmatrix[5, 5], self._covmatrix[3, 3]])
+            sphere_dx = gmean([self._covmatrix[0, 0], self._covmatrix[1, 1], self._covmatrix[2, 2]])
+            self._pars[6] = 1.6 * sphere_dx
+            self._pars[7] = 0.8 * sphere_dx
+            # self._pars[7] = gmean([self._covmatrix[0, 0], self._covmatrix[1, 1], self._covmatrix[2, 2]])
+            sphere_dv = gmean([self._covmatrix[4, 4], self._covmatrix[5, 5], self._covmatrix[3, 3]])
+            self._pars[8] = 1.6 * sphere_dv
+            self._pars[9] = 0.8 * sphere_dv
+            # self._pars[9] = gmean([self._covmatrix[4, 4], self._covmatrix[5, 5], self._covmatrix[3, 3]])
             self._pars[10:13]=0.0
             self._cov_xv = 0
+
+
+    def split_group_age(self, lo_age, hi_age):
+        """
+        Override default method, because it is too difficult to reconstruct
+        parameters from a provided covariacne matrix. Therefore we must edit
+        the parameters directly.
+
+        Generate two new components that share the current day mean, and
+        initial covariance matrix of this component but with different ages:
+        `lo_age` and `hi_age`.
+
+        Parameters
+        ----------
+        lo_age : float
+            Must be a positive (and ideally smaller) value than self.age.
+            Serves as the age for the younger component.
+        hi_age : float
+            Must be a positive (and ideally larger) value than self.age
+            Serves as the age for the older component.
+
+        Returns
+        -------
+        lo_comp : Component
+            A component that matches `self` in current-day mean and initial
+            covariance matrix but with a younger age
+        hi_comp : Component
+            A component that matches `self` in current-day mean and initial
+            covariance matrix but with an older age
+        """
+        comps = []
+        for new_age in [lo_age, hi_age]:
+            # Give new component identical initial covmatrix, and a initial
+            # mean chosen to yield identical mean_now
+            new_mean = self.trace_orbit_func(self.get_mean_now(),
+                                             times=-new_age)
+            new_pars = np.copy(self.get_pars())
+            new_pars[0:6] = new_mean
+            new_pars[-1] = new_age
+            new_comp = self.__class__(pars=new_pars)
+#             new_comp = self.__class__(attributes={'mean':new_mean,
+#                                                   'covmatrix':self._covmatrix,
+#                                                   'age':new_age})
+            comps.append(new_comp)
+
+        return comps
+
 
 
 class FreeComponent(AbstractComponent):
