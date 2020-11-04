@@ -26,6 +26,7 @@ from . import likelihood
 from . import tabletool
 from . import component
 from .component import SphereComponent
+from .component import EllipComponent
 #~ SphereComponent = component.SphereComponent
 #~ from .component import SphereComponent
 
@@ -206,6 +207,19 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
                                        size=nwalkers)
     # force ages to be positive
     init_pos[:, -1] = abs(init_pos[:, -1])
+
+    # In the case of Neelesh ellipcompnent, force dx > dy and du > dv
+    if Component == EllipComponent \
+            or (Component.COMPONENT_NAME == 'EllipticalComponent'):
+        import pdb; pdb.set_trace()
+        for emcee_pars in init_pos:
+            ext_pars = Component.externalise(emcee_pars)
+            if ext_pars[7] > ext_pars[6]:
+                ext_pars[6], ext_pars[7] = ext_pars[7], ext_pars[6]
+            if ext_pars[9] > ext_pars[8]:
+                ext_pars[8], ext_pars[9] = ext_pars[9], ext_pars[8]
+            emcee_pars[:] = Component.internalise(ext_pars)
+
     return init_pos
 
 
