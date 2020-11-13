@@ -545,6 +545,10 @@ class SmartSplitFit(object):
         2020-11-12 Tim Crundall
         code originally by Marusa, Tim just moved it to avoid cluttering main
         execution method
+
+
+        TODO: write fits file with id and memberships
+        TODO: ascii file with components today
         """
         # WRITING THE FINAL RESULTS INTO FILES
         logging.info("... saving previous fit as best fit to data")
@@ -752,6 +756,7 @@ class SmartSplitFit(object):
                         self.ncomps = len(result['comps'])
                         prev_score = new_score
                         prev_result = new_result
+                        converged_2a = True
                     else:
                         # Kick out worst split, and redo
                         worst_bic = -np.inf
