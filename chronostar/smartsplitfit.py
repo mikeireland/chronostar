@@ -104,6 +104,7 @@ class SmartSplitFit(object):
         Description of parameters can be found in README.md along with their
         default values and whether they are required.
     """
+    OPTIMISATION_METHODS = ['emcee', 'Nelder-Mead']
 
     # Internal filestems that Chronostar uses to store results throughout a fit
     # Should not be changed, otherwise Chronostar may struggle to retreive progress
@@ -215,6 +216,13 @@ class SmartSplitFit(object):
         self.fit_pars = dict(self.DEFAULT_FIT_PARS)
         self.fit_pars.update(fit_pars)
         assert type(self.fit_pars) is dict
+
+        try:
+            assert np.isin(self.fit_pars['optimisation_method'], self.OPTIMISATION_METHODS)
+        except AssertionError:
+            raise UserWarning('%s is not in %s\nMake sure no quotation marks in par file'%(
+                self.fit_pars['optimisation_method'], self.OPTIMISATION_METHODS
+            ))
 
         # MZ: Make sure 'par_log_file' is written into the results folder
         self.fit_pars['par_log_file'] = os.path.join(self.fit_pars['results_dir'], self.fit_pars['par_log_file'])
@@ -623,6 +631,8 @@ class SmartSplitFit(object):
                                         self.ncomps + self.fit_pars[
                                             'use_background']))
             init_memb_probs[:, 0] = 1.
+            log_message(msg='No initial information provided', symbol='-')
+            log_message(msg='Assuming all stars are members', symbol='-')
         # Otherwise, we must have been given an init_comps, or an init_memb_probs
         #  to start things with
         else:
@@ -648,8 +658,19 @@ class SmartSplitFit(object):
         # component counts
 
         # Begin iterative loop, each time trialing the incorporation of a new component
-        while self.ncomps <= self.fit_pars['max_comp_count']:
-            log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
+        #
+        # `prev_result` track the previous fit, which is taken to be
+        # the best fit so far
+        #
+        # As new fits are acquired, we call them `new_result`.
+        # The new fits are compared against the previous fit, and if determined to
+        # be an improvement, they are taken as the best fit, and are renamed to
+        # `prev_result`
+
+
+        stage_2_ncomps = 2
+        while stage_2_ncomps <= self.fit_pars['max_comp_count']:
+            log_message(msg='FITTING {} COMPONENT'.format(stage_2_ncomps),
                         symbol='*', surround=True)
 
             all_results = []
@@ -661,7 +682,7 @@ class SmartSplitFit(object):
             # plus the remaining components from prev_result['comps']
             for i, target_comp in enumerate(prev_result['comps']):
                 div_label = chr(ord('A') + i)
-                run_dir = self.rdir + '{}/{}/'.format(self.ncomps, div_label)
+                run_dir = self.rdir + '{}/{}/'.format(stage_2_ncomps, div_label)
                 log_message(msg='Subdividing stage {}'.format(div_label),
                             symbol='+', surround=True)
                 mkpath(run_dir)
@@ -670,6 +691,7 @@ class SmartSplitFit(object):
                         prev_result['comps'], split_comp_ix=i,
                         prev_med_and_spans=prev_result['med_and_spans'],
                         memb_probs = prev_result['memb_probs'])
+                self.ncomps = len(self.fit_pars['init_comps'])
 
                 result = self.run_em_unless_loadable(run_dir)
                 all_results.append(result)
@@ -691,16 +713,32 @@ class SmartSplitFit(object):
 
             # identify all the improving splits
             all_bics = np.array([score['bic'] for score in all_scores])
-            improvsplit_mask = all_bics > prev_score['bic']
+            improvsplit_mask = all_bics < prev_score['bic']
 
-            print("Found better splits: %s"%improvsplit_mask[0])
+            better_split_labels =' '.join([chr(ord('A') + i)
+                                           for i, flag in enumerate(improvsplit_mask) if flag])
+            print("Found better splits: %s"%better_split_labels)
+            log_message(msg='Found better splits: %s'%better_split_labels,
+                        symbol='-', surround=True)
+            log_message(msg='With bics: %s'%[s['bic'] for s in all_scores])
+            log_message(msg='Compated with prev_bic: %s'%prev_score['bic'])
+
             converged_2a = False
 
+            # If no better splits found, this loop is skipped, and `prev_result`
+            # is simply left alone, to be taken as best fit at the end
             while not converged_2a and sum(improvsplit_mask) > 0:
                 # if len(improvsplit_mask[0]) == 1:
                 if sum(improvsplit_mask) == 1:
                     # if only one improve split, then that is our new fit.
+                    best_split_ix = np.where(improvsplit_mask)[0][0]
+                    new_result = all_results[best_split_ix]
+                    new_score = all_scores[best_split_ix]
                     converged_2a = True
+                    self.iter_end_log(best_split_ix, prev_result=prev_result, new_result=new_result)
+                    prev_result = new_result
+                    prev_score = new_score
+                    stage_2_ncomps += 1
 
                 elif sum(improvsplit_mask) > 1:
                     # Construct set of components including each split pair from an
@@ -727,11 +765,14 @@ class SmartSplitFit(object):
                     run_label = ''.join([chr(ord('a') + i) for i, flag in enumerate(improvsplit_mask) if flag])
                     run_dir = self.rdir + '{}/{}/'.format(self.ncomps,
                                                           run_label)
-                    log_message(msg='Conslidating %s/%s'%(self.ncomps, run_label),
+                    log_message(msg='Consolidating %s/%s'%(self.ncomps, run_label),
                                 symbol='+', surround=True)
                     mkpath(run_dir)
 
                     self.fit_pars['init_comps'] = new_comps
+                    # TODO: now that ncomps is fluctuating here, it seems unwise
+                    #       to have it as its own parameter.... need to refactor this
+                    self.ncomps = len(new_comps)
 
                     new_result = self.run_em_unless_loadable(run_dir)
                     # all_results.append(result)
@@ -744,19 +785,22 @@ class SmartSplitFit(object):
                             'Consolidation {} finished with \nBIC: {'
                             '}\nlnlike: {}\n'
                             'lnpost: {}'.format(
-                                    run_label, score['bic'],
-                                    score['lnlike'],
-                                    score['lnpost'],
+                                    run_label, new_score['bic'],
+                                    new_score['lnlike'],
+                                    new_score['lnpost'],
                             ))
 
+
                     # Check if BIC is better than all previous
-                    if score['bic'] < np.min(all_bics):
+                    if new_score['bic'] < np.min(all_bics):
                         # If improved, then accept as new fit
                         # TODO: rename new_comps to something more intutitive, as `new_comps` here, are not the comps just ac
-                        self.ncomps = len(result['comps'])
+                        self.iter_end_log(best_split_ix, prev_result=prev_result,
+                                          new_result=new_result)
                         prev_score = new_score
                         prev_result = new_result
                         converged_2a = True
+                        stage_2_ncomps = len(prev_result['comps'])
                     else:
                         # Kick out worst split, and redo
                         worst_bic = -np.inf
@@ -766,34 +810,37 @@ class SmartSplitFit(object):
                                 worst_bic_ix = i
                                 worst_bic = all_scores[i]['bic']
                         improvsplit_mask[worst_bic_ix] = False
-
+                        log_message(
+                                msg='Consolidation run %s/%s failed, kicking out %s and retrying.'%(
+                                    self.ncomps, run_label, chr(ord('A') + worst_bic_ix)),
+                                symbol='-'
+                        )
 
                 else:
                     raise UserWarning('Should not be here')
 
 
 
-            new_result = all_results[best_split_ix]
-            new_score = all_scores[best_split_ix]
+#             new_result = all_results[best_split_ix]
+#             new_score = all_scores[best_split_ix]
 
-            self.iter_end_log(best_split_ix, prev_result=prev_result, new_result=new_result)
+            # self.iter_end_log(best_split_ix, prev_result=prev_result, new_result=new_result)
 
-            # Check if the fit has improved
-            self.log_score_comparison(new=new_score,
-                                      prev=prev_score)
-            if new_score['bic'] < prev_score['bic']:
-                prev_score = new_score
-                prev_result = new_result
+#             # Check if the fit has improved
+#             self.log_score_comparison(new=new_score,
+#                                       prev=prev_score)
+#             if new_score['bic'] < prev_score['bic']:
+#                 prev_score = new_score
+#                 prev_result = new_result
+#
+#                 self.ncomps += 1
+#                 log_message(msg="Commencing {} component fit on {}{}".format(
+#                         self.ncomps, self.ncomps - 1,
+#                         chr(ord('A') + best_split_ix)), symbol='+'
+#                 )
+#             else:
+#                 self.write_results_to_file(prev_result, prev_score)
 
-                self.ncomps += 1
-                log_message(msg="Commencing {} component fit on {}{}".format(
-                        self.ncomps, self.ncomps - 1,
-                        chr(ord('A') + best_split_ix)), symbol='+'
-                )
-            else:
-                self.write_results_to_file(prev_result, prev_score)
-
-                break
 
             logging.info("Best fit:\n{}".format(
                     [group.get_pars() for group in prev_result['comps']]))
