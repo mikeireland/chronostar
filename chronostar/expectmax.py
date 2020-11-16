@@ -283,7 +283,8 @@ def calc_membership_probs(star_lnols):
 
 
 def get_all_lnoverlaps(data, comps, old_memb_probs=None,
-                       inc_posterior=False, amp_prior=None):
+                       inc_posterior=False, amp_prior=None,
+                       use_box_background=False):
     """
     Get the log overlap integrals of each star with each component
 
@@ -327,13 +328,14 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     nstars = len(data['means'])
     ncomps = len(comps)
     using_bg = 'bg_lnols' in data.keys()
+    n_memb_cols = using_bg or use_box_background
 
-    lnols = np.zeros((nstars, ncomps + using_bg))
+    lnols = np.zeros((nstars, n_memb_cols))
 
     # Set up old membership probabilities
     if old_memb_probs is None:
         old_memb_probs = np.ones((nstars, ncomps)) / ncomps
-    # 'weigths' is the same as 'amplitudes', amplitudes for components
+    # 'weights' is the same as 'amplitudes', amplitudes for components
     weights = old_memb_probs[:, :ncomps].sum(axis=0)
 
     # [ADVANCED/dodgy] Optionally scale each weight by the component prior, then rebalance
@@ -364,6 +366,12 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     # insert one time calculated background overlaps
     if using_bg:
         lnols[:,-1] = data['bg_lnols']
+    if use_box_background:
+        logging.info('Calculating overall lnlike with a box bg')
+        nbg_stars = np.sum(old_memb_probs[:,-1])
+        star_volume = np.product(np.ptp(data['means'], axis=0))
+        lnols[:,-1] = np.log(nbg_stars/star_volume)
+
     return lnols
 
 
@@ -395,10 +403,11 @@ def calc_bic(data, ncomps, lnlike, memb_probs=None, Component=SphereComponent):
         lower BIC indicates a better fit. Differences of <4 are minor
         improvements.
     """
-    if memb_probs is not None:
-        nstars = np.sum(memb_probs[:, :ncomps])
-    else:
-        nstars = len(data['means'])
+    # 2020/11/15 TC: removed this...
+#     if memb_probs is not None:
+#         nstars = np.sum(memb_probs[:, :ncomps])
+#     else:
+    nstars = len(data['means'])
     ncomp_pars = len(Component.PARAMETER_FORMAT)
     n = nstars * 6                      # 6 for phase space origin
     k = ncomps * (ncomp_pars)           # parameters for each component model
@@ -407,7 +416,8 @@ def calc_bic(data, ncomps, lnlike, memb_probs=None, Component=SphereComponent):
 
 
 def expectation(data, comps, old_memb_probs=None,
-                inc_posterior=False, amp_prior=None):
+                inc_posterior=False, amp_prior=None,
+                use_box_background=False):
     """Calculate membership probabilities given fits to each group
 
     Parameters
@@ -439,33 +449,51 @@ def expectation(data, comps, old_memb_probs=None,
         data = tabletool.build_data_dict_from_table(data)
     ncomps = len(comps)
     nstars = len(data['means'])
-    using_bg = 'bg_lnols' in data.keys()
+    if ('bg_lnols' in data.keys()) or use_box_background:
+        n_memb_cols = ncomps + 1
+
 
     # TODO: implement interation till convergence
 
     # if no memb_probs provided, assume perfectly equal membership
     if old_memb_probs is None:
-        old_memb_probs = np.ones((nstars, ncomps+using_bg)) / (ncomps+using_bg)
+        old_memb_probs = np.ones((nstars, n_memb_cols)) / (ncomps+n_memb_cols)
 
-    logging.info('start with get_allnoverlaps')
+    # logging.info('start with get_allnoverlaps')
+
 
     # Calculate all log overlaps
     lnols = get_all_lnoverlaps(data, comps, old_memb_probs,
-                               inc_posterior=inc_posterior, amp_prior=amp_prior)
+                               inc_posterior=inc_posterior,
+                               amp_prior=amp_prior,
+                               use_box_background=use_box_background,
+                               )
+
+#~ TC: this is done within `get_all_lnoverlaps`
+#     if use_box_background:
+#         logging.info('Replacing backgrounds lnols with that of a box')
+#         # If approximating background as a flat box, calculate the average
+#         # density of background assigned stars within volume occupied by data
+#         # Volume is assumed to be a 6D box
+#         nbg_stars = np.sum(old_memb_probs[:,-1])
+#         star_volume = np.product(np.ptp(data['means'], axis=0))
+#         lnols[:,-1] = np.log(nbg_stars/star_volume)
 
     # Calculate membership probabilities, tidying up 'nan's as required
-    memb_probs = np.zeros((nstars, ncomps + using_bg))
+    memb_probs = np.zeros((nstars, n_memb_cols))
     for i in range(nstars):
         memb_probs[i] = calc_membership_probs(lnols[i])
     if np.isnan(memb_probs).any():
         log_message('AT LEAST ONE MEMBERSHIP IS "NAN"', symbol='!')
         memb_probs[np.where(np.isnan(memb_probs))] = 0.
+
     return memb_probs
 
 
 def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
                              old_memb_probs=None,
-                             inc_posterior=False):
+                             inc_posterior=False,
+                             use_box_background=False):
     """
     Get overall likelihood for a proposed model.
 
@@ -485,16 +513,18 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     -------
     overall_lnlikelihood: float
     """
-    logging.info('here00')
+    # logging.info('here00')
     memb_probs = expectation(data, comps,
                              old_memb_probs=old_memb_probs,
-                             inc_posterior=inc_posterior)
+                             inc_posterior=inc_posterior,
+                             use_box_background=use_box_background)
     
-    logging.info('here0')
+    # logging.info('here0')
     
     all_ln_ols = get_all_lnoverlaps(data, comps,
                                     old_memb_probs=memb_probs,
-                                    inc_posterior=inc_posterior)
+                                    inc_posterior=inc_posterior,
+                                    use_box_background=use_box_background)
 
     # multiplies each log overlap by the star's membership probability
     # (In linear space, takes the star's overlap to the power of its
@@ -633,7 +663,7 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
     elif optimisation_method=='Nelder-Mead':
         final_pos = chain
         logging.info("With age of: {:.3} Myr".
-                     format(np.median(chain)))
+                     format(chain[-1]))
 
 
     best_comp.store_raw(gdir + 'best_comp_fit.npy')
@@ -859,7 +889,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
            all_final_pos, success_mask
 
 
-def check_stability(data, best_comps, memb_probs):
+def check_stability(data, best_comps, memb_probs, use_box_background=False):
     """
     Checks if run has encountered problems
 
@@ -890,7 +920,8 @@ def check_stability(data, best_comps, memb_probs):
     if np.min(np.sum(memb_probs[:, :ncomps], axis=0)) <= 2.:
         logging.info("ERROR: A component has less than 2 members")
         return False
-    if not np.isfinite(get_overall_lnlikelihood(data, best_comps)):
+    if not np.isfinite(get_overall_lnlikelihood(data, best_comps,
+                                                use_box_background=use_box_background)):
         logging.info("ERROR: Posterior is not finite")
         return False
     if not np.isfinite(memb_probs).all():
@@ -945,7 +976,9 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    init_comps=None, inc_posterior=False, burnin=1000,
                    sampling_steps=5000, ignore_dead_comps=False,
                    Component=SphereComponent, trace_orbit_func=None,
-                   use_background=False, store_burnin_chains=False,
+                   use_background=False,
+                   use_box_background=False,
+                   store_burnin_chains=False,
                    ignore_stable_comps=False, max_em_iterations=100,
                    record_len=30, bic_conv_tol=0.1, min_em_iterations=30,
                    nthreads=1, optimisation_method=None, 
@@ -1007,7 +1040,14 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         signature of any alternate function on this ones)
     use_background: bool {False}
         Whether to incorporate a background density to account for stars
-        that mightn't belong to any component.
+        that mightn't belong to any component. If this is true, then
+        background overlaps should have been pre-calculated and stored in
+        `data` under 'bg_lnols'
+    use_box_background: bool {False}
+        (New and unstable)
+        Whether to use a variable, flat density to model the background
+        density to account for stars that mightn't belong to any component.
+        Currently intended use is that it will override `use_background`
     ignore_stable_comps: bool {False}
         Set to true if components that barely change should only be refitted
         every 5 iterations. Component stability is determined by inspecting
@@ -1033,6 +1073,9 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     memb_probs: [nstars, ncomps] array
         membership probabilities
 
+    Edit History
+    ------------
+    2020.11.16 TC: added use_box_background
     """
     # Tidying up input
     if not isinstance(data, dict):
@@ -1047,6 +1090,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
     if use_background:
         assert 'bg_lnols' in data.keys()
+
+    use_bg_column = use_background or use_box_background
 
     # filenames
     init_comp_filename = 'init_comps.npy'
@@ -1074,8 +1119,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         # amplitude. We do this by assuming each star is equal member of every component
         # (including background)
         else:
-            memb_probs_old = np.ones((nstars, ncomps+use_background))\
-                             / (ncomps+use_background)
+            memb_probs_old = np.ones((nstars, ncomps+use_bg_column))\
+                             / (ncomps+use_bg_column)
 
     # If initialising with membership probabilities, we need to skip first
     # expectation step, but make sure other values are iterable
@@ -1103,7 +1148,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         logging.info('No specificed initialisation... assuming equal memberships')
         init_memb_probs = np.ones((nstars, ncomps)) / ncomps
 
-        if use_background:
+        if use_bg_column:
             init_memb_probs = np.hstack((init_memb_probs, np.zeros((nstars,1))))
         memb_probs_old    = init_memb_probs
         skip_first_e_step = True
@@ -1113,11 +1158,9 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # Store the initial components if available
     if init_comps[0] is not None:
         Component.store_raw_components(rdir + init_comp_filename, init_comps)
-    # np.save(rdir + init_comp_filename, init_comps)
 
     # Initialise values for upcoming iterations
     old_comps          = init_comps
-    # old_overall_lnlike = -np.inf
     all_init_pos       = ncomps * [None]
     all_med_and_spans  = ncomps * [None]
     all_converged      = False
@@ -1171,14 +1214,15 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
             all_init_pars = [old_comp.get_emcee_pars()
                              for old_comp in old_comps]
-            logging.info('old_overall_lnlike')
+            # logging.info('old_overall_lnlike')
             old_overall_lnlike, old_memb_probs = \
                     get_overall_lnlikelihood(data, old_comps,
                                              inc_posterior=False,
-                                             return_memb_probs=True,)
+                                             return_memb_probs=True,
+                                             use_box_background=use_box_background)
             ref_counts = np.sum(old_memb_probs, axis=0)
 
-            logging.info('append')
+            # logging.info('append')
             list_prev_comps.append(old_comps)
             list_prev_memberships.append(old_memb_probs)
             list_all_init_pos.append(all_init_pos)
@@ -1237,7 +1281,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             skip_first_e_step = False
         else:
             memb_probs_new = expectation(data, old_comps, memb_probs_old,
-                                         inc_posterior=inc_posterior)
+                                         inc_posterior=inc_posterior,
+                                         use_box_background=use_box_background)
         logging.info("Membership distribution:\n{}".format(
             memb_probs_new.sum(axis=0)
         ))
@@ -1335,18 +1380,20 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                        label='best BIC {:.2f} | iter {}'.format(np.min(all_bics),
                                                                 np.argmin(all_bics)))
             plt.legend(loc='best')
+            plt.title(rdir)
             plt.savefig(rdir + 'all_bics.pdf')
 
         # Check individual components stability
         if (iter_count % 5 == 0 and ignore_stable_comps):
             memb_probs_new = expectation(data, new_comps, memb_probs_new,
-                                         inc_posterior=inc_posterior)
+                                         inc_posterior=inc_posterior,
+                                         use_box_background=use_box_background)
             log_message('Orig ref_counts {}'.format(ref_counts))
 
             unstable_comps, ref_counts = check_comps_stability(memb_probs_new,
                                                                unstable_comps,
                                                                ref_counts,
-                                                               using_bg=use_background)
+                                                               using_bg=use_bg_column)
             log_message('New memb counts: {}'.format(memb_probs_new.sum(axis=0)))
             log_message('Unstable comps: {}'.format(unstable_comps))
             log_message('New ref_counts {}'.format(ref_counts))
@@ -1354,7 +1401,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
         # Check stablity, but only affect run after sufficient iterations to
         # settle
-        temp_stable_state = check_stability(data, new_comps, memb_probs_new)
+        temp_stable_state = check_stability(data, new_comps, memb_probs_new,
+                                            use_box_background=use_box_background)
         logging.info('Stability: {}'.format(temp_stable_state))
         if iter_count > 10:
             stable_state = temp_stable_state
@@ -1381,6 +1429,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                label='best BIC {:.2f} | iter {}'.format(np.min(list_prev_bics),
                                                         start_ix+np.argmin(list_prev_bics)))
     plt.legend(loc='best')
+    plt.title(rdir)
     plt.savefig(rdir + 'bics.pdf')
 
     best_bic_ix = np.argmin(list_prev_bics)
