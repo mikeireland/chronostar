@@ -13,7 +13,7 @@ import os.path
 import sys
 sys.path.insert(0, '..')
 
-from chronostar.naivefit import NaiveFit
+from chronostar.smartsplitfit import SmartSplitFit
 
 if len(sys.argv) != 2:
     raise UserWarning('Incorrect usage. Path to parameter file is required'
@@ -25,5 +25,5 @@ fit_par_file = sys.argv[1]
 if not os.path.isfile(fit_par_file):
     raise UserWarning('Provided file does not exist')
 
-naivefit = NaiveFit(fit_pars=fit_par_file)
-naivefit.run_fit()
+smartfit = SmartSplitFit(fit_pars=fit_par_file)
+smartfit.run_fit()

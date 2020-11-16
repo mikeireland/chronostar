@@ -173,6 +173,24 @@ def burnin_convergence(lnprob, tol=0.25, slice_size=100, cutoff=0, debug=False):
     return stable
 
 
+def get_init_emcee_pars(data, memb_probs=None,
+                        Component=SphereComponent):
+    """
+    Get a set of emcee pars that most closely matches the data given.
+
+    Membership probabilities can optionally be included, and will be used
+    to calculate the weighted mean and covariance matrix
+    """
+    rough_mean_now, rough_cov_now = \
+            Component.approx_currentday_distribution(data=data,
+                                           membership_probs=memb_probs)
+
+    # Exploit the component logic to generate closest set of pars
+    dummy_comp = Component(attributes={'mean':rough_mean_now,
+                                       'covmatrix':rough_cov_now,})
+    return dummy_comp.get_emcee_pars()
+
+
 def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
                        init_pars=None, Component=SphereComponent):
     """
@@ -202,13 +220,8 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
         The starting positions of emcee walkers
     """
     if init_pars is None:
-        rough_mean_now, rough_cov_now = \
-            Component.approx_currentday_distribution(data=data,
-                                           membership_probs=memb_probs)
-        # Exploit the component logic to generate closest set of pars
-        dummy_comp = Component(attributes={'mean':rough_mean_now,
-                                           'covmatrix':rough_cov_now,})
-        init_pars = dummy_comp.get_emcee_pars()
+        init_pars = get_init_emcee_pars(data, memb_probs=memb_probs,
+                                        Component=Component)
 
     init_std = Component.get_sensible_walker_spread()
 
@@ -504,12 +517,25 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         
         scipy.optimize.minimize is using -likelihood.lnprob_func because
         it is minimizing rather than optimizing.
-        """        
+        """
+        # Initialise initial positions to represent components of slightly differing ages
+        if init_pars is None:
+            init_pars = get_init_emcee_pars(data=data, memb_probs=memb_probs,
+                                            Component=Component)
+        init_age = init_pars[-1]
+        age_offsets = [-9, -4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10., 20., 40.]
+        init_ages = np.abs([init_age + age_offset for age_offset in age_offsets])
+        init_guess_comp = Component(emcee_pars=init_pars)
+        init_guess_comps = init_guess_comp.split_group_ages(init_ages)
+        init_pos = [c.get_emcee_pars() for c in init_guess_comps]
+
+
         # Initialise the initial positions (use emcee because
         # this works in this case just well).
-        init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
-                                          init_pars=init_pars, Component=Component,
-                                          nwalkers=nwalkers)
+
+#         init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
+#                                           init_pars=init_pars, Component=Component,
+#                                           nwalkers=nwalkers)
 
         if nprocess_ncomp:
             """
@@ -543,10 +569,12 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             Compute optimisations in a for loop. This is slow.
             """
             return_dict=dict()
+            logging.info('Running %i fits'%(len(init_pos)))
             for pos in init_pos:
+                logging.info(' init age: %5.2f'%pos[-1])
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
                 return_dict[result.fun] = result
-
+                logging.info('         res: %5.2f | %5.3f'%(result.x[-1], -result.fun))
 
         # Select the best result. Keys are lnprob values.
         keys = list(return_dict.keys())

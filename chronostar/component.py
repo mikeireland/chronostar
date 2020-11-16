@@ -44,10 +44,12 @@ try:
 except:
     ImportError
 
+
 import numpy as np
 from scipy.stats.mstats import gmean
 from astropy.table import Table
 from astropy import units as u
+from astropy.io import ascii
 import string
 
 from . import transform
@@ -137,6 +139,8 @@ class AbstractComponent(object):
     # Set these in concrete class, matching form with 'SENSIBLE_WALKER_SPREADS'
     # See SphereComponent and EllipComponent for examples
     PARAMETER_FORMAT = None
+    PARAMETER_NAMES  = None
+    PARAMETER_UNITS  = None
 
     # This is used to guide the scale of variations in each parameter
     # Super useful when initialising emcee walkers across a sensible
@@ -562,6 +566,50 @@ class AbstractComponent(object):
         """
         return self.get_mean_now(), self.get_covmatrix_now()
 
+
+    def split_group_ages(self, ages):
+        """
+        Given a list of ages, returns a list of components with identical
+        current day mean and initial covariance matrix, but with different
+        ages. Basically answers the question: what would my component look
+        like if it was basically where it is now, but at different ages.
+
+        Another way of looking at it, is: generate a bunch of components
+        dropped along the orbital path of this component.
+
+        Similar to split_group_age but for an arbitrarily long list of
+        ages.
+
+        This is useful for initialising alternate parameter explorations that
+        avoid local minima brought on by the 20 Myr degeneracy in ZW plane.
+
+        Parameters
+        ----------
+        ages : [float]
+            a list of ages.
+
+        Returns
+        -------
+        [Component] - list of components of length len(ages)
+
+        Edit history
+        ------------
+        2020-11-14 Tim Crundall
+        Code copy pasted from split_group_age, and generalised
+        """
+        comps = []
+        for new_age in ages:
+            # Give new component identical initial covmatrix, and a initial
+            # mean chosen to yield identical mean_now
+            new_mean = self.trace_orbit_func(self.get_mean_now(),
+                                             times=-new_age)
+            new_comp = self.__class__(attributes={'mean':new_mean,
+                                                  'covmatrix':self._covmatrix,
+                                                  'age':new_age})
+            comps.append(new_comp)
+
+        return comps
+
     def split_group_age(self, lo_age, hi_age):
         """
         Generate two new components that share the current day mean, and
@@ -579,25 +627,22 @@ class AbstractComponent(object):
 
         Returns
         -------
-        lo_comp : Component
-            A component that matches `self` in current-day mean and initial
-            covariance matrix but with a younger age
-        hi_comp : Component
-            A component that matches `self` in current-day mean and initial
-            covariance matrix but with an older age
-        """
-        comps = []
-        for new_age in [lo_age, hi_age]:
-            # Give new component identical initial covmatrix, and a initial
-            # mean chosen to yield identical mean_now
-            new_mean = self.trace_orbit_func(self.get_mean_now(),
-                                             times=-new_age)
-            new_comp = self.__class__(attributes={'mean':new_mean,
-                                                  'covmatrix':self._covmatrix,
-                                                  'age':new_age})
-            comps.append(new_comp)
+        [lo_comp, hi_comp] - 2 element list of component objects
+        where:
+            lo_comp : Component
+                A component that matches `self` in current-day mean and initial
+                covariance matrix but with a younger age
+            hi_comp : Component
+                A component that matches `self` in current-day mean and initial
+                covariance matrix but with an older age
 
-        return comps
+        Edit history
+        ------------
+        2020-11-14 Tim Crundall
+        Chnaged to utilise the more general `split_group_ages`
+        """
+
+        return self.split_group_ages(ages = [lo_age, hi_age])
 
 
     def split_group_spatial(self, data_dict, memb_probs):
@@ -841,6 +886,126 @@ class AbstractComponent(object):
             res = np.array([tab['X'], tab['Y'], tab['Z'], tab['U'], tab['V'], tab['W'], tab['dX'], tab['dV'], tab['Age']])
             return res.T
 
+
+
+    @classmethod
+    def convert_components_array_into_astropy_table(cls, components):
+        """
+        Convert list of Component objects into an astropy table.
+        Parameters
+        ----------
+        components: [Component] list
+            The list of components that we are saving
+        Returns
+        -------
+        astropy table with comps
+
+
+        Edit History
+        ------------
+        2020-11-16 TC: Attempted to generalise table construction by
+        introducing class (constant) variables PARAMETER_NAMES and
+        PARAMETER_UNITS, which will automatically work out what column
+        names should be.
+        """
+        # Component names are uppercase letters. What if there are >26 comps?
+        ncomps = len(components)
+        if ncomps>26:
+            print('*** number of components>26, cannot name them properly with letters.')
+        abc=string.ascii_uppercase
+        compnames = [abc[i] for i in range(ncomps)]
+        
+        # Convert comp from Object list to array
+        if (type(components) is not list) and (type(components) is not np.ndarray):
+            # Handle case, a single component has been provided
+            components = [components]
+        all_comp_pars = np.array([c.get_pars() for c in components])
+
+        tabcomps = Table()
+        tabcomps['Name'] = compnames
+        par_names = type(components[0]).PARAMETER_NAMES
+        par_units = type(components[0]).PARAMETER_UNITS
+        for i, colname in enumerate(par_names):
+            tabcomps[colname] = all_comp_pars[:,i]
+            tabcomps[colname].unit = par_units[i]
+
+        return tabcomps
+
+    @classmethod
+    def store_components_ascii(cls, filename, components, overwrite=False):
+        """
+        Store a list of components as an ascii (i.e. human readable) table.
+        In real (i.e. external) parameters only.
+
+        Parameters
+        ----------
+        filename: str
+            The name of the file to which we are saving parameter data
+        components: [Component] list
+            The list of components that we are saving
+
+        Returns
+        -------
+        None
+
+        Notes
+        -----
+        This is a class method because this method needs to know which
+        implementation is being used in order to get the column names right.
+
+        Edit History
+        ------------
+        2020-11-16 TC: Defined this method
+        """
+        comp_table = cls.convert_components_array_into_astropy_table(components)
+        ascii.write(comp_table, filename, overwrite=overwrite)
+        return
+
+    @classmethod
+    def load_components_ascii(cls, filename):
+        """
+        Load a list of component objects that are stored in an ascii file,
+        which follows the format of an astropy table written to file
+        with astropy.io.ascii.write
+
+        Parameters
+        ----------
+        filename: str
+            The name of the file to be read from
+
+        Returns
+        -------
+        [Component]
+            a list of components
+
+        Notes
+        -----
+        Tim is uncertain how to handle converting a table row to a list
+        of floats that can be passed on to the Component constructor.
+        I assume it's deliberately made difficult because one shouldn't
+        rely on the order of a table column to be consistent.
+
+        @Marusa, is this ok? Or should we just go with a file format where
+        we dont have column names at all, and just assume things are in the
+        right order.
+
+        Edit History
+        ------------
+        2020.11.16 TC: Method added
+        """
+        comp_table = ascii.read(filename)
+        comps = []
+        for row in comp_table:
+            try:
+                row_pars = [row[colname] for colname in cls.PARAMETER_NAMES]
+            except KeyError:
+                raise UserWarning('A parameter name wasn\'t found in the file '
+                                  'column names. Are you sure your file is '
+                                  'formatted correctly and that you\'re using '
+                                  'the right Component class to load it?')
+            comps.append(cls(pars=row_pars))
+        return comps
+
     @classmethod
     def load_raw_components(cls, filename, use_emcee_pars=False):
         """
@@ -879,43 +1044,6 @@ class AbstractComponent(object):
                 comps.append(cls(pars=pars))
         return comps
 
-    @staticmethod
-    def convert_components_array_into_astropy_table(components):
-        """
-        Convert np.array with component parameters into an astropy table.
-        Parameters
-        ----------
-        components: [Component] list
-            The list of components that we are saving
-        Returns
-        -------
-        astropy table with comps
-        
-        """
-        # Component names are uppercase letters. What if there are >26 comps?
-        ncomps = len(components)
-        if ncomps>26:
-            print('*** number of components>26, cannot name them properly with letters.')
-        abc=string.ascii_uppercase
-        compnames = [abc[i] for i in range(ncomps)]
-        
-        # Convert comp from Object list to array
-        if (type(components) is not list) and (type(components) is not np.ndarray):
-            components = [components]
-        comp = np.array([c.get_pars() for c in components])
-
-        tabcomps = Table([compnames, comp[:,0], comp[:,1], comp[:,2], comp[:,3], comp[:,4], comp[:,5], comp[:,6], comp[:,7], comp[:,8]], names=('comp_ID', 'X', 'Y', 'Z', 'U', 'V', 'W', 'dX', 'dV', 'Age'))
-        tabcomps['X'].unit = u.pc
-        tabcomps['Y'].unit = u.pc
-        tabcomps['Z'].unit = u.pc
-        tabcomps['dX'].unit = u.pc
-        tabcomps['U'].unit = u.km/u.s
-        tabcomps['V'].unit = u.km/u.s
-        tabcomps['W'].unit = u.km/u.s
-        tabcomps['dV'].unit = u.km/u.s
-        tabcomps['Age'].unit = u.Myr
-        
-        return tabcomps
 
     def store_raw(self, filename, use_emcee_pars=False):
         """
@@ -923,6 +1051,7 @@ class AbstractComponent(object):
         """
         self.store_raw_components(filename=filename, components=[self],
                                   use_emcee_pars=use_emcee_pars)
+        return
 
     @staticmethod
     def store_raw_components(filename, components, use_emcee_pars=False):
@@ -969,6 +1098,7 @@ class AbstractComponent(object):
                       'covmatrix':self.get_covmatrix(),
                       'age':self.get_age()}
         np.save(filename, attributes)
+        return
 
     @classmethod
     def get_best_from_chain(cls, chain_file, lnprob_file):
@@ -1320,6 +1450,12 @@ class SphereComponent(AbstractComponent):
     PARAMETER_FORMAT = ['pos', 'pos', 'pos', 'vel', 'vel', 'vel',
                         'log_pos_std', 'log_vel_std',
                         'age']
+
+    PARAMETER_NAMES       = ['X', 'Y', 'Z', 'U', 'V', 'W', 'dX', 'dV', 'age']
+    PARAMETER_UNITS       = [u.pc, u.pc, u.pc, u.km/u.s, u.km/u.s, u.km/u.s,
+                             u.pc, u.km/u.s,
+                             u.Myr]
+    EMCEE_PARAMATER_NAMES = ['X', 'Y', 'Z', 'U', 'V', 'W', 'log dX', 'log dV', 'age']
 
     @staticmethod
     def externalise(pars):

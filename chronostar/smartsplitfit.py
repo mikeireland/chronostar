@@ -162,6 +162,7 @@ class SmartSplitFit(object):
         'max_em_iterations':200,
         'nthreads':1,     # TODO: NOT IMPLEMENTED
         'use_background':True,
+        'use_box_background':False,
 
         'overwrite_prev_run':False,
         'burnin':500,
@@ -406,6 +407,13 @@ class SmartSplitFit(object):
         ------------
         Updates self.fit_pars['init_comps'] with a [N+1] list of Component
         objects
+
+        Edit history
+        ------------
+        2020-11-14 TC: replaced explicit check for emcee vs Nelder-mead when
+        trying to use prev_med_and_spans. This enables emcee runs to continue
+        on from Nelder-mead runs, and hopefully generalises this section to
+        be agnostic of optimisation method
         """
         target_comp = prev_comps[split_comp_ix]
 
@@ -414,15 +422,15 @@ class SmartSplitFit(object):
         # by using the 16th and 84th percentile ages from previous run
         
         if self.fit_pars['split_group']=='age':
-            if self.fit_pars['optimisation_method']=='emcee':
-                    split_comps = target_comp.split_group_age(
-                        lo_age=prev_med_and_spans[split_comp_ix, -1, 1],
-                        hi_age=prev_med_and_spans[split_comp_ix, -1, 2])
-            elif self.fit_pars['optimisation_method']=='Nelder-Mead':
+            try:
+                lo_age = prev_med_and_spans[split_comp_ix, -1, 1]
+                hi_age = prev_med_and_spans[split_comp_ix, -1, 2]
+            except TypeError:
+                # Maybe previous iteration was done with Nelder-Mead
                 age = target_comp.get_age()
-                split_comps = target_comp.split_group_age( # TODO: Maybe even smaller change
-                lo_age=0.8*age,
-                hi_age=1.2*age)
+                lo_age = 0.8*age
+                hi_age = 1.2*age
+            split_comps = target_comp.split_group_age(lo_age=lo_age, hi_age=hi_age)
         elif self.fit_pars['split_group']=='spatial':
             split_comps = target_comp.split_group_spatial(self.data_dict, 
                                             memb_probs[:,split_comp_ix])
@@ -514,7 +522,7 @@ class SmartSplitFit(object):
         logging.info('#########################')
 
 
-    def calc_score(self, comps, memb_probs):
+    def calc_score(self, comps, memb_probs, use_box_background=False):
         """
         Calculate global score of fit for comparison with future fits with different
         component counts
@@ -530,17 +538,26 @@ class SmartSplitFit(object):
         lnlike = expectmax.get_overall_lnlikelihood(self.data_dict,
                                                     comps,
                                                     old_memb_probs=memb_probs,
+                                                    use_box_background=use_box_background,
                                                     # bg_ln_ols=bg_ln_ols,
                                                     )
         lnpost = expectmax.get_overall_lnlikelihood(self.data_dict,
                                                     comps,
                                                     # bg_ln_ols=bg_ln_ols,
                                                     old_memb_probs=memb_probs,
+                                                    use_box_background=use_box_background,
                                                     inc_posterior=True)
 
         bic = expectmax.calc_bic(self.data_dict, self.ncomps, lnlike,
                                       memb_probs=memb_probs,
                                       Component=self.Component)
+        # 2020/11/16 TC: handling the case for a bad bic.
+        # This comes up for the initial 1 component fit with box background
+        # because I haven't thought of a general way to initialise memberships
+        # that doesn't yield 0 background members.
+        if np.isnan(bic):
+            logging.info('Warning, bic was NaN')
+            bic = np.inf
 
         return {'bic':bic, 'lnlike':lnlike, 'lnpost':lnpost}
 
@@ -646,7 +663,10 @@ class SmartSplitFit(object):
         run_dir = self.rdir + '{}/'.format(self.ncomps)
 
         prev_result = self.run_em_unless_loadable(run_dir)
-        prev_score = self.calc_score(prev_result['comps'], prev_result['memb_probs'])
+        prev_score = self.calc_score(
+                prev_result['comps'], prev_result['memb_probs'],
+                use_box_background=self.fit_pars['use_box_background']
+        )
 
         self.ncomps += 1
 
@@ -696,7 +716,10 @@ class SmartSplitFit(object):
                 result = self.run_em_unless_loadable(run_dir)
                 all_results.append(result)
 
-                score = self.calc_score(result['comps'], result['memb_probs'])
+                score = self.calc_score(
+                        result['comps'], result['memb_probs'],
+                        use_box_background=self.fit_pars['use_box_background']
+                )
                 all_scores.append(score)
 
                 logging.info(
@@ -721,7 +744,7 @@ class SmartSplitFit(object):
             log_message(msg='Found better splits: %s'%better_split_labels,
                         symbol='-', surround=True)
             log_message(msg='With bics: %s'%[s['bic'] for s in all_scores])
-            log_message(msg='Compated with prev_bic: %s'%prev_score['bic'])
+            log_message(msg='Compared with prev_bic: %s'%prev_score['bic'])
 
             converged_2a = False
 
@@ -763,9 +786,9 @@ class SmartSplitFit(object):
                     # We run a consolidating fit, and see if BIC is improved
                     # label includes all split comps?
                     run_label = ''.join([chr(ord('a') + i) for i, flag in enumerate(improvsplit_mask) if flag])
-                    run_dir = self.rdir + '{}/{}/'.format(self.ncomps,
+                    run_dir = self.rdir + '{}/{}/'.format(stage_2_ncomps,
                                                           run_label)
-                    log_message(msg='Consolidating %s/%s'%(self.ncomps, run_label),
+                    log_message(msg='Consolidating %s/%s'%(stage_2_ncomps, run_label),
                                 symbol='+', surround=True)
                     mkpath(run_dir)
 
@@ -777,13 +800,15 @@ class SmartSplitFit(object):
                     new_result = self.run_em_unless_loadable(run_dir)
                     # all_results.append(result)
 
-                    new_score = self.calc_score(result['comps'],
-                                            result['memb_probs'])
+                    new_score = self.calc_score(
+                            result['comps'], result['memb_probs'],
+                            use_box_background=self.fit_pars['use_box_background']
+                    )
                     # all_scores.append(score)
 
                     logging.info(
-                            'Consolidation {} finished with \nBIC: {'
-                            '}\nlnlike: {}\n'
+                            'Consolidation {} finished with \nBIC: {}\n'
+                            'lnlike: {}\n'
                             'lnpost: {}'.format(
                                     run_label, new_score['bic'],
                                     new_score['lnlike'],
@@ -812,7 +837,7 @@ class SmartSplitFit(object):
                         improvsplit_mask[worst_bic_ix] = False
                         log_message(
                                 msg='Consolidation run %s/%s failed, kicking out %s and retrying.'%(
-                                    self.ncomps, run_label, chr(ord('A') + worst_bic_ix)),
+                                    stage_2_ncomps, run_label, chr(ord('A') + worst_bic_ix)),
                                 symbol='-'
                         )
 
