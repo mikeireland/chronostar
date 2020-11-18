@@ -328,7 +328,7 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     nstars = len(data['means'])
     ncomps = len(comps)
     using_bg = 'bg_lnols' in data.keys()
-    n_memb_cols = using_bg or use_box_background
+    n_memb_cols = ncomps + (using_bg or use_box_background)
 
     lnols = np.zeros((nstars, n_memb_cols))
 
@@ -451,6 +451,8 @@ def expectation(data, comps, old_memb_probs=None,
     nstars = len(data['means'])
     if ('bg_lnols' in data.keys()) or use_box_background:
         n_memb_cols = ncomps + 1
+    else:
+        n_memb_cols = ncomps
 
 
     # TODO: implement interation till convergence

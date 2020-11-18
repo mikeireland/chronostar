@@ -26,7 +26,7 @@ half a minute
 Python libraries (i.e. pip install [library name])
 - astropy
 - emcee
-- galpy
+- galpy (galpy not actually required now that epicyclic orbits are used)
 
 Other tools:
 - mpirun
