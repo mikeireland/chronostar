@@ -307,6 +307,7 @@ class SmartSplitFit(object):
         else:
             self.fit_pars['init_comps'] = None
             print("'Init comps' is initialised as none")
+            print('test')
 
         # TODO: If initialising with membership probabilities, adjust self.ncomps
 
@@ -647,7 +648,10 @@ class SmartSplitFit(object):
             init_memb_probs = np.zeros((len(self.data_dict['means']),
                                         self.ncomps + self.fit_pars[
                                             'use_background']))
-            init_memb_probs[:, 0] = 1.
+            init_memb_probs[:, 0] = 1. - 1.e-10
+            init_memb_probs[:, 1] = 1.e-10
+            self.fit_pars['init_memb_probs'] = init_memb_probs
+
             log_message(msg='No initial information provided', symbol='-')
             log_message(msg='Assuming all stars are members', symbol='-')
         # Otherwise, we must have been given an init_comps, or an init_memb_probs

@@ -334,7 +334,9 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
 
     # Set up old membership probabilities
     if old_memb_probs is None:
-        old_memb_probs = np.ones((nstars, ncomps)) / ncomps
+        raise UserWarning('Why are you trying to get an overall likelihood, when '
+                          'you don\'t even have memberships!??!')
+        # old_memb_probs = np.ones((nstars, ncomps)) / ncomps
     # 'weights' is the same as 'amplitudes', amplitudes for components
     weights = old_memb_probs[:, :ncomps].sum(axis=0)
 
@@ -444,6 +446,7 @@ def expectation(data, comps, old_memb_probs=None,
         that each row sums to 1.0, each column sums to the expected size of
         each component, and the entire array sums to the number of stars.
     """
+    print('In expectation')
     # Tidy input and infer some values
     if not isinstance(data, dict):
         data = tabletool.build_data_dict_from_table(data)
@@ -456,38 +459,46 @@ def expectation(data, comps, old_memb_probs=None,
 
 
     # TODO: implement interation till convergence
+    memberships_converged = False
 
     # if no memb_probs provided, assume perfectly equal membership
-    if old_memb_probs is None:
-        old_memb_probs = np.ones((nstars, n_memb_cols)) / (ncomps+n_memb_cols)
+    iter_cnt = 0
+    old_bic = np.inf
+    while not memberships_converged:
+        print('Expectation iter cnt: %i'%iter_cnt)
+        if old_memb_probs is None:
+            print('Initialising old_memb_probs with equal membership')
+            old_memb_probs = np.ones((nstars, n_memb_cols)) / (n_memb_cols)
 
-    # logging.info('start with get_allnoverlaps')
+        # Calculate all log overlaps
+        lnols = get_all_lnoverlaps(data, comps, old_memb_probs,
+                                   inc_posterior=inc_posterior,
+                                   amp_prior=amp_prior,
+                                   use_box_background=use_box_background,
+                                   )
 
+        # Calculate membership probabilities, tidying up 'nan's as required
+        memb_probs = np.zeros((nstars, n_memb_cols))
+        for i in range(nstars):
+            memb_probs[i] = calc_membership_probs(lnols[i])
+        if np.isnan(memb_probs).any():
+            log_message('AT LEAST ONE MEMBERSHIP IS "NAN"', symbol='!')
+            memb_probs[np.where(np.isnan(memb_probs))] = 0.
 
-    # Calculate all log overlaps
-    lnols = get_all_lnoverlaps(data, comps, old_memb_probs,
-                               inc_posterior=inc_posterior,
-                               amp_prior=amp_prior,
-                               use_box_background=use_box_background,
-                               )
+        weighted_lnols = np.einsum('ij,ij->ij', lnols, memb_probs)
+        lnlike = np.sum(weighted_lnols)
+        # Check for convergence
+        # TODO: remove hardcoded SphereComponent here.
+        new_bic = calc_bic(data, ncomps=ncomps, lnlike=lnlike, memb_probs=memb_probs,
+                           Component=SphereComponent)
 
-#~ TC: this is done within `get_all_lnoverlaps`
-#     if use_box_background:
-#         logging.info('Replacing backgrounds lnols with that of a box')
-#         # If approximating background as a flat box, calculate the average
-#         # density of background assigned stars within volume occupied by data
-#         # Volume is assumed to be a 6D box
-#         nbg_stars = np.sum(old_memb_probs[:,-1])
-#         star_volume = np.product(np.ptp(data['means'], axis=0))
-#         lnols[:,-1] = np.log(nbg_stars/star_volume)
+        if np.isclose(old_bic, new_bic):
+            memberships_converged = True
+        else:
+            old_bic = new_bic
+            old_memb_probs = memb_probs
 
-    # Calculate membership probabilities, tidying up 'nan's as required
-    memb_probs = np.zeros((nstars, n_memb_cols))
-    for i in range(nstars):
-        memb_probs[i] = calc_membership_probs(lnols[i])
-    if np.isnan(memb_probs).any():
-        log_message('AT LEAST ONE MEMBERSHIP IS "NAN"', symbol='!')
-        memb_probs[np.where(np.isnan(memb_probs))] = 0.
+        iter_cnt += 1
 
     return memb_probs
 
@@ -1334,9 +1345,13 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
         # LOG RESULTS OF ITERATION
         overall_lnlike = get_overall_lnlikelihood(data, new_comps,
-                                                 inc_posterior=False)
+                                                  old_memb_probs=memb_probs_new,
+                                                  inc_posterior=False,
+                                                  use_box_background=use_box_background)
         overall_lnposterior = get_overall_lnlikelihood(data, new_comps,
-                                                      inc_posterior=True)
+                                                       old_memb_probs=memb_probs_new,
+                                                       inc_posterior=True,
+                                                       use_box_background=use_box_background)
         bic = calc_bic(data, ncomps, overall_lnlike,
                        memb_probs=memb_probs_new,
                        Component=Component)
@@ -1474,10 +1489,12 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     tabcomps.write(os.path.join(final_dir, 'final_comps_%d.fits'%len(final_best_comps)), overwrite=True)
 
     overall_lnlike = get_overall_lnlikelihood(
-            data, final_best_comps, inc_posterior=False
+            data, final_best_comps, inc_posterior=False,
+            use_box_background=use_box_background,
     )
     overall_lnposterior = get_overall_lnlikelihood(
-            data, final_best_comps, inc_posterior=True
+            data, final_best_comps, inc_posterior=True,
+            use_box_background=use_box_background,
     )
     bic = calc_bic(data, ncomps, overall_lnlike,
                    memb_probs=final_memb_probs, Component=Component)
