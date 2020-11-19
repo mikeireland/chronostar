@@ -280,10 +280,18 @@ class AbstractComponent(object):
 
     def __str__(self):
         x,y,z,u,v,w = self.get_mean_now()
-        return 'Currentday(' \
+        current_day_str =  'Currentday: (' \
                'X: {:5.1f}pc, Y: {:5.1f}pc, Z: {:5.1f}pc, '  \
                'U {:4.1f}km/s, V {:4.1f}km/s, W {:4.1f}km/s, ' \
                'age: {:4.1f}Myr)'.format(x,y,z,u,v,w, self._age)
+
+        x,y,z,u,v,w = self.get_mean()
+        origin_str =  'Origin:   (' \
+                           'X: {:5.1f}pc, Y: {:5.1f}pc, Z: {:5.1f}pc, ' \
+                           'U {:4.1f}km/s, V {:4.1f}km/s, W {:4.1f}km/s)'.format(
+                           x,y,z,u,v,w, self._age)
+
+        return '{}\n{}\n'.format(current_day_str, origin_str)
 
     def __repr__(self):
         return self.__str__()
@@ -929,10 +937,22 @@ class AbstractComponent(object):
             tabcomps[colname] = all_comp_pars[:,i]
             tabcomps[colname].unit = par_units[i]
 
+        # Also append "Current day" attributes, purely for quick readability, no functional use
+        current_day_atts = [dim + '_now' for dim in 'XYZUVW'] # + ['sphere_dx'] + ['sphere_dv']
+        current_day_units = 3*[u.pc] + 3*[u.km/u.s]
+        current_day_pars = []
+        for comp in components:
+            current_day_pars.append(comp.get_mean_now())
+        current_day_pars = np.array(current_day_pars)
+
+        for i, colname in enumerate(current_day_atts):
+            tabcomps[colname] = current_day_pars[:,i]
+            tabcomps[colname].unit = current_day_units[i]
+
         return tabcomps
 
     @classmethod
-    def store_components_ascii(cls, filename, components, overwrite=False):
+    def store_components_ascii(cls, filename, components, overwrite=False, format='fixed_width'):
         """
         Store a list of components as an ascii (i.e. human readable) table.
         In real (i.e. external) parameters only.
@@ -958,11 +978,11 @@ class AbstractComponent(object):
         2020-11-16 TC: Defined this method
         """
         comp_table = cls.convert_components_array_into_astropy_table(components)
-        ascii.write(comp_table, filename, overwrite=overwrite)
+        ascii.write(comp_table, filename, overwrite=overwrite, format=format)
         return
 
     @classmethod
-    def load_components_ascii(cls, filename):
+    def load_components_ascii(cls, filename, format='fixed_width'):
         """
         Load a list of component objects that are stored in an ascii file,
         which follows the format of an astropy table written to file
@@ -993,7 +1013,7 @@ class AbstractComponent(object):
         ------------
         2020.11.16 TC: Method added
         """
-        comp_table = ascii.read(filename)
+        comp_table = ascii.read(filename, format=format)
         comps = []
         for row in comp_table:
             try:
