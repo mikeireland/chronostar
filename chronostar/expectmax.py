@@ -485,12 +485,17 @@ def expectation(data, comps, old_memb_probs=None,
             log_message('AT LEAST ONE MEMBERSHIP IS "NAN"', symbol='!')
             memb_probs[np.where(np.isnan(memb_probs))] = 0.
 
+        # Hack in a failsafe to stop a component having an amplitude lower than 10
+        if np.min(memb_probs.sum(axis=0)) < 10.:
+            break
+
         weighted_lnols = np.einsum('ij,ij->ij', lnols, memb_probs)
         lnlike = np.sum(weighted_lnols)
         # Check for convergence
         # TODO: remove hardcoded SphereComponent here.
         new_bic = calc_bic(data, ncomps=ncomps, lnlike=lnlike, memb_probs=memb_probs,
                            Component=SphereComponent)
+
 
         if np.isclose(old_bic, new_bic):
             memberships_converged = True
@@ -1132,6 +1137,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         # amplitude. We do this by assuming each star is equal member of every component
         # (including background)
         else:
+            logging.info('Initialising amplitudes to be equal')
             memb_probs_old = np.ones((nstars, ncomps+use_bg_column))\
                              / (ncomps+use_bg_column)
 

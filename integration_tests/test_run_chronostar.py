@@ -82,8 +82,8 @@ def test_2comps_and_background():
     uniform_age = 1e-10
     sphere_comp_pars = np.array([
         #  X,  Y, Z, U, V, W, dX, dV,  age,
-        [  0,  0, 0, 0, 0, 0, 10., 5, uniform_age],
-        [ 30,  0, 0, 0, 5, 0, 10., 5, uniform_age],
+        [  0,  0, 0, 0, 0, 0, 5., 2, uniform_age],
+        [ 30,  0, 0, 0, 5, 0, 5., 2, uniform_age],
     ])
     starcounts = [100, 150]
     ncomps = sphere_comp_pars.shape[0]
@@ -182,4 +182,5 @@ def test_2comps_and_background():
                            best_comp.get_age(),
                            atol=1.)
 
-
+if __name__ == '__main__':
+    test_2comps_and_background()
