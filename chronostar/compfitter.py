@@ -22,6 +22,7 @@ import emcee
 import logging
 import os
 import multiprocessing
+from multiprocessing.pool import ThreadPool as Pool
 import scipy.optimize
 
 from . import likelihood
@@ -37,6 +38,10 @@ try:
     plt_avail = True
 except ImportError:
     plt_avail = False
+
+cpu_count = multiprocessing.cpu_count()
+
+import time # TODO: delete
 
 
 def calc_med_and_span(chain, perc=34, intern_to_extern=False,
@@ -374,6 +379,10 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
     probability
         [nwalkers, nsteps] array of probabilities for each sample
     """
+    
+    
+    time_start = time.time()
+
     # TIDYING INPUT
     if not isinstance(data, dict):
         data = tabletool.build_data_dict_from_table(data)
@@ -528,6 +537,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         init_guess_comp = Component(emcee_pars=init_pars)
         init_guess_comps = init_guess_comp.split_group_ages(init_ages)
         init_pos = [c.get_emcee_pars() for c in init_guess_comps]
+        
+        #~ print('init_pos', len(init_pos), init_pos)
 
 
         # Initialise the initial positions (use emcee because
@@ -542,8 +553,18 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             This is done in parallel with the nwalker processes.
             """
 
+            
+
             manager = multiprocessing.Manager()
             return_dict = manager.dict()
+            
+            #~ pool_size = max(cpu_count, nwalkers) # Mark's advice
+            pool_size = len(init_pos) # TODO. But pool_size MUST equal init_pos, see pool.apply_async(worker, args=(init_pos[i], return_dict)) a few lines below
+            pool = Pool(pool_size)
+            
+            print('Maximising component with pool_size %d and %d members'%(pool_size, np.sum(memb_probs)))
+            
+            #~ arr = mp.Array(c.c_double, pool_size*2) # shared, can be used from multiple processes
 
             def worker(pos, return_dict):
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
@@ -551,18 +572,14 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             #TODO: tol: is this value optimal?
 
 
-            jobs = []
-            for i in range(nwalkers):
-                process = multiprocessing.Process(target=worker, args=(init_pos[i], return_dict))
-                jobs.append(process)
+            for i in range(pool_size):
+                pool.apply_async(worker, args=(init_pos[i], return_dict))
 
-            # Start the processes
-            for j in jobs:
-                j.start()
 
-            # Ensure all of the processes have finished
-            for j in jobs:
-                j.join()
+            pool.close()
+            pool.join()
+
+    
 
         else:
             """
@@ -583,5 +600,9 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
         # Identify and create the best component (with best lnprob)
         best_component = Component(emcee_pars=best_result.x)
+        
+        
+        time_end = time.time()
+        print('Time spent for a component with %d members:'%np.sum(memb_probs), time_end-time_start)
 
         return best_component, best_result.x, -best_result.fun

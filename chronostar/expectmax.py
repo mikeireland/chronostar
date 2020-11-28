@@ -58,6 +58,15 @@ except:
     logging.info("WARNING: Couldn't import C implementation, using slow pythonic overlap instead")
     from .likelihood import slow_get_lnoverlaps as get_lnoverlaps
 
+
+
+from mpi4py import MPI
+comm = MPI.COMM_WORLD   # get MPI communicator object
+size = comm.size        # total number of processes
+rank = comm.rank        # rank of this process
+status = MPI.Status()   # get MPI status object
+
+
 #from functools import partial
 
 def log_message(msg, symbol='.', surround=False):
@@ -554,7 +563,9 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     else:
         return np.sum(weighted_lnols)
 
-def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_pos=None,
+
+def maximise_one_comp(data, memb_probs=None, i=None, idir=None, 
+                all_init_pars=None, all_init_pos=None,
                 ignore_stable_comps=False, ignore_dead_comps=False,
                 DEATH_THRESHOLD=2.1, unstable_comps=None,
                 burnin_steps=None, plot_it=False,
@@ -689,7 +700,7 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
     np.save(gdir + 'final_chain.npy', chain)
     np.save(gdir + 'final_lnprob.npy', lnprob)
     
-    return best_comp, chain, lnprob, final_pos
+    return best_comp, chain, lnprob, final_pos, i
     
 
 def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
@@ -702,6 +713,8 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                  ignore_stable_comps=False,
                  nthreads=1, optimisation_method=None,
                  nprocess_ncomp=False,
+                 comm=None,
+                 tags=None,
                  ):
     """
     Performs the 'maximisation' step of the EM algorithm
@@ -756,6 +769,9 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     nprocess_ncomp: bool {False}
         How many processes to use in the maximisation of ncomps with
         python's multiprocessing library in case Nelder-Mead is used.
+    comm: MPI communicator object
+        Used to communicate between master and worker ranks. Worker ranks
+        maximise the components in parallel.
         
     Returns
     -------
@@ -795,76 +811,116 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     log_message('Unstable comps are {}'.format(unstable_comps))
 
 
-    ### MULTIPROCESSING
-    if nprocess_ncomp and ncomps>1:
-        logging.info("Maximising components with multiprocessing")
-        manager = multiprocessing.Manager()
-        return_dict = manager.dict()
+    # MAXIMISE COMPONENTS IN PARALLEL WITH WORKERS
+    if comm is not None:
+        if rank==0: # TODO: This should be an assert statement
+            
+            print('rank', rank, 'STARTING to prepare tasks for workers')
 
-        def worker(i, return_dict):
+            # Arguments that are the same for all the components
+            args = {'memb_probs': memb_probs,
+                'all_init_pars': all_init_pars, 
+                'all_init_pos': all_init_pos, 'idir': idir, 
+                'ignore_stable_comps': ignore_stable_comps, 
+                'ignore_dead_comps': ignore_dead_comps,
+                'DEATH_THRESHOLD': DEATH_THRESHOLD, 
+                'unstable_comps': unstable_comps,
+                'burnin_steps': burnin_steps, 
+                'plot_it': plot_it,
+                'pool': pool, 'convergence_tol': 0.25,
+                'Component': Component,
+                'trace_orbit_func': trace_orbit_func,
+                'store_burnin_chains': store_burnin_chains,
+                'nthreads': nthreads, 
+                'nprocess_ncomp': nprocess_ncomp, 
+                'optimisation_method': optimisation_method,
+                'idir': idir,
+                }
 
-            best_comp, chain, lnprob, final_pos = maximise_one_comp(data,
-                memb_probs, i, all_init_pars=all_init_pars, 
-                all_init_pos=all_init_pos, idir=idir, 
-                ignore_stable_comps=ignore_stable_comps, 
-                ignore_dead_comps=ignore_dead_comps,
-                DEATH_THRESHOLD=DEATH_THRESHOLD, unstable_comps=unstable_comps,
-                burnin_steps=burnin_steps, plot_it=plot_it,
-                pool=pool, convergence_tol=0.25,
-                Component=Component,
-                trace_orbit_func=trace_orbit_func,
-                store_burnin_chains=store_burnin_chains,
-                nthreads=nthreads, 
-                optimisation_method=optimisation_method,
-                )
 
-            return_dict[i] = {'best_comp': best_comp, 'chain': chain, 'lnprob': lnprob, 'final_pos': final_pos}
+            # Prepare tasks for workers
+            tasks = []
+            for i in range(ncomps):
+                # If component has too few stars, skip fit, and use previous best walker
+                if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
+                    logging.info("Skipped component {} with nstars {}".format(
+                            i, np.sum(memb_probs[:, i])
+                    ))
+                elif ignore_stable_comps and not unstable_comps[i]:
+                    logging.info("Skipped stable component {}".format(i))
+                else:
+                    # Tasks are indices of components that need to be maximised.
+                    # Stable components are skipped here.
+                    tasks.append(i)
+            
+            # Send tasks to workers and collect results
+            finished_workers = 0 # Do we need this?
+            done_workers = 0
+            task_index = 0
+            print('Master has %d tasks to do.'%(len(tasks)))
+            #~ print("Master starting with %d workers." % num_workers)
+            while done_workers < len(tasks):
+                data_from_worker = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+                source = status.Get_source()
+                tag = status.Get_tag()
+                
+                if tag == tags.READY:
+                    # Worker is ready, so send it a task
+                    # This worker sits in run_fastfit. It will call
+                    # maximisation function maximise_one_comp from there.
+                    if task_index < len(tasks):
+                        # Blocking
+                        #~ comm.send(tasks[task_index], dest=source, tag=tags.START)
+                        
+                        # Non-blocking
+                        args_local=dict()
+                        args_local.update(args)
+                        i = tasks[task_index]
+                        args_local['i'] = i # i-th component
+                        comm.send(args_local, dest=source, tag=tags.START) # This is non-blocking. isend is blocking. Blocking works! This enables passing over the correct i!
+                        
+                        # TODO: Add logging.
+                        print("Sending task %d to worker %d. Component %d. Source %d" % (task_index, source, i, source))
+                        task_index += 1
 
-        jobs = []
-        for i in range(ncomps):
-            # If component has too few stars, skip fit, and use previous best walker
-            if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
-                logging.info("Skipped component {} with nstars {}".format(
-                        i, np.sum(memb_probs[:, i])
-                ))
-            elif ignore_stable_comps and not unstable_comps[i]:
-                logging.info("Skipped stable component {}".format(i))
-            else:
-                process = multiprocessing.Process(target=worker, args=(i, return_dict))
-                jobs.append(process)
+                    else:
+                        comm.send(None, dest=source, tag=tags.FINISH)
+                        
+                elif tag == tags.DONE:
+                    # Gather results
+                    best_comp = data_from_worker['best_comp']
+                    chain = data_from_worker['chain']
+                    lnprob = data_from_worker['lnprob']
+                    final_pos = data_from_worker['final_pos']
+                    i = data_from_worker['i']
+                    
+                    new_comps.append(best_comp)
+                    all_samples.append(chain)
+                    all_lnprob.append(lnprob)
 
-        # Start the threads (i.e. calculate the random number lists)
-        for j in jobs:
-            j.start()
+                    # Keep track of the components that weren't ignored
+                    success_mask.append(i)
 
-        # Ensure all of the threads have finished
-        for j in jobs:
-            j.join()
+                    # record the final position of the walkers for each comp
+                    all_final_pos[i] = final_pos
 
-        keys = return_dict.keys()
-        keys = sorted(keys)
-        
-        for i in keys:
-            v = return_dict[i]
-            best_comp = v['best_comp']
-            chain = v['chain']
-            lnprob = v['lnprob']
-            final_pos = v['final_pos']
+                    #~ result.append(data[0])
+                    print("Got data from worker %d, component=%d" % (source, i))
+                    done_workers += 1
 
-            new_comps.append(best_comp)
-            all_samples.append(chain)
-            all_lnprob.append(lnprob)
 
-        # Keep track of the components that weren't ignored
-            success_mask.append(i)
+                # Do we need this?
+                elif tag == tags.FINISH:
+                    #~ print("Worker %d finished." % source)
+                    finished_workers += 1
+            
 
-        # record the final position of the walkers for each comp
-            all_final_pos[i] = final_pos
 
+
+    # Old generic way. Slow.
     else:
         logging.info("Maximising components in a for loop")
         for i in range(ncomps):
-            
             # If component has too few stars, skip fit, and use previous best walker
             if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
                 logging.info("Skipped component {} with nstars {}".format(
@@ -873,8 +929,8 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
             elif ignore_stable_comps and not unstable_comps[i]:
                 logging.info("Skipped stable component {}".format(i))
             else:
-                best_comp, chain, lnprob, final_pos = maximise_one_comp(data,
-                    memb_probs, i, all_init_pars=all_init_pars, 
+                best_comp, chain, lnprob, final_pos, _ = maximise_one_comp(data,
+                    memb_probs=memb_probs, i=i, all_init_pars=all_init_pars, 
                     all_init_pos=all_init_pos, idir=idir, 
                     ignore_stable_comps=ignore_stable_comps, 
                     ignore_dead_comps=ignore_dead_comps,
@@ -886,7 +942,9 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                     store_burnin_chains=store_burnin_chains,
                     nthreads=nthreads, 
                     optimisation_method=optimisation_method,
+                    nprocess_ncomp=nprocess_ncomp,
                     )
+
 
                 new_comps.append(best_comp)
                 all_samples.append(chain)
@@ -1001,6 +1059,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    record_len=30, bic_conv_tol=0.1, min_em_iterations=30,
                    nthreads=1, optimisation_method=None, 
                    nprocess_ncomp = False,
+                   comm=None,
+                   tags=None,
                    **kwargs):
     """
 
@@ -1079,6 +1139,9 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     nprocess_ncomp: bool {False}
         How many processes to use in the maximisation of ncomps with
         python's multiprocessing library in case Nelder-Mead is used.
+    comm: MPI communicator object
+        Used to communicate between master and worker ranks. Worker ranks
+        do all the work (maximise components)
         
 
     Return
@@ -1095,6 +1158,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     ------------
     2020.11.16 TC: added use_box_background
     """
+    
     # Tidying up input
     if not isinstance(data, dict):
         data = tabletool.build_data_dict_from_table(
@@ -1323,6 +1387,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                          nthreads=nthreads, 
                          optimisation_method=optimisation_method,
                          nprocess_ncomp=nprocess_ncomp,
+                         comm=comm,
+                         tags=tags,
                          )
 
         for i in range(ncomps):

@@ -1,23 +1,17 @@
 """
 naivefit.py
-
-
 A NaiveFit follows the approach described in Crundall et al. (2019).
-
 NaiveFit begins with an initial guess provided by user of an N component fit.
 If no guess is provided, all provided stars are assumed to be members of one
 component.
-
 NaiveFit will perform an Expectation Maximisation on this N component fit until
 converged.
-
 Then NaiveFit will test increasing the compoennt count to N+1. This is done by
 for each component out of the N existing, substituting it for 2 similar
 components with slight age offsets, and running an EM fit. The result
 is N separate "N+1 component" fits. The best one will be compared to the
 "N component" fit using the Bayesian Information Criterion (BIC). If the
 BIC has improved, this "N+1 component fit" will be taken as the best fit so far.
-
 This process iterates until adding a component fails to yield a better fit.
 """
 
@@ -51,7 +45,6 @@ except NameError:
 def dummy_trace_orbit_func(loc, times=None):
     """
     Purely for testing purposes
-
     Dummy trace orbit func to skip irrelevant computation
     A little constraint on age (since otherwise its a free floating
     parameter)
@@ -83,10 +76,9 @@ class NaiveFit(ParentFit):
         """
         super(NaiveFit, self).__init__(fit_pars)
 
-    def run_fit(self):
+    def run_fit(self, comm=None, tags=None):
         """
         Perform a fit (as described in Paper I) to a set of prepared data.
-
         Results are outputted as two dictionaries
         results = {'comps':best_fit, (list of components)
                    'med_and_spans':median and spans of model parameters,
@@ -94,6 +86,12 @@ class NaiveFit(ParentFit):
         scores  = {'bic': the bic,
                    'lnlike': log likelihood of that run,
                    'lnpost': log posterior of that run}
+        
+        
+        Input:
+        comm: MPI communicator object
+        tags: list(?) of tags for workers
+        
         """
 
         log_message('Beginning Chronostar run',
@@ -192,7 +190,8 @@ class NaiveFit(ParentFit):
                         memb_probs = prev_result['memb_probs'])
                 self.ncomps = len(self.fit_pars['init_comps'])
 
-                result = self.run_em_unless_loadable(run_dir)
+
+                result = self.run_em_unless_loadable(run_dir, comm=comm, tags=tags)
                 all_results.append(result)
 
                 score = self.calc_score(
@@ -247,4 +246,3 @@ class NaiveFit(ParentFit):
                         surround=True)
 
         return prev_result, prev_score
-

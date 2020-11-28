@@ -144,7 +144,7 @@ class ParentFit(object):
         'optimisation_method': 'emcee',
 
         # Optimise components in parallel in expectmax.maximise.
-        'nprocess_ncomp': False,
+        'nprocess_ncomp': True,
 
         # Overwrite final results in a fits file
         'overwrite_fits': False,
@@ -400,9 +400,13 @@ class ParentFit(object):
         return init_comps
 
 
-    def run_em_unless_loadable(self, run_dir):
+    def run_em_unless_loadable(self, run_dir, comm=None, tags=None):
         """
         Run and EM fit, but only if not loadable from a previous run
+        
+        run_dir: folder with results
+        comm: MPI communicator object
+        tags: list(?) of tags for workers
 
         """
         try:
@@ -410,6 +414,9 @@ class ParentFit(object):
             try:
                 med_and_spans = np.load(os.path.join(run_dir, 'final/', self.final_med_and_spans_file))
             except ValueError:
+                logging.info('med_and_spans not read. Presumably you are using gradient descent optimisation procedure?')
+                med_and_spans = [None]
+            except FileNotFoundError:
                 logging.info('med_and_spans not read. Presumably you are using gradient descent optimisation procedure?')
                 med_and_spans = [None]
             memb_probs = np.load(os.path.join(
@@ -431,7 +438,7 @@ class ParentFit(object):
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
-                                         **self.fit_pars)
+                                         comm=comm, tags=tags, **self.fit_pars)
 
         # Since init_comps and init_memb_probs are only meant for one time uses
         # we clear them to avoid any future usage
