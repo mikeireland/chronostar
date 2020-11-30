@@ -202,7 +202,7 @@ def convert_galpycoords2cart(data, ts=None, ro=8., vo=220., rc=True, lsr_centere
 
     # This is the angular distance between the LSR and our star
     if lsr_centered:
-        phi = phi_s - phi_lsr
+        phi = (phi_s.T - phi_lsr).T
     else:
         phi = phi_s
 
@@ -259,6 +259,7 @@ def convert_cart2curvilin(data, ro=8., vo=220.,
         zetadot:
 
     """
+    data = np.array(data)
 
     X, Y, Z, U, V, W = data.T
 
@@ -341,7 +342,7 @@ def epicyclic_approx(data, times=None, sA=0.89, sB=1.15, sR=1.21):
     data : [pc, pc*, pc, km/s, km/s, km/s] # *parsecs in the eta component are scales parsecs...
            xi, eta, zeta, xidot, etadot, zetadot
     """
-    xi0, eta0, zeta0, xidot0, etadot0, zetadot0 = data
+    xi0, eta0, zeta0, xidot0, etadot0, zetadot0 = data.T
 
     # Bovy 2017
     A0 = 15.3  # km/s/kpc
@@ -418,7 +419,7 @@ def trace_epicyclic_orbit(xyzuvw_start, times=None, sA=0.89, sB=1.15, sR=1.21, s
         try:
             if times == 0.:
                 times = 1e-15
-            times = np.array([0., times])
+            # times = np.array([0., times])
         except ValueError as err:
             if not err.args:
                 err.args = ('',)
@@ -427,6 +428,7 @@ def trace_epicyclic_orbit(xyzuvw_start, times=None, sA=0.89, sB=1.15, sR=1.21, s
             raise
 
     else:
+        raise UserWarning('Multi age orbit integation no longer supported')
         times = np.array(times)
 
     # Make sure numbers are floats!
@@ -451,10 +453,10 @@ def trace_epicyclic_orbit(xyzuvw_start, times=None, sA=0.89, sB=1.15, sR=1.21, s
     xyzuvw_new = convert_curvilin2cart(new_position, ro=ro, vo=vo)
 
     # Units: Transform velocities from pc/Myr back to km/s
-    xyzuvw_new[:,3:] /= 1.0227121650537077
+    xyzuvw_new[3:] /= 1.0227121650537077
 
-    if single_age:
-        return xyzuvw_new[-1]
+#     if single_age:
+#         return xyzuvw_new[-1]
     return xyzuvw_new
 
 def trace_galpy_orbit(galpy_start, times=None, single_age=True,
@@ -569,28 +571,35 @@ def trace_cartesian_orbit(xyzuvw_start, times=None, single_age=True,
             raise
 
     else:
+        raise UserWarning('Multi age orbit integation no longer supported')
         times = np.array(times)
 
     #Make sure we have a float array.
-    #MJI: Not sure why this is needed, as this isn't changed in-place anywhere.
-    xyzuvw_start = np.copy(xyzuvw_start).astype(np.float)
+    xyzuvw_starts = np.array(xyzuvw_start).astype(np.float)
+
+    # Check if we are doing multiple orbits in one call
+    if len(xyzuvw_starts.shape) == 1:
+        xyzuvw_starts = [xyzuvw_starts]
 
     #Convert to to Galpy times, which go from 0 to 2\pi around the LSR orbit. 
     bovy_times = convert_myr2bovytime(times)
 
     # since the LSR is constant in chron coordinates, the starting point
     # is always treated as time 0
-    galpy_coords = convert_cart2galpycoords(xyzuvw_start, ts=0.,
-                                            ro=ro, vo=vo)
-    o = Orbit(vxvv=galpy_coords, ro=ro, vo=vo)
-    o.integrate(bovy_times, potential, method=method)
-    
-    xyzuvw = convert_galpycoords2cart(o.getOrbit(), bovy_times,
-                                      ro=ro, vo=vo)
-    #import pdb; pdb.set_trace()
-    if single_age:
-        return xyzuvw[-1]
-    return xyzuvw
+    xyzuvw_ends = []
+    for xyzuvw_start in xyzuvw_starts:
+        galpy_coords = convert_cart2galpycoords(xyzuvw_start, ts=0.,
+                                                ro=ro, vo=vo)
+        o = Orbit(vxvv=galpy_coords, ro=ro, vo=vo)
+        o.integrate(bovy_times, potential, method=method)
+
+        xyzuvw_ends.append(convert_galpycoords2cart(o.getOrbit(), bovy_times,
+                                          ro=ro, vo=vo)[-1])
+    xyzuvw_ends = np.squeeze(np.array(xyzuvw_ends))
+
+   #  if single_age:
+   #      return xyzuvw[-1]
+    return xyzuvw_ends
 
 
 def trace_many_cartesian_orbit(xyzuvw_starts, times=None, single_age=True,

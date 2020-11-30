@@ -376,7 +376,6 @@ def convert_astro2cart(astr_mean, astr_cov):
         The carteisan covariance matrix
     """
     xyzuvw_mean = coordinate.convert_astrometry2lsrxyzuvw(astr_mean)
-
     xyzuvw_cov = transform.transform_covmatrix(
             cov=astr_cov, trans_func=coordinate.convert_astrometry2lsrxyzuvw,
             loc=astr_mean

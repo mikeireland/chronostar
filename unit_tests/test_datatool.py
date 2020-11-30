@@ -137,3 +137,6 @@ def test_param_logfile_usable():
     TODO: implement
     """
     pass
+
+if __name__ == '__main__':
+    test_convert_astro_only()

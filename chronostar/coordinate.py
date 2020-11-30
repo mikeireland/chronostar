@@ -129,7 +129,7 @@ def calc_eq2gc_matrix(a_deg=192.8595, d_deg=27.1283, th_deg=122.9319):
     -------
     res : [3x3] array
     """
-    assert isinstance(a_deg, (int, float, np.float32, np.float64))
+    # assert isinstance(a_deg, (int, float, np.float32, np.float64))
     a_rad = a_deg*np.pi/180
     d_rad = d_deg*np.pi/180
     th_rad = th_deg*np.pi/180
@@ -182,7 +182,8 @@ def convert_angles2cartesian(theta_deg, phi_deg, radius=1.0):
 
     Tested
     """
-    assert isinstance(theta_deg, (int, float, np.float32, np.float64))
+    # assert isinstance(theta_deg, (int, float, np.float32, np.float64))
+
     theta_rad = theta_deg*np.pi/180.
     phi_rad = phi_deg*np.pi/180
     x = radius * np.cos(phi_rad)*np.cos(theta_rad)
@@ -198,7 +199,8 @@ def convert_cartesian2angles(x, y, z, return_dist=False):
     Uses astropy angles which slows everything down
     """
     dist = np.sqrt(x**2 + y**2 + z**2)
-    if dist == 0.0:
+    if np.any(dist == 0.0):
+        print('doing hack...?')
         z += 1e-10 #HACK allowing sun (who has dist=0) to be inserted
         dist = np.sqrt(x**2 + y**2 + z**2)
     phi_deg = np.arcsin(z/dist)*180./np.pi
@@ -225,7 +227,8 @@ def convert_equatorial2galactic(theta_deg, phi_deg):
     pos_gc: (float, float) Galactic coordinates l and b, in degrees
     """
     # logging.debug("Converting eq ({}, {}) to gc: ".format(theta_deg, phi_deg))
-    assert isinstance(theta_deg, (int, float, np.float32, np.float64))
+    # assert isinstance(theta_deg, (int, float, np.float32, np.float64))
+
     cart_eq = convert_angles2cartesian(theta_deg, phi_deg)
     # logging.debug("Cartesian eq coords: {}".format(cart_eq))
     eq_to_gc = calc_eq2gc_matrix()
@@ -251,11 +254,12 @@ def convert_galactic2equatorial(theta_deg, phi_deg, value=True):
     pos_gc: (float, float) Equatorial coordinates RA and DEC, in degrees
     """
     # logging.debug("Converting gc ({}, {}) to eq:".format(theta_deg, phi_deg))
-    try:
-        assert isinstance(theta_deg, (int, float, np.float32, np.float64))
-    except AssertionError:
-        print(type(theta_deg))
-        AssertionError
+#     try:
+#         assert isinstance(theta_deg, (int, float, np.float32, np.float64))
+#     except AssertionError:
+#         print(type(theta_deg))
+#         AssertionError
+
     cart_gc = convert_angles2cartesian(theta_deg, phi_deg)
     # logging.debug("Cartesian eq coords: {}".format(cart_gc))
     gc_to_eq = calc_gc2eq_matrix()
@@ -304,20 +308,31 @@ def convert_pm2heliospacevelocity(a_deg, d_deg, pi, mu_a, mu_d, rv):
     -------
     UVW : [3] array
     """
-    assert isinstance(a_deg, (int, float, np.float32, np.float64))
+    # Not obvious to TC how to handle vector input, since
+    # matrices must be generated and combined. So we check for vector input,
+    # and perform in loop
+    try:
+        len(a_deg)
+    except TypeError:
+        a_deg, d_deg, pi, mu_a, mu_d, rv = [a_deg], [d_deg], [pi], [mu_a], [mu_d], [rv]
 
-    B = np.dot(
-        calc_eq2gc_matrix(),
-        calc_pm_coord_matrix(a_deg, d_deg),
-    )
-    K = 4.74057 #(km/s) / (1AU/yr)
-    astr_vels = np.array([
-        rv,
-        K * mu_a / pi,
-        K * mu_d / pi,
-    ])
-    space_vels = np.dot(B, astr_vels)
-    return space_vels
+    space_vels = []
+    for a, d, p, ma, md, r in zip(a_deg, d_deg, pi, mu_a, mu_d, rv):
+        B = np.dot(
+            calc_eq2gc_matrix(),
+            calc_pm_coord_matrix(a, d),
+        )
+        K = 4.74057 #(km/s) / (1AU/yr)
+        astr_vels = np.array([
+            r,
+            K * ma / p,
+            K * md / p,
+        ])
+        space_vels.append(np.dot(B, astr_vels))
+
+    space_vels = np.squeeze(np.array(space_vels))
+
+    return space_vels.T
 
 
 def convert_heliospacevelocity2pm(a_deg, d_deg, pi, u, v, w):
@@ -338,23 +353,31 @@ def convert_heliospacevelocity2pm(a_deg, d_deg, pi, u, v, w):
     mu_d : (as/yr) proper motion in declination
     rv : (km/s) line of sight velocity
     """
-    assert isinstance(a_deg, (int, float, np.float32, np.float64))
+    # assert isinstance(a_deg, (int, float, np.float32, np.float64))
     # logging.debug("Parallax is {} as which is a distance of {} pc".format(
     #     pi, 1./pi
     # ))
+    a_deg, d_deg, pi, us, vs, ws = [np.atleast_1d(val) for val in
+                                   (a_deg, d_deg, pi, u, v, w)]
 
-    space_vels = np.array([u,v,w])
+    res = []
+    for a, d, p, u, v, w in zip(a_deg, d_deg, pi, us, vs, ws):
+        space_vels = np.array([u,v,w])
 
-    B_inv = np.linalg.inv(np.dot(
-        calc_eq2gc_matrix(),
-        calc_pm_coord_matrix(a_deg, d_deg)
-    ))
-    sky_vels = np.dot(B_inv, space_vels) # now in km/s
-    K = 4.74057 #(km/s) / (AU/yr)
-    rv = sky_vels[0]
-    mu_a = pi * sky_vels[1] / K
-    mu_d = pi * sky_vels[2] / K
-    return np.array([mu_a, mu_d, rv])
+        B_inv = np.linalg.inv(np.dot(
+            calc_eq2gc_matrix(),
+            calc_pm_coord_matrix(a, d)
+        ))
+        sky_vels = np.dot(B_inv, space_vels) # now in km/s
+        K = 4.74057 #(km/s) / (AU/yr)
+        rv = sky_vels[0]
+        mu_a = p * sky_vels[1] / K
+        mu_d = p * sky_vels[2] / K
+        res.append([mu_a, mu_d, rv])
+
+    res = np.squeeze(np.array(res))
+
+    return res.T
 
 
 def convert_helioxyzuvw2astrometry(xyzuvw_helio):
@@ -376,13 +399,13 @@ def convert_helioxyzuvw2astrometry(xyzuvw_helio):
     mu_d : (as/yr) proper motion in declination
     rv : (km/s) line of sight velocity
     """
-    x, y, z, u, v, w = xyzuvw_helio
+    x, y, z, u, v, w = xyzuvw_helio.T
     l_deg, b_deg, dist = convert_cartesian2angles(x, y, z, return_dist=True)
     # logging.debug("l,b,Distance is {}, {}, {} pc".format(l_deg, b_deg, dist))
     a_deg, d_deg = convert_galactic2equatorial(l_deg, b_deg)
     pi = 1./dist
     mu_a, mu_d, rv = convert_heliospacevelocity2pm(a_deg, d_deg, pi, u, v, w)
-    return np.array([a_deg, d_deg, pi, mu_a, mu_d, rv])
+    return np.array([a_deg, d_deg, pi, mu_a, mu_d, rv]).T
 
 
 def convert_astrometry2helioxyzuvw(a_deg, d_deg, pi, mu_a, mu_d, rv):
@@ -406,7 +429,7 @@ def convert_astrometry2helioxyzuvw(a_deg, d_deg, pi, mu_a, mu_d, rv):
     u, v, w = convert_pm2heliospacevelocity(a_deg, d_deg, pi, mu_a, mu_d, rv)
     xyzuvw_helio = np.array([x,y,z,u,v,w])
     # logging.debug("XYZUVW heliocentric is : {}".format(xyzuvw_helio))
-    return xyzuvw_helio
+    return xyzuvw_helio.T
 
 
 def convert_lsr2helio(xyzuvw_lsr, kpc=False):
@@ -491,12 +514,14 @@ def convert_astrometry2lsrxyzuvw(astro, mas=True):
     -------
     XYZUVW : (pc, pc, pc, km/s, km/s, km/s)
     """
-    astro = np.copy(astro)
+    astro = np.copy(np.atleast_2d(astro))
     # convert to as for internal use
     if mas:
-        astro[2:5] *= 1e-3
+        astro[:,2:5] *= 1e-3
+    astro = np.squeeze(astro)
+
     # logging.debug("Input (after conversion) is: {}".format(astro))
-    xyzuvw_helio = convert_astrometry2helioxyzuvw(*astro)
+    xyzuvw_helio = convert_astrometry2helioxyzuvw(*(astro.T))
     # logging.debug("Heliocentric XYZUVW is : {}".format(xyzuvw_helio))
     xyzuvw_lsr = convert_helio2lsr(xyzuvw_helio)
 
@@ -556,8 +581,9 @@ def convert_lsrxyzuvw2astrometry(xyzuvw_lsr):
     astr = np.array(convert_helioxyzuvw2astrometry(xyzuvw_helio))
 
     # Finally converts angles to mas for external use
-    astr[2:5] *= 1e3
-    return astr
+    astr = np.atleast_2d(astr)
+    astr[:,2:5] *= 1e3
+    return np.squeeze(astr)
 
 
 def convert_many_lsrxyzuvw2astrometry(xyzuvw_lsrs):

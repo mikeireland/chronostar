@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import numpy as np
+import pytest
 import sys
 
 import chronostar.likelihood
@@ -130,6 +131,7 @@ def test_fit_many_comps_gradient_descent_with_multiprocessing():
                    )
 '''
 
+@pytest.mark.skip(reason='Too long for unit tests. Put this in integration instead')
 def test_maximisation_gradient_descent_with_multiprocessing_tech():
     """
     Added by MZ 2020 - 07 - 13

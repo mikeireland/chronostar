@@ -214,6 +214,11 @@ def test_convertLSRXYZUVWToAstrometry():
     )
     assert np.allclose(calculated_xyzuvw_bp_lsr2, xyzuvw_bp_lsr)
 
+    xyzuvw_bp_lsr_many = np.array([xyzuvw_bp_lsr for _ in range(10)])
+    astr_bp_many = cc.convert_lsrxyzuvw2astrometry(xyzuvw_bp_lsr_many)
+
+    assert np.allclose(calculated_astr_bp, astr_bp_many[0])
+
 
 def test_convertManyLSRXYZUVWToAstrometry():
     return
@@ -245,6 +250,7 @@ def test_convertManyLSRXYZUVWToAstrometry():
     assert np.allclose(recalculated_xyzuvws, xyzuvw_lsrs)
 
 
+
 def test_internalConsistency():
     '''
     Take a starting LSR cartesian mean, convert to RA, DEC directly and
@@ -267,3 +273,7 @@ def test_internalConsistency():
 
     assert np.isclose(direct_ra, indirect_ra)
     assert np.isclose(direct_dec, indirect_dec)
+
+if __name__ == '__main__':
+    #test_convertPMToSpaceVelocity()
+    test_convertLSRXYZUVWToAstrometry()

@@ -399,6 +399,25 @@ def alternativeBuildCovMatrix(data):
 # -----------------------------------------------
 # -----------------------------------------------
 
+def test_transform_astrocart():
+    orig_astr_data = \
+        tabletool.build_data_dict_from_table(table=HIST_FILE_NAME, cartesian=False,
+                                             historical=False)
+    orig_cart_data = \
+        tabletool.build_data_dict_from_table(table=HIST_FILE_NAME, cartesian=True,
+                                             historical=True)
+    astr_mean = orig_astr_data['means'][0]
+    astr_cov  = orig_astr_data['covs'][0]
+
+    cart_mean = orig_cart_data['means'][0]  # [67.568, -5.279, 16.888,  -3.871,   1.713,   1.997]
+                                    # helio:  [67.568, -5.279, -8.112, -14.971, -10.527,  -5.253]
+
+    cart_cov  = orig_cart_data['covs'][0]
+
+
+
+    calc_cart_mean, calc_cart_cov = tabletool.convert_astro2cart(astr_mean, astr_cov)
+
 def test_convertTableXYZUVWToArray():
     """
     Check that generating cartesian means and covariance matrices matches
@@ -571,5 +590,6 @@ def test_build_data_from_incomplete_table():
 
 
 if __name__ == '__main__':
-    pass
+    test_transform_astrocart()
+    test_convertAstrTableToCart()
 

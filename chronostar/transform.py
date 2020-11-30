@@ -10,7 +10,8 @@ forward (or backward) through the Galactic potential.
 import numpy as np
 
 
-def calc_jacobian_column(trans_func, col_number, loc, dim=6, h=1e-3, args=None):
+def calc_jacobian_column(trans_func, col_number, loc, dim=6, h=1e-3, args=None,
+                         fin_pl=None, fin_mi=None):
     """
     Calculate a column of the Jacobian.
 
@@ -93,9 +94,34 @@ def calc_jacobian(trans_func, loc, dim=6, h=1e-3, args=None):
     (at least when `trans_func` is traceorbit.trace_cartesian_orbit).
     Since this is a loop, there is scope for parallelisation.
     """
+    if args is None:
+        args = []
+
     jac = np.zeros((dim, dim))
+
+    # Even with epicyclic, this constitutes 90% of chronostar work
+    # so, we pass all 12 required positions to the trans_func as
+    # one array, to exploit numpy's faster array operations
+    start_pos = []
     for i in range(dim):
-        jac[:,i] = calc_jacobian_column(trans_func, i, loc, dim, h, args)
+        offset = np.zeros(dim)
+        offset[i] = h
+        loc_pl = loc + offset
+        loc_mi = loc - offset
+        start_pos.append(loc_pl)
+        start_pos.append(loc_mi)
+    start_pos = np.array(start_pos)
+
+    final_pos = trans_func(start_pos, *args)
+
+    # return (trans_func(loc_pl) - trans_func(loc_mi)) / (2*h)
+
+    for i in range(dim):
+        jac[:,i] = (final_pos[2*i] - final_pos[2*i + 1]) / (2*h)
+
+#    for i in range(dim):
+#        jac[:,i] = calc_jacobian_column(trans_func, i, loc, dim, h, args)
+
     return jac
 
 

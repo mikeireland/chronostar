@@ -57,6 +57,11 @@ def co1(A_cov, a, B_cov, b):
         Covariance matrix of second Gaussian distribution
     b : (n) np.float array
         Mean of second Gaussian distribution
+
+    Notes
+    -----
+    2020-11-30 TC: Is this just wrong? Seems to be producing different values
+    than other ones....
     """
     A = np.linalg.inv(A_cov)
     B = np.linalg.inv(B_cov)
@@ -183,3 +188,5 @@ def test_swigImplementation():
     assert np.isfinite(p_lnos).all()
     assert np.isfinite(c_lnos).all()
 
+if __name__ == '__main__':
+    test_pythonFuncs()

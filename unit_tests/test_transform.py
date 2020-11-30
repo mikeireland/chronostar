@@ -7,10 +7,10 @@ import chronostar.transform as tf
 
 def convertPolarToCartesian(pos):
     """Take a point in polar space to cartesian space"""
-    r, theta = pos
+    r, theta = pos.T
     x = r * np.cos(theta)
     y = r * np.sin(theta)
-    return np.array([x, y])
+    return np.array([x, y]).T
 
 def convertManyPolarToCartesian(points):
     """
@@ -71,3 +71,6 @@ def test_polar():
 
     assert np.allclose(estimated_mean, cart_mean, rtol=1e-1)
     assert np.allclose(estimated_cov, cart_cov, rtol=1e-1)
+
+if __name__ == '__main__':
+    test_polar()

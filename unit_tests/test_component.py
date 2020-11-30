@@ -143,6 +143,8 @@ def test_simple_projection():
         comp = ComponentClass(pars=DEFAULT_PARS[name])
         comp.update_attribute(attributes={'age':tiny_age})
 
+        cov_mat_now = comp.get_covmatrix_now()
+
         assert np.allclose(comp.get_mean(), comp.get_mean_now(), atol=1e-8)
         assert np.allclose(comp.get_covmatrix(), comp.get_covmatrix_now(),
                            atol=1e-4)
