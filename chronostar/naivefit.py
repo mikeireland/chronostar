@@ -228,7 +228,7 @@ class NaiveFit(ParentFit):
                 prev_score = new_score
                 prev_result = new_result
 
-                self.ncomps += 1
+                stage_2_ncomps += 1
                 log_message(msg="Commencing {} component fit on {}{}".format(
                         self.ncomps, self.ncomps - 1,
                         chr(ord('A') + best_split_ix)), symbol='+'
@@ -241,7 +241,7 @@ class NaiveFit(ParentFit):
             logging.info("Best fit:\n{}".format(
                     [group.get_pars() for group in prev_result['comps']]))
 
-        if self.ncomps >= self.fit_pars['max_comp_count']:
+        if stage_2_ncomps >= self.fit_pars['max_comp_count']:
             log_message(msg='REACHED MAX COMP LIMIT', symbol='+',
                         surround=True)
 
