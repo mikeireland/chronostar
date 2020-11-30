@@ -5,9 +5,11 @@ from chronostar import compfitter
 from chronostar import datatool
 from chronostar import tabletool
 
-if __name__ == '__main__':
+import sys
 
-    data_file = ''
+if __name__ == '__main__':
+    data_file = sys.argv[1]
+
     data_dict = tabletool.build_data_dict_from_table(data_file)
     res = compfitter.fit_comp(data_dict)
 
