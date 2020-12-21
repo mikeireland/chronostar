@@ -9,7 +9,11 @@ TODO: Update README.md with description for NaiveFit parameters
 various available parameters).
 """
 
-from mpi4py import MPI
+try:
+    from mpi4py import MPI
+except ImportError:
+    raise UserWarning('mpi4py was not imported.')
+
 from multiprocessing import cpu_count
 
 import os.path

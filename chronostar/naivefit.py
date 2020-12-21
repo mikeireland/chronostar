@@ -182,6 +182,8 @@ class NaiveFit(ParentFit):
                 run_dir = self.rdir + '{}/{}/'.format(stage_2_ncomps, div_label)
                 log_message(msg='Subdividing stage {}'.format(div_label),
                             symbol='+', surround=True)
+                #~ import pdb
+                #~ pdb.set_trace()
                 mkpath(run_dir)
 
                 self.fit_pars['init_comps'] = self.build_init_comps(

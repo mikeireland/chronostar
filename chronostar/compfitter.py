@@ -279,7 +279,6 @@ def get_best_component(chain, lnprob, Component=SphereComponent):
     best_component = Component(emcee_pars=best_sample)
     return best_component
 
-
 def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
              burnin_steps=1000, Component=SphereComponent, plot_it=False,
              pool=None, convergence_tol=0.25, plot_dir='', save_dir='',
@@ -528,15 +527,21 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         it is minimizing rather than optimizing.
         """
         # Initialise initial positions to represent components of slightly differing ages
-        if init_pars is None:
-            init_pars = get_init_emcee_pars(data=data, memb_probs=memb_probs,
-                                            Component=Component)
-        init_age = init_pars[-1]
-        age_offsets = [-9, -4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10., 20., 40.]
-        init_ages = np.abs([init_age + age_offset for age_offset in age_offsets])
-        init_guess_comp = Component(emcee_pars=init_pars)
-        init_guess_comps = init_guess_comp.split_group_ages(init_ages)
-        init_pos = [c.get_emcee_pars() for c in init_guess_comps]
+        #~ if init_pars is None:
+            #~ init_pars = get_init_emcee_pars(data=data, memb_probs=memb_probs,
+                                            #~ Component=Component)
+        #~ init_age = init_pars[-1]
+        #age_offsets = [-9, -4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10., 20., 40.]
+        #~ age_offsets = [0.,]
+        #~ init_ages = np.abs([init_age + age_offset for age_offset in age_offsets])
+        #~ init_guess_comp = Component(emcee_pars=init_pars)
+        #~ init_guess_comps = init_guess_comp.split_group_ages(init_ages)
+        #~ init_pos = [c.get_emcee_pars() for c in init_guess_comps]
+        print('init_pos', init_pos)
+        if init_pos is None:
+            init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
+                                          init_pars=init_pars, Component=Component,
+                                          nwalkers=nwalkers)
         
         #~ print('init_pos', len(init_pos), init_pos)
 
@@ -566,14 +571,16 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             
             #~ arr = mp.Array(c.c_double, pool_size*2) # shared, can be used from multiple processes
 
-            def worker(pos, return_dict):
+            def worker(i, pos, return_dict):
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
-                return_dict[result.fun] = result
+                print(result)
+                if result.success and result.status==0: # status=1: maximum number of iterations exceeded
+                    return_dict[i] = result
             #TODO: tol: is this value optimal?
 
 
             for i in range(pool_size):
-                pool.apply_async(worker, args=(init_pos[i], return_dict))
+                pool.apply_async(worker, args=(i, init_pos[i], return_dict))
 
 
             pool.close()
@@ -585,18 +592,34 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             """
             Compute optimisations in a for loop. This is slow.
             """
+            print('Gradient descent sequential')
             return_dict=dict()
             logging.info('Running %i fits'%(len(init_pos)))
-            for pos in init_pos:
-                logging.info(' init age: %5.2f'%pos[-1])
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
-                return_dict[result.fun] = result
-                logging.info('         res: %5.2f | %5.3f'%(result.x[-1], -result.fun))
+
+            number_of_stars00 = np.sum((memb_probs > 1e-5)) # TODO: delete this
+
+
+            for i, pos in enumerate(init_pos):
+                try:
+                    logging.info(' init age: %5.2f'%pos[-1])
+                    print(' init age: %5.2f'%pos[-1], number_of_stars00)
+                    #~ import pdb; pdb.set_trace()
+                    result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method, options={'disp': True})
+                    print(result)
+                    if result.success and result.status==0:
+                        return_dict[i] = result
+                    logging.info('         res: %5.2f | %5.3f'%(result.x[-1], -result.fun))
+                except:
+                    print('pos', pos)
+                    import pdb; pdb.set_trace()
 
         # Select the best result. Keys are lnprob values.
-        keys = list(return_dict.keys())
-        key = np.nanmin(keys)
-        best_result = return_dict[key]
+        
+        #~ keys = list(return_dict.keys())
+        #~ result = [[x.fun, x] for x in return_dict.values()]
+        #~ index = np.argmin(result, key=lambda x: x[0])
+        #~ best_result = min([return_dict.items(), key=lambda x: x[1].fun])[1]
+        best_result = min(return_dict.values(), key=lambda x: x.fun)
 
         # Identify and create the best component (with best lnprob)
         best_component = Component(emcee_pars=best_result.x)

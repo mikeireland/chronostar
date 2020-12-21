@@ -518,6 +518,7 @@ class AbstractComponent(object):
         This is the most expensive aspect of Chronostar, so we first make
         sure the covariance matrix hasn't already been projected.
         """
+        #~ print('self.trace_orbit_func', self.trace_orbit_func)
         if self._covmatrix_now is None:
             self._covmatrix_now = transform.transform_covmatrix(
                     self._covmatrix, trans_func=self.trace_orbit_func,
@@ -891,7 +892,7 @@ class AbstractComponent(object):
                 return res
         except: # fits file
             tab = Table.read(filename)
-            res = np.array([tab['X'], tab['Y'], tab['Z'], tab['U'], tab['V'], tab['W'], tab['dX'], tab['dV'], tab['Age']])
+            res = np.array([tab['X'], tab['Y'], tab['Z'], tab['U'], tab['V'], tab['W'], tab['dX'], tab['dV'], tab['age']])
             return res.T
 
 

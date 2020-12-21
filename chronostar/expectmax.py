@@ -59,12 +59,14 @@ except:
     from .likelihood import slow_get_lnoverlaps as get_lnoverlaps
 
 
-
-from mpi4py import MPI
-comm = MPI.COMM_WORLD   # get MPI communicator object
-size = comm.size        # total number of processes
-rank = comm.rank        # rank of this process
-status = MPI.Status()   # get MPI status object
+try:
+    from mpi4py import MPI
+    #~ comm = MPI.COMM_WORLD   # get MPI communicator object
+    #~ size = comm.size        # total number of processes
+    #~ rank = comm.rank        # rank of this process
+    #~ status = MPI.Status()   # get MPI status object
+except:
+    print('mpi4py was not imported.')
 
 
 #from functools import partial
@@ -342,10 +344,10 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     lnols = np.zeros((nstars, n_memb_cols))
 
     # Set up old membership probabilities
-    if old_memb_probs is None:
-        raise UserWarning('Why are you trying to get an overall likelihood, when '
-                          'you don\'t even have memberships!??!')
-        # old_memb_probs = np.ones((nstars, ncomps)) / ncomps
+    #~ if old_memb_probs is None:
+        #~ raise UserWarning('Why are you trying to get an overall likelihood, when '
+                          #~ 'you don\'t even have memberships!??!')
+    old_memb_probs = np.ones((nstars, ncomps)) / ncomps
     # 'weights' is the same as 'amplitudes', amplitudes for components
     weights = old_memb_probs[:, :ncomps].sum(axis=0)
 
@@ -813,6 +815,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
 
     # MAXIMISE COMPONENTS IN PARALLEL WITH WORKERS
     if comm is not None:
+        rank = comm.rank
         if rank==0: # TODO: This should be an assert statement
             
             print('rank', rank, 'STARTING to prepare tasks for workers')

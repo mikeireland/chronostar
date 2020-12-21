@@ -166,7 +166,7 @@ def lnprior(comp, memb_probs):
 
     return ln_alpha_prior(comp, memb_probs, sig=1.0)
 
-
+#@profile
 def get_lnoverlaps(comp, data, star_mask=None):
     """
     Given the parametric description of an origin, calculate star overlaps
@@ -268,7 +268,6 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
     return result
-
 
 def lnprob_func(pars, data, memb_probs=None,
                 trace_orbit_func=None, optimisation_method='emcee',
