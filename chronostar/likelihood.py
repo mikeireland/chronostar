@@ -166,7 +166,7 @@ def lnprior(comp, memb_probs):
 
     return ln_alpha_prior(comp, memb_probs, sig=1.0)
 
-
+@profile
 def get_lnoverlaps(comp, data, star_mask=None):
     """
     Given the parametric description of an origin, calculate star overlaps
