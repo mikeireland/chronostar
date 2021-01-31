@@ -56,12 +56,12 @@ torb.MIKES_IMP = False
 ###             # Velocities shouldn't vary by more than 0.05 km/s
 ###             vel_atol = 0.03
 
-            assert np.allclose(rand_xyzuvw[:3], xyzuvw_res[:3], atol=pos_atol)
-            assert np.allclose(rand_xyzuvw[3:], xyzuvw_res[3:], atol=vel_atol)
-            # assert np.allclose(rand_galpy, eg.convert_epi2galpy(rand_epi), rtol=rtol)
-        except AssertionError:
-            print(i)
-            import pdb; pdb.set_trace()
+###            assert np.allclose(rand_xyzuvw[:3], xyzuvw_res[:3], atol=pos_atol)
+###            assert np.allclose(rand_xyzuvw[3:], xyzuvw_res[3:], atol=vel_atol)
+###            # assert np.allclose(rand_galpy, eg.convert_epi2galpy(rand_epi), rtol=rtol)
+###        except AssertionError:
+###            print(i)
+###            import pdb; pdb.set_trace()
 
 ### def test_evolve_epispace():
 ###     """
