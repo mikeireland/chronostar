@@ -48,6 +48,7 @@ try:
 except NameError:
     FileNotFoundError = IOError
 
+#ACW: put these into a helper module /start
 def dummy_trace_orbit_func(loc, times=None):
     """
     Purely for testing purposes
@@ -68,6 +69,7 @@ def log_message(msg, symbol='.', surround=False):
     if surround:
         res = '\n{}\n{}\n{}'.format(50 * symbol, res, 50 * symbol)
     logging.info(res)
+#ACW: /end
 
 
 class NaiveFit(ParentFit):
@@ -106,6 +108,7 @@ class NaiveFit(ParentFit):
         if self.fit_pars['store_burnin_chains']:
             log_message(msg='Storing burnin chains', symbol='-')
 
+        # ACW: Make this a function (~50 lines)
         # ------------------------------------------------------------
         # -----  STAGE 1: ESTABLISHING INITIAL FIT         -----------
         # ------------------------------------------------------------
