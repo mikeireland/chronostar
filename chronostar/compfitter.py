@@ -538,7 +538,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         #~ init_guess_comp = Component(emcee_pars=init_pars)
         #~ init_guess_comps = init_guess_comp.split_group_ages(init_ages)
         #~ init_pos = [c.get_emcee_pars() for c in init_guess_comps]
-        print('init_pos', init_pos)
+        #~ print('init_pos', init_pos)
         if init_pos is None:
             init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
                                           init_pars=init_pars, Component=Component,
@@ -559,12 +559,6 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             This is done in parallel with the nwalker processes.
             """
 
-
-                
-
-            manager = multiprocessing.Manager()
-            return_dict = manager.dict()
-            
             #~ pool_size = max(cpu_count, nwalkers) # Mark's advice
             pool_size = len(init_pos) # TODO. But pool_size MUST equal init_pos, see pool.apply_async(worker, args=(init_pos[i], return_dict)) a few lines below
             # pool = Pool(pool_size)
@@ -575,9 +569,15 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
             def worker(i, pos, return_dict):
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
+                #~ print('RESULT...')
                 print(result)
+                #~ print('TYPES...', type(result.success), type(result.status))
                 if result.success and result.status==0: # status=1: maximum number of iterations exceeded
+                    print('RESULT %d accepted'%i)
                     return_dict[i] = result
+                else:
+                    print('result rejected')
+                print('')
             #TODO: tol: is this value optimal?
 
 
@@ -598,25 +598,58 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
 
 
-            processes = [Process(target=worker, args=(i, init_pos[i], return_dict)) for i in range(pool_size)]
+            #~ manager = multiprocessing.Manager()
+            #~ return_dict = manager.dict()
 
-            print('processes finished')
+            #~ processes = [Process(target=worker, args=(i, init_pos[i], return_dict)) for i in range(pool_size)]
 
-            for p in processes:
-                p.start()
+            #~ print('processes finished')
 
-            # wait for threads to complete
-            for p in processes:
-                p.join()
+            #~ for p in processes:
+                #~ p.start()
 
-            """
-            result: dict{i: minimize.result}
-            """
-            result = dict(return_dict)
+            #~ # wait for threads to complete
+            #~ for p in processes:
+                #~ p.join()
+
             
-            print('result', result)
+            #~ print('threads finished?')
+            
+            #~ """
+            #~ result: dict{i: minimize.result}
+            #~ """
+            #~ print('return_dict0', return_dict)
+            #result = dict(return_dict)
+            
+            #print('result0', result)
     
     
+ 
+            with multiprocessing.Manager() as manager:
+                return_dict = manager.dict()
+
+                processes = [Process(target=worker, args=(i, init_pos[i], return_dict)) for i in range(pool_size)]
+
+                print('processes finished')
+
+                for p in processes:
+                    p.start()
+
+                # wait for threads to complete
+                for p in processes:
+                    p.join()
+
+                
+                print('threads finished?')
+                
+                """
+                result: dict{i: minimize.result}
+                """
+                return_dict = dict(return_dict)
+                print('return_dict0', return_dict)
+                
+                #~ print('result0', result) 
+ 
     
     
     
@@ -648,11 +681,18 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
         # Select the best result. Keys are lnprob values.
         
+        
+        # MZ: added in feb 2021
+        print('LEN', len(return_dict))
+        print('RETURN DICT>>>', return_dict)
+        result = dict(return_dict)
+        
         #~ keys = list(return_dict.keys())
         #~ result = [[x.fun, x] for x in return_dict.values()]
         #~ index = np.argmin(result, key=lambda x: x[0])
         #~ best_result = min([return_dict.items(), key=lambda x: x[1].fun])[1]
-        best_result = min(return_dict.values(), key=lambda x: x.fun)
+        #~ best_result = min(return_dict.values(), key=lambda x: x.fun)
+        best_result = min(result.values(), key=lambda x: x.fun)
 
         # Identify and create the best component (with best lnprob)
         best_component = Component(emcee_pars=best_result.x)
