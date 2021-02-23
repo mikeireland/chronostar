@@ -22,6 +22,7 @@ import emcee
 import logging
 import os
 import multiprocessing
+from multiprocessing import Process
 from multiprocessing.pool import ThreadPool as Pool
 import scipy.optimize
 
