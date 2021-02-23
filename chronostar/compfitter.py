@@ -614,7 +614,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             """
             result = dict(return_dict)
             
-            #~ print('result', result[0][:10])
+            print('result', result)
     
     
     
