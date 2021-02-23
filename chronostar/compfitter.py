@@ -558,14 +558,15 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             This is done in parallel with the nwalker processes.
             """
 
-            
+
+                
 
             manager = multiprocessing.Manager()
             return_dict = manager.dict()
             
             #~ pool_size = max(cpu_count, nwalkers) # Mark's advice
             pool_size = len(init_pos) # TODO. But pool_size MUST equal init_pos, see pool.apply_async(worker, args=(init_pos[i], return_dict)) a few lines below
-            pool = Pool(pool_size)
+            # pool = Pool(pool_size)
             
             print('Maximising component with pool_size %d and %d members'%(pool_size, np.sum(memb_probs)))
             
@@ -579,13 +580,44 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             #TODO: tol: is this value optimal?
 
 
-            for i in range(pool_size):
-                pool.apply_async(worker, args=(i, init_pos[i], return_dict))
+            """
+            Make sure this works properly.
+            
+            - pool.apply_async(worker, args=(i, init_pos[i], return_dict)) does not work any faster on my laptop (in a simple testcode)
+            
+            - processes = [Process(target=worker, args=(i, init_pos[i], return_dict)) for i in range(pool_size)] works as twice as fast on my laptop (in a simple testcode)
+            
+            """
+            # for i in range(pool_size):
+            #    pool.apply_async(worker, args=(i, init_pos[i], return_dict))
 
 
-            pool.close()
-            pool.join()
+            #pool.close()
+            #pool.join()
 
+
+
+            processes = [Process(target=worker, args=(i, init_pos[i], return_dict)) for i in range(pool_size)]
+
+            print('processes finished')
+
+            for p in processes:
+                p.start()
+
+            # wait for threads to complete
+            for p in processes:
+                p.join()
+
+            """
+            result: dict{i: minimize.result}
+            """
+            result = dict(return_dict)
+            
+            #~ print('result', result[0][:10])
+    
+    
+    
+    
     
 
         else:
