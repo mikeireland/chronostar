@@ -1,12 +1,12 @@
 # Scorpius-Centaurus Association
 
 ## Data
-# Results from December 2020
+### Results from December 2020
 Currently in `Google drive` but will move this to `mash` after some re-organisation:
 - `final_comps.fits`: Components
 - `members_from_5k_fit_and_overlaps.fits`: Input data and membership probabilities
 
-# Selection function
+### Selection function
 
 ## Code
 - `component_overlaps.py`: Take components and compute star-component overlaps for a big sample of stars.
