@@ -25,12 +25,12 @@ except NameError:
 
 # The placement of logsumexp varies wildly between scipy versions
 import scipy
-_SCIPY_VERSION= [int(v.split('rc')[0])
-                 for v in scipy.__version__.split('.')]
+_SCIPY_VERSION = [int(v.split('rc')[0])
+                  for v in scipy.__version__.split('.')]
 if _SCIPY_VERSION[0] == 0 and _SCIPY_VERSION[1] < 10:
     from scipy.maxentropy import logsumexp
 elif ((_SCIPY_VERSION[0] == 1 and _SCIPY_VERSION[1] >= 3) or
-    _SCIPY_VERSION[0] > 1):
+      _SCIPY_VERSION[0] > 1):
     from scipy.special import logsumexp
 else:
     from scipy.misc import logsumexp
@@ -74,7 +74,7 @@ def get_best_permutation(memb_probs, true_memb_probs):
     best_perm = None
     min_diff = np.inf
     for perm in perms:
-        diff = np.sum(np.abs(memb_probs[:,perm] - true_memb_probs))
+        diff = np.sum(np.abs(memb_probs[:, perm] - true_memb_probs))
         if diff < min_diff:
             min_diff = diff
             best_perm = perm
@@ -182,7 +182,7 @@ def get_background_overlaps_with_covariances(background_means, star_means,
 
     # shapes of the c_get_lnoverlaps input must be: (6, 6), (6,), (120, 6, 6), (120, 6)
     # So I do it in a loop for every star
-    bg_lnols=[]
+    bg_lnols = []
     for i, (star_mean, star_cov) in enumerate(zip(star_means, star_covs)):
         print('bgols', i)
         #print('{} of {}'.format(i, len(star_means)))
@@ -210,7 +210,9 @@ def get_background_overlaps_with_covariances(background_means, star_means,
         #print('')
 
     # This should be parallelized
-    #bg_lnols = [np.sum(get_lnoverlaps(star_cov, star_mean, background_covs, background_means, nstars)) for star_mean, star_cov in zip(star_means, star_covs)]
+#    bg_lnols = [np.sum(get_lnoverlaps(star_cov, star_mean, background_covs,
+#                                      background_means, nstars))
+#                for star_mean, star_cov in zip(star_means, star_covs)]
     #print(bg_lnols)
 
     return bg_lnols
@@ -251,9 +253,9 @@ def check_convergence(old_best_comps, new_chains, perc=40):
     for old_best_comp, new_chain in zip(old_best_comps, new_chains):
         med_and_spans = compfitter.calc_med_and_span(new_chain, perc=perc)
         upper_contained =\
-            old_best_comp.get_emcee_pars() < med_and_spans[:,1]
+            old_best_comp.get_emcee_pars() < med_and_spans[:, 1]
         lower_contained = \
-            old_best_comp.get_emcee_pars() > med_and_spans[:,2]
+            old_best_comp.get_emcee_pars() > med_and_spans[:, 2]
         each_converged.append(
             np.all(upper_contained) and np.all(lower_contained))
 
@@ -346,7 +348,7 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
         comp_lnpriors = np.zeros(ncomps)
         for i, comp in enumerate(comps):
             comp_lnpriors[i] = likelihood.ln_alpha_prior(
-                    comp, memb_probs=old_memb_probs
+                comp, memb_probs=old_memb_probs
             )
         comp_starcount = weights.sum()
         weights *= np.exp(comp_lnpriors)
@@ -367,12 +369,12 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
 
     # insert one time calculated background overlaps
     if using_bg:
-        lnols[:,-1] = data['bg_lnols']
+        lnols[:, -1] = data['bg_lnols']
     if use_box_background:
         logging.info('Calculating overall lnlike with a box bg')
-        nbg_stars = np.sum(old_memb_probs[:,-1])
+        nbg_stars = np.sum(old_memb_probs[:, -1])
         star_volume = np.product(np.ptp(data['means'], axis=0))
-        lnols[:,-1] = np.log(nbg_stars/star_volume)
+        lnols[:, -1] = np.log(nbg_stars/star_volume)
 
     return lnols
 
@@ -536,9 +538,9 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
                              old_memb_probs=old_memb_probs,
                              inc_posterior=inc_posterior,
                              use_box_background=use_box_background)
-    
+
     # logging.info('here0')
-    
+
     all_ln_ols = get_all_lnoverlaps(data, comps,
                                     old_memb_probs=memb_probs,
                                     inc_posterior=inc_posterior,
@@ -548,25 +550,25 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     # (In linear space, takes the star's overlap to the power of its
     # membership probability)
     weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
-    
+
     if return_memb_probs:
         return np.sum(weighted_lnols), memb_probs
     else:
         return np.sum(weighted_lnols)
 
 def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_pos=None,
-                ignore_stable_comps=False, ignore_dead_comps=False,
-                DEATH_THRESHOLD=2.1, unstable_comps=None,
-                burnin_steps=None, plot_it=False,
-                pool=None, convergence_tol=0.25,
-                plot_dir=None, save_dir=None,
-                Component=SphereComponent,
-                trace_orbit_func=None,
-                store_burnin_chains=False,
-                nthreads=1, 
-                optimisation_method=None,
-                nprocess_ncomp=False,
-                ):
+                      ignore_stable_comps=False, ignore_dead_comps=False,
+                      DEATH_THRESHOLD=2.1, unstable_comps=None,
+                      burnin_steps=None, plot_it=False,
+                      pool=None, convergence_tol=0.25,
+                      plot_dir=None, save_dir=None,
+                      Component=SphereComponent,
+                      trace_orbit_func=None,
+                      store_burnin_chains=False,
+                      nthreads=1,
+                      optimisation_method=None,
+                      nprocess_ncomp=False,
+                      ):
 
     """
     Performs the 'maximisation' step of the EM algorithm for 1 component
@@ -624,20 +626,20 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
     nprocess_ncomp: bool {False}
         Compute maximisation in parallel? This is relevant only in case
         Nelder-Mead method is used: This method computes optimisation
-        many times with different initial positions. The result is the 
+        many times with different initial positions. The result is the
         one with the best likelihood. These optimisations are computed
         in parallel if nprocess_ncomp equals True.
-        
+
     Returns
     -------
     best_comp:
         The best fitting component.
     chain:
-        
+
     lnprob:
-        
+
     final_pos:
-        The final positions of walkers for this maximisation. 
+        The final positions of walkers for this maximisation.
         Useful for restarting the next emcee run.
     """
 
@@ -657,28 +659,28 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
     #~ else:
 
     best_comp, chain, lnprob = compfitter.fit_comp(
-            data=data, memb_probs=memb_probs[:, i],
-            burnin_steps=burnin_steps, plot_it=plot_it,
-            pool=pool, convergence_tol=convergence_tol,
-            plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[i],
-            init_pars=all_init_pars[i], Component=Component,
-            trace_orbit_func=trace_orbit_func,
-            store_burnin_chains=store_burnin_chains,
-            nthreads=nthreads, 
-            optimisation_method=optimisation_method,
-            nprocess_ncomp=nprocess_ncomp,
+        data=data, memb_probs=memb_probs[:, i],
+        burnin_steps=burnin_steps, plot_it=plot_it,
+        pool=pool, convergence_tol=convergence_tol,
+        plot_dir=gdir, save_dir=gdir, init_pos=all_init_pos[i],
+        init_pars=all_init_pars[i], Component=Component,
+        trace_orbit_func=trace_orbit_func,
+        store_burnin_chains=store_burnin_chains,
+        nthreads=nthreads,
+        optimisation_method=optimisation_method,
+        nprocess_ncomp=nprocess_ncomp,
     )
     logging.info("Finished fit")
     logging.info("Best comp pars:\n{}".format(
-            best_comp.get_pars()
+        best_comp.get_pars()
     ))
-    
-    if optimisation_method=='emcee':
+
+    if optimisation_method == 'emcee':
         final_pos = chain[:, -1, :]
         logging.info("With age of: {:.3} +- {:.3} Myr".
-                     format(np.median(chain[:,:,-1]),
-                            np.std(chain[:,:,-1])))
-    elif optimisation_method=='Nelder-Mead':
+                     format(np.median(chain[:, :, -1]),
+                            np.std(chain[:, :, -1])))
+    elif optimisation_method == 'Nelder-Mead':
         final_pos = chain
         logging.info("With age of: {:.3} Myr".
                      format(chain[-1]))
@@ -688,9 +690,9 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
     np.save(gdir + "best_comp_fit_bak.npy", best_comp) # can remove this line when working
     np.save(gdir + 'final_chain.npy', chain)
     np.save(gdir + 'final_lnprob.npy', lnprob)
-    
+
     return best_comp, chain, lnprob, final_pos
-    
+
 
 def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                  all_init_pars, all_init_pos=None, plot_it=False, pool=None,
@@ -804,9 +806,9 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
         def worker(i, return_dict):
 
             best_comp, chain, lnprob, final_pos = maximise_one_comp(data,
-                memb_probs, i, all_init_pars=all_init_pars, 
-                all_init_pos=all_init_pos, idir=idir, 
-                ignore_stable_comps=ignore_stable_comps, 
+                memb_probs, i, all_init_pars=all_init_pars,
+                all_init_pos=all_init_pos, idir=idir,
+                ignore_stable_comps=ignore_stable_comps,
                 ignore_dead_comps=ignore_dead_comps,
                 DEATH_THRESHOLD=DEATH_THRESHOLD, unstable_comps=unstable_comps,
                 burnin_steps=burnin_steps, plot_it=plot_it,
@@ -814,7 +816,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                 Component=Component,
                 trace_orbit_func=trace_orbit_func,
                 store_burnin_chains=store_burnin_chains,
-                nthreads=nthreads, 
+                nthreads=nthreads,
                 optimisation_method=optimisation_method,
                 )
 
@@ -843,7 +845,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
 
         keys = return_dict.keys()
         keys = sorted(keys)
-        
+
         for i in keys:
             v = return_dict[i]
             best_comp = v['best_comp']
@@ -864,7 +866,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     else:
         logging.info("Maximising components in a for loop")
         for i in range(ncomps):
-            
+
             # If component has too few stars, skip fit, and use previous best walker
             if ignore_dead_comps and (np.sum(memb_probs[:, i]) < DEATH_THRESHOLD):
                 logging.info("Skipped component {} with nstars {}".format(
@@ -874,9 +876,9 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                 logging.info("Skipped stable component {}".format(i))
             else:
                 best_comp, chain, lnprob, final_pos = maximise_one_comp(data,
-                    memb_probs, i, all_init_pars=all_init_pars, 
-                    all_init_pos=all_init_pos, idir=idir, 
-                    ignore_stable_comps=ignore_stable_comps, 
+                    memb_probs, i, all_init_pars=all_init_pars,
+                    all_init_pos=all_init_pos, idir=idir,
+                    ignore_stable_comps=ignore_stable_comps,
                     ignore_dead_comps=ignore_dead_comps,
                     DEATH_THRESHOLD=DEATH_THRESHOLD, unstable_comps=unstable_comps,
                     burnin_steps=burnin_steps, plot_it=plot_it,
@@ -884,7 +886,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                     Component=Component,
                     trace_orbit_func=trace_orbit_func,
                     store_burnin_chains=store_burnin_chains,
-                    nthreads=nthreads, 
+                    nthreads=nthreads,
                     optimisation_method=optimisation_method,
                     )
 
@@ -999,7 +1001,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    store_burnin_chains=False,
                    ignore_stable_comps=False, max_em_iterations=100,
                    record_len=30, bic_conv_tol=0.1, min_em_iterations=30,
-                   nthreads=1, optimisation_method=None, 
+                   nthreads=1, optimisation_method=None,
                    nprocess_ncomp = False,
                    **kwargs):
     """
@@ -1204,7 +1206,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         unstable_comps = None
 
     logging.info("Search for previous iterations")
-    
+
     # Look for previous iterations and update values as appropriate
     prev_iters       = True
     iter_count       = 0
@@ -1320,7 +1322,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                          store_burnin_chains=store_burnin_chains,
                          unstable_comps=unstable_comps,
                          ignore_stable_comps=ignore_stable_comps_iter,
-                         nthreads=nthreads, 
+                         nthreads=nthreads,
                          optimisation_method=optimisation_method,
                          nprocess_ncomp=nprocess_ncomp,
                          )
@@ -1335,7 +1337,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                     )
                 else: # Nelder-Mead
                     all_med_and_spans[i] = None
-                    
+
             # If component is stable, then it wasn't fit, so just duplicate
             # from last fit
             else:
@@ -1383,6 +1385,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         if len(list_prev_bics) < min_em_iterations:
             all_converged = False
         else:
+            # Exploitng pre-exisitng burnin_convergecne checker bya pplying it to BIC "chain"
             all_converged = compfitter.burnin_convergence(
                     lnprob=np.expand_dims(list_prev_bics[-min_em_iterations:], axis=0),
                     tol=bic_conv_tol, slice_size=int(min_em_iterations/2)

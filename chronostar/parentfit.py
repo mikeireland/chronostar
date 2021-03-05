@@ -116,6 +116,9 @@ class ParentFit(object):
 
         'max_comp_count':20,
         'max_em_iterations':200,
+
+        # Convergence criteria for when a fit_many_comps run has converged
+        'bic_conv_tol':0.1, # TODO: NOT TESTED!
         'nthreads':1,     # TODO: NOT IMPLEMENTED
         'use_background':True,
         'use_box_background':False,
@@ -443,21 +446,21 @@ class ParentFit(object):
 
     def iter_end_log(self, best_split_ix, prev_result, new_result):
         logging.info("Selected {} as best decomposition".format(
-                chr(ord('A') + best_split_ix)))
+            chr(ord('A') + best_split_ix)))
         logging.info(
-                "Turned\n{}".format(prev_result['comps'][best_split_ix].get_pars()))
+            "Turned\n{}".format(prev_result['comps'][best_split_ix].get_pars()))
         logging.info('with {} members'.format(
-                prev_result['memb_probs'].sum(axis=0)[best_split_ix]))
+            prev_result['memb_probs'].sum(axis=0)[best_split_ix]))
         logging.info("into\n{}\n&\n{}".format(
-                new_result['comps'][best_split_ix].get_pars(),
-                new_result['comps'][best_split_ix + 1].get_pars(),
+            new_result['comps'][best_split_ix].get_pars(),
+            new_result['comps'][best_split_ix + 1].get_pars(),
         ))
         logging.info('with {} and {} members'.format(
-                new_result['memb_probs'].sum(axis=0)[best_split_ix],
-                new_result['memb_probs'].sum(axis=0)[best_split_ix + 1],
+            new_result['memb_probs'].sum(axis=0)[best_split_ix],
+            new_result['memb_probs'].sum(axis=0)[best_split_ix + 1],
         ))
         logging.info("for an overall membership breakdown\n{}".format(
-                new_result['memb_probs'].sum(axis=0)
+            new_result['memb_probs'].sum(axis=0)
         ))
 
 

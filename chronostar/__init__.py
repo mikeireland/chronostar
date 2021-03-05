@@ -17,4 +17,3 @@ __version__ = "0.1"
 # except:
 #     print("overlap not imported, SWIG not possible. Need to make in"
 #             " directory...")
-# 
