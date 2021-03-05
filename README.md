@@ -95,10 +95,11 @@ There are also other key tests that appear to be incomplete (i.e. no main part o
     test_run_chronostar.py
 
 as well as some that are complete:
+
     test_expectmax.py
     test_run_chronostar_w_orbits.py
     
-
+However, test_run_chronostar_w_orbits.py is very slow and uses emcee.
 For a previous version of the code, (assuming you're on a server with many cores) in the same directory try:
 
     nohup mpirun -np 19 python test_mpirun.py &
