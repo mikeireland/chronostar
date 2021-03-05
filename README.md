@@ -84,15 +84,26 @@ will run the unittests.
 Next, try the following:
 
     cd integration_tests/
-    python test_groupfitter.py
+    python test_compfitter.py
    
-This will take ~ 20-40 minutes on a typical machine. A single fit usually
+This used to take ~ 20-30 minutes on a typical machine. A single fit usually
 requires approximately 3000 steps to converge, and 100 steps takes about a minute.
 
-Next, (assuming you're on a server with many cores) in the same directory try:
+There are also other key tests that appear to be incomplete (i.e. no main part of the script):
+
+    test_datatool.py
+    test_run_chronostar.py
+
+as well as some that are complete:
+    test_expectmax.py
+    test_run_chronostar_w_orbits.py
+    
+
+For a previous version of the code, (assuming you're on a server with many cores) in the same directory try:
 
     nohup mpirun -np 19 python test_mpirun.py &
     
+However test_mpirun is no longer the way to run multi-threaded.
 If your server has 19+ cores, then run as above. If there's less, then reduce
 the number accordingly. Increasing the number of threads is not useful as
 each thread is associated with an *emcee* walker, and there are only 18 walkers
@@ -114,7 +125,7 @@ and chronostar.naivefit.NaiveFit().
 In both cases, runnable scripts are provided which takes as a single 
 commandline argument the path to a parameter file. Alternatively,
 one can import the methods into a custom script and pass in either
-a parameter file or a dictionary `data_pars`.
+a parameter file or a dictionary `fit_pars`.
 
 If setting parameters via a .pars file, then simply enter the raw information,
 i.e. no quotation markers for strings. Lists with `[` and `]`. File paths
@@ -339,7 +350,9 @@ A non-exhaustive list of data preparation parameters are listed here:
      if working in a script.
      
 ### Run NaiveFit
-A list of viable parameters (with defaults) is listed in
+A list of viable parameters (with defaults) is listed in the definition
+of the parentfit class. It was also 
+supposed to be listed in a file called
 `naivefit.DEFAULT_PARS`
 A non-exhaustive list of data preparation parameters are listed here:
   - results_dir: string [default = ''] [required]
@@ -353,7 +366,7 @@ A non-exhaustive list of data preparation parameters are listed here:
   
     Output from dataprep, XYZUVW data, plus background overlaps.
     Can be a filename to a astropy table, or an actual table.
-    
+
   - init_comps: string or list of Component objects [default = None] [optional]
     
     A list of Component objects that will be used to initialise the first
@@ -419,7 +432,12 @@ A non-exhaustive list of data preparation parameters are listed here:
     either the second positional argument or can be a keyword argument.
     Extra arguments may exist in the signature, as long as they have 
     default values.
- 
+
+  - split_group: string [default = 'age'] [optional]
+
+    How to split groups. It can be 'age' or 'spatial', for initial splits spatially or just into a
+    low and high age component.
+
   - optimisation_method: string [default = 'emcee'] [optional]
     
     Optimisation method in the maximisation step of the EM algorithm. Besides `emcee`, `Nelder-Mead` is implemented.
@@ -453,9 +471,10 @@ A non-exhaustive list of data preparation parameters are listed here:
     mistyped parameter name. 
    
 ### Read results
-Chronostar produces a set of auxiliary folders where temporary results from all the iterations are stored. This allows it to restart when it finished last time if required. When the fit has converged, a set of `npy` files is saved in your results folder. You can read these files in python with `np.load('filename.npy')`.
+Chronostar produces a set of auxiliary folders where temporary results from all the iterations are stored. This allows it to restart when it finished last time if required. When the fit has converged, a set of `npy` files is saved in your results folder. You can read these files in python with `data=np.load('filename.npy')`.
 - `final_comps.npy`: Array, [#comps, 9]. An array with components. Each row represents one component. Columns are `[X, Y, Z, U, V, W, dX, dV, Age]` in units pc, km/s and Myr, respectively.
 - `final_membership.npy`: Array, [#stars, #comps+1]. An array with membership probabilities for all stars from the `data_table`. The last column is background membership probability. All probabilities are normalised so that the probability for each star belonging to any of the components or background equals 1.
+- `final_chain.npy`: For a multi-carlo run, this is the (N_walkers x N_steps x 9) array.
 
  ******** 
   
