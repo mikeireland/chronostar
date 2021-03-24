@@ -6,3 +6,6 @@
 #### Data prep
 - `gaia_adql_query_example.txt`: Select data from the Gaia archive
 - `banyan_component_overlaps.py`: Compute overlaps between Banyan components and stars
+
+#### Component visualisation
+- `spherical_cow.py`: Plot data and components (ellipses) in XU, UW space etc.
