@@ -8,6 +8,12 @@ in the base results directory (i.e. you should be able to see directories 1,
 2, ... etc) execute:
 
 python animate_results_save.py path_to_your_data.fits [N_MAX_COMPS] [dim1] [dim2]
+
+The order of the arguments is important. An example would be:
+python animate_results_save.py star_data.fits 8 X U
+
+And the script will generate a video for each EM run, (1, 2A, 3A, 3B, 4A, 4B, 4C, ... 8A, 8B ... 8G),
+plotted in X and U. It can take quite a while, since so many plots must be generated.
 """
 
 import os
