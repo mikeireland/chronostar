@@ -5,6 +5,7 @@
 
 #### Data prep
 - `gaia_adql_query_example.txt`: Select data from the Gaia archive
+- `component_overlaps.py`: Compute overlaps between given components and stars. This is useful if e.g. there are stars that were not used in the fit, e.g. stars with no RVs.
 - `banyan_component_overlaps.py`: Compute overlaps between Banyan components and stars
 
 #### Component visualisation
