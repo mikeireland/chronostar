@@ -17,3 +17,5 @@ Useful scripts (not super polished yet). These files should probably be moved so
 - `banyan_component_overlaps.py`: Compute overlaps between Banyan components and stars
 - `best_radial_velocity.py`: If a data table contains radial velocities from different sources, this script will find values with smallest uncertainties. Merges lithium information into one column.
 
+#### Data management
+- `best_component_membership.py`: Add columns to the table that already has membership info: here, add a column with the most likely component, add its age etc.
