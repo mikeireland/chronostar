@@ -1,4 +1,5 @@
 # Utils
+Useful scripts (not super polished yet). These files should probably be moved somewhere else, e.g. in `scripts`?
 
 #### Data visualisation
 - `spherical_cow.py`: Plot data and components (ellipses) in XU, UW space etc.
