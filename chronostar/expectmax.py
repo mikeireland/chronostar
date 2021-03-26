@@ -816,6 +816,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     # MAXIMISE COMPONENTS IN PARALLEL WITH WORKERS
     if comm is not None:
         rank = comm.rank
+        status = MPI.Status() # MZ added Feb 2021. Not sure if that's correct.
         if rank==0: # TODO: This should be an assert statement
             
             print('rank', rank, 'STARTING to prepare tasks for workers')
@@ -864,6 +865,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
             #~ print("Master starting with %d workers." % num_workers)
             while done_workers < len(tasks):
                 data_from_worker = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG, status=status)
+                #~ data_from_worker = comm.recv(source=MPI.ANY_SOURCE, tag=MPI.ANY_TAG)
                 source = status.Get_source()
                 tag = status.Get_tag()
                 

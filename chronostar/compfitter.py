@@ -527,6 +527,12 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         scipy.optimize.minimize is using -likelihood.lnprob_func because
         it is minimizing rather than optimizing.
         """
+        
+        print('')
+        print('')
+        print('')
+        print('RUNNING A NEW FIT', init_pos)
+        
         # Initialise initial positions to represent components of slightly differing ages
         #~ if init_pars is None:
             #~ init_pars = get_init_emcee_pars(data=data, memb_probs=memb_probs,
@@ -543,6 +549,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             init_pos = get_init_emcee_pos(data=data, memb_probs=memb_probs,
                                           init_pars=init_pars, Component=Component,
                                           nwalkers=nwalkers)
+            print('init_pos was none. Now initialised.')
         
         #~ print('init_pos', len(init_pos), init_pos)
 
@@ -570,13 +577,13 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             def worker(i, pos, return_dict):
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
                 #~ print('RESULT...')
-                print(result)
+                #~ print(result)
                 #~ print('TYPES...', type(result.success), type(result.status))
                 if result.success and result.status==0: # status=1: maximum number of iterations exceeded
                     print('RESULT %d accepted'%i)
                     return_dict[i] = result
                 else:
-                    print('result rejected')
+                    print('result %d rejected'%i)
                 print('')
             #TODO: tol: is this value optimal?
 
@@ -646,7 +653,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
                 result: dict{i: minimize.result}
                 """
                 return_dict = dict(return_dict)
-                print('return_dict0', return_dict)
+                #~ print('return_dict0', return_dict)
                 
                 #~ print('result0', result) 
  
@@ -684,7 +691,15 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         
         # MZ: added in feb 2021
         print('LEN', len(return_dict))
-        print('RETURN DICT>>>', return_dict)
+        
+        if len(return_dict)==0:
+            best_result =  get_init_emcee_pars(data=data, 
+                                                memb_probs=memb_probs,
+                                                Component=Component) # MZ: Don't know if that's a good idea
+            best_component = Component(emcee_pars=best_result)
+            return best_component, best_result, -np.inf
+        
+        #~ print('RETURN DICT>>>', return_dict)
         result = dict(return_dict)
         
         #~ keys = list(return_dict.keys())

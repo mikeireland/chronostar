@@ -239,6 +239,10 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
 
     good_row_mask = np.logical_not(np.logical_or(bad_mean_mask, bad_cov_mask))
 
+    # What stars are excluded? TODO: print this into a file
+    excluded = np.where(np.logical_not(good_row_mask))
+    np.savetxt('stars_excluded_from_data_dict.dat', excluded, fmt='%d')
+
     results_dict = {
         'means':means[good_row_mask],
         'covs':covs[good_row_mask],
