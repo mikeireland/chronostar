@@ -1,0 +1,10 @@
+input_file          = scocen_vac_EDR3.fits
+output_file         = scocen_vac_EDR3.fits
+
+# General usage flags
+overwrite_datafile  = True
+return_data_table   = False
+
+# Can optionally convert from astrometry to LSR, helio(ish) centred
+# cartesian data.
+convert_astrometry  = True
