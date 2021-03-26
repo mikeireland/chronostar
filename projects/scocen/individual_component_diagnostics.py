@@ -9,6 +9,7 @@ from astropy import units as u
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.ticker as ticker
+import os
 plt.ion()
 
 from chronostar.component import SphereComponent
@@ -18,14 +19,15 @@ from chronostar import tabletool
 # Some things are the same for all the plotting scripts and we put
 # this into a single library to avoid confusion.
 import scocenlib as lib
-data_filename = lib.data_filename_fit
+data_filename = lib.data_filename
 data_filename_fit = lib.data_filename_fit # Data with RV that was actually used in the fit
 comps_filename = lib.comps_filename
 good_comps = lib.good_comps
 compnames = lib.compnames
+fig_folder = 'fig'
 ############################################
 # Minimal probability required for membership
-pmin_membership = 0.5
+pmin_membership = 0.8
 ############################################
 # CMD limits
 xlim = [-1, 5]
@@ -37,6 +39,7 @@ try:
     tab = tab0
     tab_fit = tab_fit0
     comps = comps0
+    comps_raw = comps_raw0
 except:
     tab0 = Table.read(data_filename)
     tab_fit0 = Table.read(data_filename_fit)
@@ -46,10 +49,12 @@ except:
     tab_fit0['Gmag'] = tab_fit0['phot_g_mean_mag'] - 5 * np.log10(1.0 / (tab_fit0['parallax'] * 1e-3) / 10)  # tab['parallax'] in micro arcsec
 
     comps0 = Table.read(comps_filename)
+    comps_raw0 = SphereComponent.load_raw_components(comps_filename)
 
     tab = tab0
     tab_fit = tab_fit0
     comps = comps0
+    comps_raw = comps_raw0
     
 
 # Plotting purposes
@@ -63,8 +68,8 @@ tab['l'][mask] = 360 + tab['l'][mask]
 
 
 # Stars that are not background
-mask_bg_original = tab_fit['membership_bg']<pmin_membership
-mask_bg_overlap = tab['membership_bg']<pmin_membership
+mask_bg = tab['membership_bg']<0.5
+mask_bg_fit = tab_fit['membership_bg']<0.5
 
 # Main sequence parametrization
 # fitpar for pmag, rpmag
@@ -113,60 +118,53 @@ def gx_set_labels_and_ticks_over_360deg(ax):
 
     return ax
 
-for i, c in enumerate(comps[:2]):
-    fig=plt.figure()
-    
+for i, c in enumerate(comps):
     # Component data
     age=c['Age']
     comp_ID = c['comp_ID']
     membname = 'membership%s'%comp_ID
-    
-    mask=tab_fit[membname]>pmin_membership
-    t_original=tab_fit[mask]
-    
-    mask=tab[membname]>pmin_membership
-    t_overlap=tab[mask]
+    col=tab[membname]
+    mask=col>pmin_membership
+    t=tab[mask]
 
-    # Number of members
-    #~ sump=np.nansum(tab[membname])
-    
-    plt.suptitle('%s (%.2f$\pm$%.2f Myr %s) %d (%d)'%(comp_ID, age, c['Crossing_time'], c['Age_reliable'], len(t_original), len(t_overlap)))
 
-    t_original.sort(membname)
-    t_overlap.sort(membname)
+    if len(t)<1:
+        continue
+
+    fig=plt.figure(figsize=(14.0, 8.0))
+
+    plt.suptitle('%s (%.2f$\pm$%.2f Myr %s) %d'%(comp_ID, age, c['Crossing_time'], c['Age_reliable'], len(t)))
+
+    t.sort(membname)
     #~ t.reverse() 
     
     # Plot CMD
     ax = fig.add_subplot(2, 2, 1)
-    mask_rv = t_overlap['radial_velocity_error']<100
-    print(membname, 'Stars with no RV', np.sum(~mask_rv))
-    ax.scatter(t_overlap['bp_rp'], t_overlap['Gmag'], s=1, c='k')
-    ax.scatter(t_overlap['bp_rp'][~mask_rv], t_overlap['Gmag'][~mask_rv], s=1, c='b')
-    ax.scatter(t_original['bp_rp'], t_original['Gmag'], s=1, c='r')
+
+    ax.scatter(t['bp_rp'], t['Gmag'], s=1, c=t[membname], alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
 
     ax=plot_MS_parametrisation_and_spectral_types(ax, xlim, ylim)
     
     ax.set_xlabel('BP-RP')
     ax.set_ylabel('G')
     
-    # Plot XY
-    ax = fig.add_subplot(2, 2, 3)
+    # Plot XY: TODO: Only stars used in the fit
+    ax = fig.add_subplot(2, 3, 4)
     dim1=0
     dim2=1
-    ax.scatter(t_overlap['X'], t_overlap['Y'], s=1, c='k', alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
-    ax.scatter(t_original['X'], t_original['Y'], s=1, c='r', alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
-    comps_raw[i].plot(dim1, dim2, comp_now=True, comp_then=False, color='r', alpha=1, ax=ax,
+    ax.scatter(t['X'], t['Y'], s=1, c=t[membname], alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
+    comps_raw[i].plot(dim1, dim2, comp_now=True, comp_then=False, color='k', alpha=1, ax=ax,
                        comp_orbit=False, orbit_color='red')
     ax.set_xlabel('X [pc]')
     ax.set_ylabel('Y [km/s]')
     
     # Plot XU
-    ax = fig.add_subplot(2, 2, 4)
+    #~ ax = fig.add_subplot(2, 2, 4)
+    ax = fig.add_subplot(2, 3, 5)
     dim1=0
     dim2=3
-    ax.scatter(t_overlap['X'], t_overlap['U'], s=1, c='k', alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
-    ax.scatter(t_original['X'], t_original['U'], s=1, c='r', alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
-    comps_raw[i].plot(dim1, dim2, comp_now=True, comp_then=False, color='r', alpha=1, ax=ax,
+    ax.scatter(t['X'], t['U'], s=1, c=t[membname], alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
+    comps_raw[i].plot(dim1, dim2, comp_now=True, comp_then=False, color='k', alpha=1, ax=ax,
                        comp_orbit=False, orbit_color='red')
     ax.set_xlabel('X [pc]')
     ax.set_ylabel('U [km/s]')
@@ -174,14 +172,26 @@ for i, c in enumerate(comps[:2]):
 
     # Plot GX
     ax = fig.add_subplot(2, 2, 2)
-    ax.scatter(tab['l'][mask_bg_overlap], tab['b'][mask_bg_overlap], s=1, c='b', alpha=0.1)
-    cb=ax.scatter(t_overlap['l'], t_overlap['b'], s=1, c='k', alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
-    cb=ax.scatter(t_original['l'], t_original['b'], s=1, c='r', alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
+    ax.scatter(tab['l'][mask_bg], tab['b'][mask_bg], s=1, c='k', alpha=0.1)
+    cb=ax.scatter(t['l'], t['b'], s=1, c=t[membname], alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
     gx_set_labels_and_ticks_over_360deg(ax)
     #~ cbar=plt.colorbar(cb)
     #~ cbar.ax.set_ylabel('Membership')
 
 
-    plt.tight_layout()
+    
+    # Plot membership histogram
+    if len(t)>1:
+        ax = fig.add_subplot(2, 3, 6)
+        #~ ax.hist(t[membname], bins=int(len(t)/20.0))
+        mask_m = tab[membname]>0.1
+        if len(t)>0:
+            ax.hist(tab[membname][mask_m], bins=int(len(t)/20.0))
+        ax.set_xlabel('Membership probability')
+
+
+    #~ plt.tight_layout()
+    
+    plt.savefig(os.path.join(fig_folder, '%s.png'%comp_ID))
     
 plt.show()
