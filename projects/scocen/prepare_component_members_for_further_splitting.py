@@ -31,8 +31,18 @@ except:
 #~ print(np.sum(mask))
 #~ tab[mask].write('starsB_for_splitting.fits')
 ######################################################
-# Component with PDS 70, there are many subcomponents in there
-mask = tab['membershipT'] > pmin_membership
+#~ # Component with PDS 70, there are many subcomponents in there
+#~ mask = tab['membershipT'] > pmin_membership
+#~ print(np.sum(mask))
+#~ tab[mask].write('data/starsT_for_splitting.fits')
+#~ ######################################################
+# Component with MS and PMS sequence
+mask = tab['membershipB'] > pmin_membership
 print(np.sum(mask))
-#~ tab[mask].write('starsT_for_splitting.fits')
+tab[mask].write('data/starsB_for_splitting.fits')
 ######################################################
+
+
+plt.scatter(tab['l'][mask], tab['b'][mask], s=1)
+plt.gca().invert_xaxis()
+plt.show()

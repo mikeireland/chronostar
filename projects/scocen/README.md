@@ -3,6 +3,12 @@
 ## TODO
 - age --> Age
 - Crossing time at time NOW not 0
+- data_table=data_table.filled() # TODO: fill with a stupid value!!!!
+- component overlaps: # old_memb_probs are used to scale the amplitude of the components # TODO: This gives all the components the same amplitude! This is not OK!!!
+
+
+- expectmax.calc_membership_probs(ol, ) avoid iteration
+- rv uncertainties should be much bigger, otherwise the overlap depends on the size of the star's covariance matrix!
 
 
 ### Data

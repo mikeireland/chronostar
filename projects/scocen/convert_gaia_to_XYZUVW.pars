@@ -1,5 +1,5 @@
-input_file          = scocen_vac_EDR3.fits
-output_file         = scocen_vac_EDR3.fits
+input_file          = data/scocen_vac_EDR3.fits
+output_file         = data/scocen_vac_EDR3.fits
 
 # General usage flags
 overwrite_datafile  = True

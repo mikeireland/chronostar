@@ -12,11 +12,16 @@ taken from).
 import numpy as np
 from astropy.table import Table
 
-data_filename = 'scocen_vac_EDR3.fits'
+data_filename = 'data/scocen_vac_EDR3.fits'
 
 # If RV is not available, set to these values:
 rv_nan = 0
-rv_nan_uncertainty = 500
+
+# RV uncertainty should be a big number, much bigger than the background
+# (Galaxy) component, otherwise the overlap between the star and
+# the background depends on the star's ellipsoid size!
+#~ rv_nan_uncertainty = 500
+rv_nan_uncertainty = 1e+4
 
 tab = Table.read(data_filename)
 
@@ -109,10 +114,10 @@ for i, x in enumerate(tab):
 
 
 # Uncomment this for writing
-#~ tab=tab.filled()
+tab=tab.filled(-10000)
 #~ tab.write(data_filename, overwrite=True)
 
-tab_for_new_bg_ols.write('tab_for_new_bg_ols.fits')
+#~ tab_for_new_bg_ols.write('tab_for_new_bg_ols.fits')
 
 
 

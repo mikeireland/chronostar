@@ -5,6 +5,7 @@ Useful scripts (not super polished yet). These files should probably be moved so
 - `spherical_cow.py`: Plot data and components (ellipses) in XU, UW space etc.
 - `animate_results_save.py`: Animation of a given set of components, along with memberships, over time.
 - `plot_result.py`: Conveniently plot a given set of components, along with memberships.
+- `quickplot.py`: Make a quick plot for specific split, e.g. `4/C/final/`. Plot XU, CMD, (l, b) etc.
 
 #### Pre-compute background overlaps for large tables (this needs to be done only once)
 - `bg_ols_multiprocessing.py`: Compute background overlaps (multiprocessing)
