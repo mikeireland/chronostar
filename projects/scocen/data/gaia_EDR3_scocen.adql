@@ -1,0 +1,45 @@
+SELECT 
+
+-- Astrometry 
+gaia.source_id, gaiadr2.source_id as dr2_source_id, gaia.ra, gaia.ra_error, gaia.dec, gaia.dec_error, gaia.l, gaia.b, gaia.parallax, gaia.parallax_error, gaia.pmra, gaia.pmra_error, gaia.pmdec, gaia.pmdec_error, gaia.ra_dec_corr, gaia.ra_parallax_corr, gaia.ra_pmra_corr, gaia.ra_pmdec_corr, gaia.dec_parallax_corr, gaia.dec_pmra_corr, gaia.dec_pmdec_corr, gaia.parallax_pmra_corr, gaia.parallax_pmdec_corr, gaia.pmra_pmdec_corr, gaia.ruwe, 1/gaia.parallax*1000 AS dist, 
+
+-- Photometry 
+gaia.phot_g_mean_mag, gaia.phot_bp_mean_mag, gaia.phot_rp_mean_mag, gaia.bp_rp, 
+
+-- Radial velocities 
+gaia.dr2_radial_velocity, gaia.dr2_radial_velocity_error, galah.rv_obst, galah.e_rv_obst, apogee.vhelio_avg, apogee.verr, rave.hrv_sparv, rave.hrv_error_sparv, ges.rv as rv_ges, ges.erv as erv_ges, li2m3.rv as rv_2m3, li2m3.rv_error as rv_err_2m3, 
+
+-- WISE 
+wise.designation, wise.w1mpro, wise.w1mpro_error, wise.w2mpro, wise.w2mpro_error, wise.w3mpro, wise.w3mpro_error, wise.w4mpro, wise.w4mpro_error, wise.ph_qual, 
+
+-- Morphological classification 
+rave.flag1_class, rave.flag2_class, rave.flag3_class, rave.w1_class, rave.w2_class, rave.w3_class, gc.class as galah_class, apogee.binary_apogee, v.best_class_name, v.best_class_score, li2m3.binary_flag as binary_2m3, 
+
+-- Youth indicators 
+lamost.eew, lamost.eew_err, galahli.ew_li_, li2m3.ewli, li2m3.ewha, li2m3.logrhk, li2m3.balmer 
+
+-- Gaia EDR3 
+FROM gaiaedr3.gaia_source as gaia 
+
+-- Match Gaia EDR3 with Gaia DR2 because all my catalogs have source_id from DR2 
+LEFT join gaiaedr3.dr2_neighbourhood AS dr2xdr3 ON dr2xdr3.dr3_source_id=gaia.source_id 
+LEFT join gaiadr2.gaia_source AS gaiadr2 ON gaiadr2.source_id=dr2xdr3.dr2_source_id 
+
+-- External catalogs
+LEFT JOIN gaiadr2.allwise_best_neighbour AS am ON am.source_id=gaiadr2.source_id 
+LEFT JOIN gaiadr1.allwise_original_valid AS wise ON wise.allwise_oid=am.allwise_oid 
+LEFT JOIN user_mzerja01.ravedr6 As rave ON rave.source_id=gaiadr2.source_id 
+LEFT JOIN user_mzerja01.galah_zwitter_rv2018v2 AS galah ON galah.source_id=gaiadr2.source_id 
+LEFT JOIN user_mzerja01.apogee16rv_and_binarity AS apogee ON apogee.gaia_source_id=gaiadr2.source_id 
+LEFT JOIN user_mzerja01.galah_classification AS gc ON gc.source_id=gaiadr2.source_id 
+LEFT JOIN user_mzerja01.lamost_wheeler2021_lithium AS lamost ON lamost.source_id=gaiadr2.source_id 
+LEFT JOIN user_mzerja01.results_2m3 AS li2m3 ON li2m3.source_id=gaiadr2.source_id 
+LEFT JOIN user_mzerja01.galah_lithium AS galahli ON galahli.source_id=gaiadr2.source_id 
+LEFT JOIN gaiadr2.vari_classifier_result as v ON v.source_id=gaiadr2.source_id 
+
+-- GES is crossmatched with Gaia EDR3 
+LEFT JOIN user_mzerja01.xmatch_ges_dr4_gaia_source AS gesxgaia ON gesxgaia.gaia_source_source_id=gaia.source_id 
+LEFT JOIN user_mzerja01.ges_dr4 AS ges ON ges.ges_dr4_oid=gesxgaia.ges_dr4_ges_dr4_oid 
+
+-- ScoCen
+WHERE (gaia.parallax>=5 AND gaia.parallax<=10 AND gaia.parallax_error<=0.3 AND (gaia.l>240 OR gaia.l<40) AND gaia.b<50 AND gaia.b>-40)

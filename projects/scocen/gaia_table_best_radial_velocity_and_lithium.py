@@ -12,7 +12,14 @@ taken from).
 import numpy as np
 from astropy.table import Table
 
-data_filename = 'data/scocen_vac_EDR3.fits'
+#~ data_filename = 'data/scocen_vac_EDR3.fits'
+data_filename = 'data/scocen_vac_DR2.fits'
+
+tab = Table.read(data_filename)
+
+# For DR2
+tab.rename_column('radial_velocity', 'dr2_radial_velocity')
+tab.rename_column('radial_velocity_error', 'dr2_radial_velocity_error')
 
 # If RV is not available, set to these values:
 rv_nan = 0
@@ -23,7 +30,7 @@ rv_nan = 0
 #~ rv_nan_uncertainty = 500
 rv_nan_uncertainty = 1e+4
 
-tab = Table.read(data_filename)
+
 
 tab['radial_velocity'] = [np.nan]*len(tab)
 tab['radial_velocity_error'] = [np.nan]*len(tab)

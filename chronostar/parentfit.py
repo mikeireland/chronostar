@@ -386,6 +386,10 @@ class ParentFit(object):
                 lo_age = prev_med_and_spans[split_comp_ix, -1, 1]
                 hi_age = prev_med_and_spans[split_comp_ix, -1, 2]
             except TypeError:
+                age = target_comp.get_age()
+                lo_age = 0.8*age
+                hi_age = 1.2*age
+            except IndexError: # Added my MZ due to IndexError: too many indices for array (when using Nelder-Mead, 'final_med_and_spans.npy' is an empty file
                 # Maybe previous iteration was done with Nelder-Mead
                 age = target_comp.get_age()
                 lo_age = 0.8*age

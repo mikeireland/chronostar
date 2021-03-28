@@ -26,13 +26,15 @@ comps_filename = 'data/final_comps_21.fits'
 
 
 # Save output to this file. This is a copy of gaia_filename plus newly added memberships
+filename_output = 'data/scocen_vac_DR2_with_21_overlaps.fits'
 #~ filename_output = 'data/scocen_vac_EDR3_with_21_overlaps.fits'
-filename_output = 'data/scocen_vac_EDR3_SUBTABLE_with_bgols_need_to_update_bg_ols_with_21_overlaps_with_nplus1.fits'
+#~ filename_output = 'data/scocen_vac_EDR3_SUBTABLE_with_bgols_need_to_update_bg_ols_with_21_overlaps_with_nplus1.fits'
 
 # Filename of data you want to compute overlaps for. It should include
 # 'background_log_overlap'!!
+gaia_filename = 'data/scocen_vac_DR2.fits'
 #~ gaia_filename = 'data/scocen_vac_EDR3.fits'
-gaia_filename = 'data/scocen_vac_EDR3_SUBTABLE_with_bgols_need_to_update_bg_ols.fits'
+#~ gaia_filename = 'data/scocen_vac_EDR3_SUBTABLE_with_bgols_need_to_update_bg_ols.fits'
 
 # Membership file from the fit. This is used for the component amplitudes. Hopefully works well.
 #~ membership_fit_filename = 'data/final_membership.npy'
