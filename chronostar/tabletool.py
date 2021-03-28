@@ -238,6 +238,13 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
     bad_cov_mask = np.any(np.isnan(covs), axis=(1,2))
 
     good_row_mask = np.logical_not(np.logical_or(bad_mean_mask, bad_cov_mask))
+    
+    # Notify what stars have been excluded!
+    nexcluded = np.sum(np.logical_not(good_row_mask))
+    if nexcluded>0:
+        print('%d stars MASKED OUT!'%nexcluded)
+        print(np.where(np.logical_not(good_row_mask)))
+        print(table[np.logical_not(good_row_mask)])
 
     results_dict = {
         'means':means[good_row_mask],

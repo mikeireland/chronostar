@@ -12,14 +12,16 @@ taken from).
 import numpy as np
 from astropy.table import Table
 
-#~ data_filename = 'data/scocen_vac_EDR3.fits'
-data_filename = 'data/scocen_vac_DR2.fits'
+data_filename = 'data/scocen_vac_EDR3.fits'
+#~ data_filename = 'data/scocen_vac_DR2.fits'
 
+
+print('Best RVs for %s'%data_filename)
 tab = Table.read(data_filename)
 
 # For DR2
-tab.rename_column('radial_velocity', 'dr2_radial_velocity')
-tab.rename_column('radial_velocity_error', 'dr2_radial_velocity_error')
+#~ tab.rename_column('radial_velocity', 'dr2_radial_velocity')
+#~ tab.rename_column('radial_velocity_error', 'dr2_radial_velocity_error')
 
 # If RV is not available, set to these values:
 rv_nan = 0
@@ -50,23 +52,23 @@ for i, x in enumerate(tab):
     Radial velocities
     """
     tmp=[]
-    if np.isfinite(x['dr2_radial_velocity_error']):
+    if np.isfinite(x['dr2_radial_velocity_error']) and np.isfinite(x['dr2_radial_velocity']):
         tmp.append(['Gaia eDR3', [x['dr2_radial_velocity'], x['dr2_radial_velocity_error']]])
 
-    if np.isfinite(x['e_rv_obst']):
+    if np.isfinite(x['e_rv_obst']) and np.isfinite(x['rv_obst']):
         tmp.append(['Zwitter et al. 2018', [x['rv_obst'], x['e_rv_obst']]])
 
     # TODO: if this is AVG velocity, what about binaries? Check this!!
-    if np.isfinite(x['verr']):
+    if np.isfinite(x['verr']) and np.isfinite(x['vhelio_avg']):
         tmp.append(['APOGEE16', [x['vhelio_avg'], x['verr']]])
 
-    if np.isfinite(x['hrv_error_sparv']):
+    if np.isfinite(x['hrv_error_sparv']) and np.isfinite(x['hrv_sparv']):
         tmp.append(['RAVE DR6', [x['hrv_sparv'], x['hrv_error_sparv']]])
 
-    if np.isfinite(x['rv_err_2m3']):
+    if np.isfinite(x['rv_err_2m3']) and np.isfinite(x['rv_2m3']):
         tmp.append(['Zerjal et al. 2021', [x['rv_2m3'], x['rv_err_2m3']]])
 
-    if np.isfinite(x['erv_ges']):
+    if np.isfinite(x['erv_ges']) and np.isfinite(x['rv_ges']):
         tmp.append(['GES DR4', [x['rv_ges'], x['erv_ges']]])
 
     # If RV is not available
@@ -122,7 +124,7 @@ for i, x in enumerate(tab):
 
 # Uncomment this for writing
 tab=tab.filled(-10000)
-#~ tab.write(data_filename, overwrite=True)
+tab.write(data_filename, overwrite=True)
 
 #~ tab_for_new_bg_ols.write('tab_for_new_bg_ols.fits')
 
