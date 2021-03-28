@@ -27,7 +27,7 @@ comps_filename = 'data/final_comps_21.fits'
 
 # Save output to this file. This is a copy of gaia_filename plus newly added memberships
 filename_output = 'data/scocen_vac_DR2_with_21_overlaps.fits'
-#~ filename_output = 'data/scocen_vac_EDR3_with_21_overlaps.fits'
+#~ filename_output = 'data/scocen_vac_EDR3_with_21_overlaps_TODO_update_bgols_with_new_rv.fits'
 #~ filename_output = 'data/scocen_vac_EDR3_SUBTABLE_with_bgols_need_to_update_bg_ols_with_21_overlaps_with_nplus1.fits'
 
 # Filename of data you want to compute overlaps for. It should include
@@ -42,6 +42,7 @@ gaia_filename = 'data/scocen_vac_DR2.fits'
 ##################################################
 print('Computing component overlaps for %s'%gaia_filename)
 print('Output will be saved into %s'%filename_output)
+
 ### READ DATA ####################################
 
 # Create components
@@ -57,6 +58,26 @@ print('DATA READ', len(data_table))
 
 #~ memberships_fit = np.load(membership_fit_filename)
 
+
+
+
+### Background overlaps ##########################
+bg_ols_filename = 'data/background_log_overlaps_gaia_DR2.fits'
+print('ADDING background overlaps from %s'%bg_ols_filename)
+bg_ols = Table.read(bg_ols_filename)
+#~ bg_ols.rename_column('source_id', 'dr2_source_id')
+#~ data_table = join(data_table, bg_ols, keys='dr2_source_id', join_type='left')
+data_table = join(data_table, bg_ols, keys='source_id', join_type='left')
+mask = (data_table['background_log_overlap']<0)
+if np.sum(np.logical_not(mask))>0:
+    print('WARNING: %d stars do not have background overlaps.'%np.sum(np.logical_not(mask)))
+else:
+    print('ALL stars have background overlaps available!')
+    
+    
+    
+# This table is masked. Unmask:
+data_table=data_table.filled(-999999) # TODO: fill with a stupid value!!!!
 ############################################################################
 ############ COMPONENT OVERLAPS ############################################
 ############################################################################
@@ -64,7 +85,7 @@ print('DATA READ', len(data_table))
 historical = 'c_XU' in data_table.colnames
 data_dict = tabletool.build_data_dict_from_table(
         data_table,
-        get_background_overlaps=True, # Must be set to True: This is to INSERT bg_ols into the data_table.
+        get_background_overlaps=True, # Must be set to True: This is to INSERT bg_ols into the Chronostar's internal data_table.
         historical=historical,
 )
 

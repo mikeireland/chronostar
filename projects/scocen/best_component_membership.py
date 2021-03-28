@@ -75,7 +75,7 @@ age_reliable = [compsd[comp_ID]['Age_reliable'] if comp_ID!='bg' else np.nan for
 tab['age_reliable_best_component'] = age_reliable
 
 
-
+tab.write(data_filename, overwrite=True)
 
 
 # Exclude background stars

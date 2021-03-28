@@ -24,7 +24,7 @@ data_filename_fit = lib.data_filename_fit # Data with RV that was actually used 
 comps_filename = lib.comps_filename
 good_comps = lib.good_comps
 compnames = lib.compnames
-fig_folder = 'fig_edr3'
+fig_folder = 'fig_dr2'
 ############################################
 # Minimal probability required for membership
 pmin_membership = 0.8

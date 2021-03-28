@@ -231,5 +231,5 @@ manage_legend(ax)
 
 
 # SAVE FIGURES
-plt.savefig('gx.pdf')
+#~ plt.savefig('gx.pdf')
 plt.show()

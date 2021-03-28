@@ -1,11 +1,11 @@
 #input_file          = data/scocen_vac_EDR3.fits
 #output_file         = data/scocen_vac_EDR3.fits
 
-#input_file          = data/scocen_vac_DR2.fits
-#output_file         = data/scocen_vac_DR2.fits
+input_file          = data/scocen_vac_DR2.fits
+output_file         = data/scocen_vac_DR2.fits
 
-input_file          = data/scocen_vac_DR2_part2.fits
-output_file         = data/scocen_vac_DR2_part2.fits
+#input_file          = data/scocen_vac_DR2_part2.fits
+#output_file         = data/scocen_vac_DR2_part2.fits
 
 #input_file          = data/first.fits
 #output_file         = data/first.fits

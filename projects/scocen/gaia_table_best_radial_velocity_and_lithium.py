@@ -12,8 +12,8 @@ taken from).
 import numpy as np
 from astropy.table import Table
 
-data_filename = 'data/scocen_vac_EDR3.fits'
-#~ data_filename = 'data/scocen_vac_DR2.fits'
+#~ data_filename = 'data/scocen_vac_EDR3.fits'
+data_filename = 'data/scocen_vac_DR2.fits'
 
 
 print('Best RVs for %s'%data_filename)
@@ -125,6 +125,7 @@ for i, x in enumerate(tab):
 # Uncomment this for writing
 tab=tab.filled(-10000)
 tab.write(data_filename, overwrite=True)
+print('%s written.'%data_filename)
 
 #~ tab_for_new_bg_ols.write('tab_for_new_bg_ols.fits')
 

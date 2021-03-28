@@ -90,7 +90,7 @@ for i, c in enumerate(comps):
         alpha=1
 
     t.sort('membership%s'%comp_ID)
-    t.reverse()        
+    #~ t.reverse()        
     #~ ax.scatter(t['bp_rp'], t['Gmag'], s=1, c='k', alpha=alpha)
     ax.scatter(t['bp_rp'], t['Gmag'], s=1, c=t['membership%s'%comp_ID], alpha=1, vmin=0.5, vmax=1, cmap=cm.jet)
 

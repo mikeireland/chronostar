@@ -1,5 +1,9 @@
 # Scorpius-Centaurus Association
 
+
+#### Running
+`/pkg/linux/anaconda/bin/python run_chronostar.py mypars.pars`
+
 ## TODO
 - age --> Age
 - Crossing time at time NOW not 0

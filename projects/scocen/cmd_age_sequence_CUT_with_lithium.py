@@ -48,7 +48,7 @@ except:
     
     
     
-    
+    tab0.rename_column('EW(Li)', 'ewliii')
     
     
     # ADD LITHIUM INFO
@@ -176,7 +176,7 @@ for c2 in comps_to_plot:
 
     comp_ID = c['comp_ID']        
     membname = 'membership%s'%comp_ID
-    age=c['age']
+    age=c['Age']
     
     mask=tab[membname]>pmin_membership
     t=tab[mask]
@@ -303,7 +303,7 @@ ax.set_yticklabels(ytick_labels)
 fig.subplots_adjust(bottom=0.1, top=0.9)
 fig.subplots_adjust(hspace=0, wspace=0)
 
-plt.savefig('cmd_li_CUT_90percent_membership.pdf')
+#~ plt.savefig('cmd_li_CUT_90percent_membership.pdf')
 #~ plt.savefig('cmd_AGF.pdf')
 #~ plt.savefig('cmd_li_AG.pdf')
 plt.show()

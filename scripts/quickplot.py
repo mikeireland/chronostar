@@ -13,7 +13,6 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
 from chronostar.component import SphereComponent as Component
-from chronostar import tabletool
 
 
 ### Input info ####################
@@ -26,15 +25,9 @@ table_filename = sys.argv[2] # tablename with XYZUVW
 
 
 ### Read data #####################
-
 tab = Table.read(table_filename)
-#~ star_pars = tabletool.build_data_dict_from_table(d)
 memberships = np.load(os.path.join(folder, 'final_membership.npy'))
-
-#~ c = np.load(os.path.join(folder, 'final_comps.npy'))
-#~ comps = [Component(x) for x in c]
 comps = Component.load_raw_components(os.path.join(folder, 'final_comps.npy'))
-
 ###################################
 
 # Get python's default(?) list of colors
@@ -48,11 +41,6 @@ def plot_xyzuvw():
     In the velocity plot, filter out stars with very big RV errors.
     This is to remove RV-less stars.
     """
-    
-    means = np.array([tab['X'], tab['Y'], tab['Z'], tab['U'], tab['V'], tab['W']]).T
-    
-    labels = 'XYZUVW'
-    units = 3*['pc'] + 3*['km/s']
 
     # Choose which cartesian dimensions you wish to plot
     dims = [('X','Y'), ('U','V'), ('X','U'), ('Z','W')]
@@ -108,7 +96,11 @@ def plot_xyzuvw():
         print('')
         if dim1=='X' and dim2=='U':
             ax.legend(loc=2)
-    fig.savefig(folder+'comps_xyzuvw.png')
+            
+            
+    path = os.path.join(folder, 'comps_xyzuvw.png')
+    fig.savefig(path)
+    print('%s saved.'%path)
 
 def plot_cmd_galaxy():
     ############################################
@@ -231,7 +223,10 @@ def plot_cmd_galaxy():
     ax3.set_xlabel('Membership probability')
     
     plt.tight_layout()
-    plt.savefig(os.path.join(folder, 'comps_cmd_gx.png'))
+    
+    path = os.path.join(folder, 'comps_cmd_gx.png')
+    plt.savefig(path)
+    print('%s saved.'%path)
 
 
 plot_xyzuvw()
