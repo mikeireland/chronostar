@@ -94,7 +94,7 @@ def plot_xyzuvw():
             mm=tmem[:,i]>0.5
             ax.scatter(t[dim1][mm], t[dim2][mm], c=colors[i], alpha=1, s=5, label = '%.2f Myr'%comp.get_age())
             
-            print('color=', colors[i], comp.get_age())
+            print(np.sum(mm), comp.get_age())
 
             i+=1
         print('')
@@ -200,14 +200,20 @@ def plot_cmd_galaxy():
         if len(t)<1:
             continue
 
+        print(comp_ID, len(t), age)
+
         # Plot CMD
         ax1.scatter(t['bp_rp'], t['Gmag'], s=1, c=colors[i], alpha=1, label = 'Component %s (%.2f Myr) %d'%(comp_ID, age, len(t)))
 
         # Plot membership histogram
         if len(t)>1:
             mask_m = memberships[:,i]>0.1
-            if len(t)>0:
-                ax3.hist(memberships[mask_m, i], bins=int(len(t)/20.0), histtype='step', color=colors[i])
+            
+            if len(t)>200:
+                n=20.0
+            else:
+                n=1.0
+            ax3.hist(memberships[mask_m, i], bins=int(len(t)/n), histtype='step', color=colors[i])
             
         # Plot GX
         cb=ax2.scatter(t['l'], t['b'], s=1, c=colors[i], alpha=1)
