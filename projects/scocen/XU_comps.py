@@ -67,7 +67,7 @@ dim1=0
 dim2=3
 
 
-#~ data=Table()
+data=Table()
 for i, c in enumerate(comps):
     # Component data
     comp_ID = c['comp_ID']
@@ -88,11 +88,11 @@ for i, c in enumerate(comps):
     t = t[mask]
 
 
-    #~ if comp_ID!='Q':
-        #~ try:
-            #~ data = vstack((data, t))
-        #~ except:
-            #~ data = Table(t)
+    if comp_ID!='Q':
+        try:
+            data = vstack((data, t))
+        except:
+            data = Table(t)
 
     
     age=c['Age']
@@ -105,12 +105,18 @@ for i, c in enumerate(comps):
         zorder=4
     else:
         zorder=1
-        
-    ax.errorbar(t['X'], t['U'], xerr=t['X_error'], yerr=t['U_error'], c=colors[comp_ID], fmt='o', markersize=3, lw=lw, zorder=zorder, label = '%s (%.2f$\pm$%.2f Myr) %d'%(comp_ID, age, c['Age_reliable'], len(t)))
+    
+    if comp_ID!='Q':
+        ax.errorbar(t['X'], t['U'], xerr=t['X_error'], yerr=t['U_error'], c=colors[comp_ID], fmt='o', markersize=3, lw=lw, zorder=zorder, label = '%s (%.2f$\pm$%.2f Myr) %d'%(comp_ID, age, c['Age_reliable'], len(t)))
+    
+    else: # Q
+        #~ ax.errorbar(t['X'], t['U'], xerr=t['X_error'], yerr=t['U_error'], edgecolors=colors[comp_ID], facecolors='none', fmt='o', markersize=3, lw=lw, zorder=zorder, label = '%s (%.2f$\pm$%.2f Myr) %d'%(comp_ID, age, c['Age_reliable'], len(t)))
+        ax.scatter(t['X'], t['U'], edgecolors=colors[comp_ID], facecolors='none', s=3, lw=lw, zorder=zorder, label = '%s (%.2f$\pm$%.2f Myr) %d'%(comp_ID, age, c['Age_reliable'], len(t)))
         
     
     # Plot components
-    comps_raw[i].plot(dim1, dim2, comp_now=True, comp_then=True, color=colors[comp_ID], alpha=0.5, ax=ax,
+    if comp_ID!='Q':
+        comps_raw[i].plot(dim1, dim2, comp_now=True, comp_then=True, color=colors[comp_ID], alpha=0.5, ax=ax,
                        comp_orbit=False, orbit_color='red')
 
 
@@ -125,8 +131,8 @@ for i, c in enumerate(comps):
     #~ comps_raw[i].plot(dim1, dim2, comp_now=True, comp_then=True, color=colors[comp_ID], alpha=0.5, ax=ax,
                        #~ comp_orbit=False, orbit_color='red')
 
-ax.set_xlim(-20, 200)
-#~ ax.set_ylim(-10, 30)
+ax.set_xlim(-75, 200)
+ax.set_ylim(-40, 40)
 
 ax.set_xlabel('X [pc]')
 ax.set_ylabel('U [km/s]')
@@ -141,17 +147,17 @@ fig.subplots_adjust(bottom=0.15, top=0.9)
 
 
 # FIT A LINE: y [km/s] = k * x [pc], so units for k are km/s/pc. 1/k should be age
-#~ z = np.polyfit(data['X'], data['U'], 1)
-#~ p = np.poly1d(z)
-#~ x = [-20, 200]
-#~ ax.plot(x, p(x), c='k')
-#~ print(z)
+z = np.polyfit(data['X'], data['U'], 1)
+p = np.poly1d(z)
+x = [-20, 200]
+ax.plot(x, p(x), c='k')
+print(z)
 
-#~ k = z[0]
-#~ age = 1.0/k * 0.977813106 # pc/km*s to Myr
-#~ print('Age', age, 'Myr')
+k = z[0]
+age = 1.0/k * 0.977813106 # pc/km*s to Myr
+print('Age', age, 'Myr')
 
-#~ ax.scatter(data['X'], data['U'], c='k', s=1)
+ax.scatter(data['X'], data['U'], c='k', s=1)
 
 
 #~ plt.savefig('XU_comps.pdf')

@@ -51,6 +51,13 @@ comps = comps[indices]
 comps = comps[::-1]
 
 
+
+# Take only stars with RVs
+mask = tab['radial_velocity_error']<100
+tab=tab[mask]
+print(len(tab))
+
+
 #### PLOTTING ###############################
 fig=plt.figure(figsize=(figsize[1], figsize[0]))
 ax=fig.add_subplot(111)

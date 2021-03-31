@@ -31,9 +31,13 @@ comps = Component.load_raw_components(os.path.join(folder, 'final_comps.npy'))
 ###################################
 
 # Get python's default(?) list of colors
-prop_cycle = plt.rcParams['axes.prop_cycle']
-colors = prop_cycle.by_key()['color']
+#~ prop_cycle = plt.rcParams['axes.prop_cycle']
+#~ colors = prop_cycle.by_key()['color']
 #~ colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'yellow', ]
+
+# Colormap
+norm=plt.Normalize(vmin=vmin, vmax=vmax)
+colors = [cm.viridis(norm(i)) for i in range(len(comps))]
 
 
 def plot_xyzuvw():
@@ -53,7 +57,6 @@ def plot_xyzuvw():
         ax.tick_params(direction='in')
         print(dim1, dim2)
 
-        
         if dim1 in ['X', 'Y', 'Z']:
             unit1 = 'pc'
         else:
