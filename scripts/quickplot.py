@@ -36,7 +36,7 @@ comps = Component.load_raw_components(os.path.join(folder, 'final_comps.npy'))
 #~ colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'yellow', ]
 
 # Colormap
-norm=plt.Normalize(vmin=vmin, vmax=vmax)
+norm=plt.Normalize(vmin=0, vmax=len(comps))
 colors = [cm.viridis(norm(i)) for i in range(len(comps))]
 
 
