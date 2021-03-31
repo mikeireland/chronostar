@@ -1,9 +1,6 @@
 # Scorpius-Centaurus Association
 
 
-#### Running
-`/pkg/linux/anaconda/bin/python run_chronostar.py mypars.pars`
-
 ## TODO
 - age --> Age
 - Crossing time at time NOW not 0
@@ -13,6 +10,24 @@
 
 - expectmax.calc_membership_probs(ol, ) avoid iteration
 - rv uncertainties should be much bigger, otherwise the overlap depends on the size of the star's covariance matrix!
+
+## Typical workflow
+### (1) Data preparation
+- Get Gaia data with ADQL query `data/gaia_DR2_scocen.adql` (this includes RVs and other values from some external catalogs)
+- Sort out radial velocities with `gaia_table_best_radial_velocity_and_lithium.py`
+- Prepare a parameter file for data conversion `convert_gaia_to_XYZUVW.pars`
+- Convert astrometry to the Cartesian system: `python /Users/marusa/chronostar/scripts/prepare_data.py convert_gaia_to_XYZUVW.pars`
+- Background overlaps: compute them and add them to the data table
+- Prepare a parameter file for Chronostar
+
+### (2) Run Chronostar
+`/pkg/linux/anaconda/bin/python run_chronostar.py mypars.pars`
+
+I think this is `python3`. It works.
+
+### (3) Data visualisation
+- `quickplot.py` on `mash`
+
 
 
 ### Data
