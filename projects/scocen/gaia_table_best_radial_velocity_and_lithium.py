@@ -10,7 +10,7 @@ taken from).
 """
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, join
 
 #~ data_filename = 'data/scocen_vac_EDR3.fits'
 data_filename = 'data/scocen_vac_DR2.fits'
@@ -18,10 +18,11 @@ data_filename = 'data/scocen_vac_DR2.fits'
 
 print('Best RVs for %s'%data_filename)
 tab = Table.read(data_filename)
+print(len(tab))
 
 # For DR2
-#~ tab.rename_column('radial_velocity', 'dr2_radial_velocity')
-#~ tab.rename_column('radial_velocity_error', 'dr2_radial_velocity_error')
+tab.rename_column('radial_velocity', 'dr2_radial_velocity')
+tab.rename_column('radial_velocity_error', 'dr2_radial_velocity_error')
 
 # If RV is not available, set to these values:
 rv_nan = 0
@@ -44,6 +45,13 @@ tab['EW(Li)_err'] = [np.nan]*len(tab)
 tab['EW(Li)_ref'] = [' '*20]*len(tab)
 
 
+# Add Banyan Sigma table with RVs
+#~ banyan = Table.read('/Users/marusa/banyan_sigma/gagne_gaia.fits')
+#~ banyan.rename_column('dr2_source_id', 'source_id') # DR2
+#~ banyan.rename_column('References', 'Ref_banyan')
+#~ tab = join(tab, banyan[['RV', 'RV_err', 'Ref_banyan', 'source_id']], keys='source_id', join_type='left')
+
+
 # If radial velocity is changed, you will need to determine new background overlaps
 tab_for_new_bg_ols = None
 
@@ -53,7 +61,8 @@ for i, x in enumerate(tab):
     """
     tmp=[]
     if np.isfinite(x['dr2_radial_velocity_error']) and np.isfinite(x['dr2_radial_velocity']):
-        tmp.append(['Gaia eDR3', [x['dr2_radial_velocity'], x['dr2_radial_velocity_error']]])
+        #~ tmp.append(['Gaia eDR3', [x['dr2_radial_velocity'], x['dr2_radial_velocity_error']]])
+        tmp.append(['Gaia DR2', [x['dr2_radial_velocity'], x['dr2_radial_velocity_error']]])
 
     if np.isfinite(x['e_rv_obst']) and np.isfinite(x['rv_obst']):
         tmp.append(['Zwitter et al. 2018', [x['rv_obst'], x['e_rv_obst']]])
@@ -70,6 +79,9 @@ for i, x in enumerate(tab):
 
     if np.isfinite(x['erv_ges']) and np.isfinite(x['rv_ges']):
         tmp.append(['GES DR4', [x['rv_ges'], x['erv_ges']]])
+
+    if np.isfinite(x['rv']) and np.isfinite(x['rv_err']):
+        tmp.append(['Banyan Sigma', [x['rv'], x['rv_err']]])
 
     # If RV is not available
     if len(tmp)==0:
@@ -100,7 +112,7 @@ for i, x in enumerate(tab):
     Lithium
     """
     tmp=[]
-    if np.isfinite(x['eew']):
+    if np.isfinite(x['eew']) and np.isfinite(x['eew_err']):
         tmp.append(['Wheeler et al. 2021', [x['eew'], x['eew_err']]])
 
     if np.isfinite(x['ewli']):
@@ -110,7 +122,7 @@ for i, x in enumerate(tab):
         tmp.append(['Zerjal et al. 2019', [x['ew_li_'], 0.05]]) # My error estimate. But this value is actually available in the catalog! TODO
     
     if len(tmp)>0:
-        tmp = sorted(tmp, key = lambda x: x[1][1])
+        tmp = sorted(tmp, key = lambda x: x[1][1]) # Take value with the smallest uncertainty
         best = tmp[0]
         tab[i]['EW(Li)'] = best[1][0]
         tab[i]['EW(Li)_err'] = best[1][1]

@@ -7,13 +7,13 @@ gaia.source_id, gaia.ra, gaia.ra_error, gaia.dec, gaia.dec_error, gaia.l, gaia.b
 gaia.phot_g_mean_mag, gaia.phot_bp_mean_mag, gaia.phot_rp_mean_mag, gaia.bp_rp, 
 
 -- Radial velocities 
-gaia.radial_velocity, gaia.radial_velocity_error, galah.rv_obst, galah.e_rv_obst, apogee.vhelio_avg, apogee.verr, rave.hrv_sparv, rave.hrv_error_sparv, ges.rv as rv_ges, ges.erv as erv_ges, li2m3.rv as rv_2m3, li2m3.rv_error as rv_err_2m3, 
+gaia.radial_velocity, gaia.radial_velocity_error, galah.rv_obst, galah.e_rv_obst, apogee.vhelio_avg, apogee.verr, rave.hrv_sparv, rave.hrv_error_sparv, ges.rv as rv_ges, ges.erv as erv_ges, li2m3.rv as rv_2m3, li2m3.rv_error as rv_err_2m3, b.rv, b.rv_err,
 
 -- WISE 
 wise.designation, wise.w1mpro, wise.w1mpro_error, wise.w2mpro, wise.w2mpro_error, wise.w3mpro, wise.w3mpro_error, wise.w4mpro, wise.w4mpro_error, wise.ph_qual, 
 
 -- Morphological classification 
-rave.flag1_class, rave.flag2_class, rave.flag3_class, rave.w1_class, rave.w2_class, rave.w3_class, gc.class as galah_class, apogee.binary_apogee, v.best_class_name, v.best_class_score, li2m3.binary_flag as binary_2m3, 
+rave.flag1_class, rave.flag2_class, rave.flag3_class, rave.w1_class, rave.w2_class, rave.w3_class, gc.class as galah_class, apogee.binary_apogee, v.best_class_name, v.best_class_score, li2m3.binary_flag as binary_2m3, b.companion,
 
 -- Youth indicators 
 lamost.eew, lamost.eew_err, galahli.ew_li_, li2m3.ewli, li2m3.ewha, li2m3.logrhk, li2m3.balmer 
@@ -34,7 +34,8 @@ LEFT JOIN user_mzerja01.ges_dr4 AS ges ON ges.ges_dr4_oid=gesxgaia.ges_dr4_ges_d
 LEFT JOIN user_mzerja01.lamost_wheeler2021_lithium AS lamost ON lamost.source_id=gaia.source_id 
 LEFT JOIN user_mzerja01.results_2m3 AS li2m3 ON li2m3.source_id=gaia.source_id 
 LEFT JOIN user_mzerja01.galah_lithium AS galahli ON galahli.source_id=gaia.source_id 
+LEFT JOIN user_mzerja01.gagne_banyan_sigma_rvs AS b ON b.dr2_source_id=gaia.source_id 
 LEFT JOIN gaiadr2.vari_classifier_result as v ON v.source_id=gaia.source_id 
 
 -- ScoCen 
-WHERE (gaia.parallax>=5 AND gaia.parallax<=10 AND gaia.parallax_error<=0.3 AND (gaia.l>240 OR gaia.l<40) AND gaia.b<50 AND gaia.b>-40)
+WHERE (gaia.parallax>=5 AND gaia.parallax<=10 AND gaia.parallax_error<=0.3 AND (gaia.l>240 OR gaia.l<40) AND gaia.b<70 AND gaia.b>-60)
