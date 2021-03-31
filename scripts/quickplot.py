@@ -11,6 +11,7 @@ import sys
 import os
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+import matplotlib.cm as cm
 
 from chronostar.component import SphereComponent as Component
 
