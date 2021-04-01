@@ -21,7 +21,10 @@
 - Prepare a parameter file for Chronostar
 
 ### (2) Run Chronostar
+- On `mash`: start `screen` so the job keeps running in the background.
 `/pkg/linux/anaconda/bin/python run_chronostar.py mypars.pars`
+- On `avatar`: `qsub avatar_script.sh` or `qsub avatar_script_mpirun.sh` for the parallel code.
+
 
 I think this is `python3`. It works.
 
