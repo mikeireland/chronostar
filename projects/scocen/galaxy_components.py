@@ -116,6 +116,15 @@ def plot_3_windows_gx(ax, labels=True, lw=2, ls='-', c='b'):
     ax.plot([285, 312], [-10, -10], c=c, linestyle=ls, linewidth=lw)
     ax.plot([285, 312], [23, 23], c=c, linestyle=ls, linewidth=lw)
 
+
+    # Lupus complex (Hara et al. 1999)
+    # Lupus 1
+    337-340, 14-18
+    ax.plot([337, 340], [14, 14], c=c, linestyle=ls, linewidth=lw)
+    ax.plot([337, 340], [18, 18], c=c, linestyle=ls, linewidth=lw)
+    ax.plot([337, 337], [14, 18], c=c, linestyle=ls, linewidth=lw)
+    ax.plot([340, 340], [14, 18], c=c, linestyle=ls, linewidth=lw)
+
     #~ # IC2602
     #~ ax.scatter([289.6014], [-04.9061], c=c, s=10)
     #~ if labels:

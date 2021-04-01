@@ -37,5 +37,5 @@ LEFT JOIN user_mzerja01.galah_lithium AS galahli ON galahli.source_id=gaia.sourc
 LEFT JOIN user_mzerja01.gagne_banyan_sigma_rvs AS b ON b.dr2_source_id=gaia.source_id 
 LEFT JOIN gaiadr2.vari_classifier_result as v ON v.source_id=gaia.source_id 
 
--- ScoCen 
-WHERE (gaia.parallax>=5 AND gaia.parallax<=10 AND gaia.parallax_error<=0.3 AND (gaia.l>240 OR gaia.l<40) AND gaia.b<70 AND gaia.b>-60)
+-- ScoCen: stars between 83 and 222 pc (eta Cha is at 97 pc)
+WHERE (gaia.parallax>=4.5 AND gaia.parallax<=12 AND gaia.parallax_error<=0.3 AND (gaia.l>240 OR gaia.l<40) AND gaia.b<70 AND gaia.b>-60)

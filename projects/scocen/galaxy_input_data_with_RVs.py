@@ -101,6 +101,17 @@ ax.scatter(tab['l'][mask], tab['b'][mask], s=1, c='k', marker='.', label='')
 print('Total number of stars in this plot:', len(tab[mask]))
 gx_set_labels_and_ticks_over_360deg(ax)
 
+# New data with RVs, non-bg stars, stars between 100 and 200 pc
+fig=plt.figure(figsize=(figsize[1], figsize[0]))
+ax=fig.add_subplot(111)
+mask = (tab['radial_velocity_error']>1e+10)
+for c in good_comps:
+    mask = np.logical_or(mask, tab['membership%s'%c]>0.1)
+mask = mask & (tab['parallax']>5) & (tab['parallax']<10) # DISTANCE CUT
+ax.scatter(tab['l'][mask], tab['b'][mask], s=1, c='k', marker='.', label='')
+print('Total number of stars in this plot:', len(tab[mask]))
+gx_set_labels_and_ticks_over_360deg(ax)
+
 
 # SAVE FIGURES
 #~ plt.savefig('gx_input_params.pdf')

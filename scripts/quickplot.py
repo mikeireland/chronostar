@@ -12,6 +12,7 @@ import os
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import matplotlib.cm as cm
+from random import shuffle
 
 from chronostar.component import SphereComponent as Component
 
@@ -38,7 +39,10 @@ comps = Component.load_raw_components(os.path.join(folder, 'final_comps.npy'))
 
 # Colormap
 norm=plt.Normalize(vmin=0, vmax=len(comps))
-colors = [cm.viridis(norm(i)) for i in range(len(comps))]
+mycmap = plt.get_cmap('gist_rainbow')
+#~ colors = [cm.viridis(norm(i)) for i in range(len(comps))]
+colors = [mycmap(norm(i)) for i in range(len(comps))]
+shuffle(colors) # So that neighbouring components don't have similar colors
 
 
 def plot_xyzuvw():
@@ -161,10 +165,12 @@ def plot_cmd_galaxy():
         with 0 manually.
         """
         
-        plt.gca().invert_xaxis()
+        #~ plt.gca().invert_xaxis()
         #~ ax.set_ylim(-40, 60)
         #~ ax.set_xlim(400, 220)
         #~ ax.set_xlim(380, 260)
+        xlim = ax.get_xlim()
+        ax.set_xlim(xlim[1], xlim[0])
 
         ax.xaxis.set_major_locator(ticker.MultipleLocator(20))
         t = ax.get_xticks()
@@ -177,17 +183,29 @@ def plot_cmd_galaxy():
 
         return ax
 
+
+    def manage_legend(ax):
+        # ADD LEGEND OUTSIDE THE PLOT
+        ax.legend(loc='upper center', bbox_to_anchor=(2.18, -1.05), frameon=False,
+                  fancybox=False, shadow=False, ncol=1, markerscale=10)
+
+
     fig=plt.figure(figsize=(14.0, 8.0))
     ax1 = fig.add_subplot(2, 2, 1)
     ax2 = fig.add_subplot(2, 2, 2)
     ax3 = fig.add_subplot(2, 2, 3)
+    ax4 = fig.add_subplot(2, 2, 4) # legend
 
 
     # Plot CMD for all stars
-    ax1.scatter(tab['bp_rp'], tab['Gmag'], s=1, c='k', alpha=0.1, label='')
-    
+    ax1.scatter(tab['bp_rp'], tab['Gmag'], s=1, c='grey', label='')
+
+
     # Plot all stars in (l, b)
-    ax2.scatter(tab['l'], tab['b'], s=1, c='k', alpha=0.1)
+    ax2.scatter(tab['l'], tab['b'], s=1, c='grey')
+
+    # Sort comps by age
+    comps = sorted(comps, key = lambda x: x.get_age(), reverse=True)
 
     i=0
     for c in comps:
@@ -224,7 +242,11 @@ def plot_cmd_galaxy():
     ax1=plot_MS_parametrisation_and_spectral_types(ax1, xlim, ylim)
     ax1.set_xlabel('BP-RP')
     ax1.set_ylabel('G')
-    ax1.legend(loc=1)
+    #~ ax1.legend(loc=1)
+    #~ manage_legend(ax1)
+    
+    handles, labels = ax1.get_legend_handles_labels()
+    ax4.legend(handles, labels)
     
     gx_set_labels_and_ticks_over_360deg(ax2)
     
