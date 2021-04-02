@@ -33,7 +33,7 @@ comps = Component.load_raw_components(os.path.join(folder, 'final_comps.npy'))
 ###################################
 
 # Sort components by their number of members. Plot the biggest first.
-indices = np.argsort([np.sum(memberships[:,i]>pmin_membership) for i in len(comps)])
+indices = np.argsort([np.sum(memberships[:,i]>pmin_membership) for i in range(len(comps))])
 comps = comps[indices]
 comps = comps[::-1]
 
