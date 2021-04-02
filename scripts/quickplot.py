@@ -110,7 +110,7 @@ def plot_xyzuvw():
     fig.savefig(path)
     print('%s saved.'%path)
 
-def plot_cmd_galaxy():
+def plot_cmd_galaxy(comps):
     ############################################
     # Minimal probability required for membership
     pmin_membership = 0.8
@@ -262,7 +262,7 @@ def plot_cmd_galaxy():
 
 
 plot_xyzuvw()
-plot_cmd_galaxy()
+plot_cmd_galaxy(comps)
 
 # Cornerplot
 #~ labels=['X', 'Y', 'Z', 'U', 'V', 'W', 'dX', 'dY', 'dU', 'dV', 'x_rot', 'y_rot', 'z_rot', 'cov_xv', 'age']
