@@ -35,8 +35,11 @@ comps = Component.load_raw_components(os.path.join(folder, 'final_comps.npy'))
 # Sort components by their number of members. Plot the biggest first.
 pmin_membership=0.5
 indices = np.argsort([np.sum(memberships[:,i]>pmin_membership) for i in range(len(comps))])
+indices=np.array(indices)
+comps=np.array(comps)
+#~ print(indices)
 comps = comps[indices]
-comps = comps[::-1]
+#~ comps = comps[::-1]
 
 # Get python's default(?) list of colors
 #~ prop_cycle = plt.rcParams['axes.prop_cycle']
@@ -102,7 +105,13 @@ def plot_xyzuvw():
             
             # Plot only members
             mm=tmem[:,i]>0.5
-            ax.scatter(t[dim1][mm], t[dim2][mm], c=colors[i], alpha=1, s=5, label = '%.2f Myr'%comp.get_age())
+            
+            if np.sum(mm)<50:
+                s=1
+            else:
+                s=5
+            
+            ax.scatter(t[dim1][mm], t[dim2][mm], c=colors[i], alpha=1, s=s, label = '%.2f Myr'%comp.get_age())
             
             print(np.sum(mm), comp.get_age())
 
@@ -110,7 +119,7 @@ def plot_xyzuvw():
         print('')
         if dim1=='X' and dim2=='U':
             ax.legend(loc=2)
-            
+        
             
     path = os.path.join(folder, 'comps_xyzuvw.png')
     fig.savefig(path)

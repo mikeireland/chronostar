@@ -34,10 +34,11 @@ I think this is `python3`. It works.
 
 
 ### Data
-#### Location: `mash:...`
+#### Location
+- I copied all data to mash (April 3): `mash:/priv/mulga1/marusa/chronostar_projects/scocen/paper/`
 - `final_comps_21.fits`: Components
-- `...`: ScoCen data with component overlaps
-- `..`: Input data for the fit
+- `scocen_vac_DR2_with_21_overlaps.fits`: ScoCen data with component overlaps
+- `scocen_5k_candidates_only_members_with_significant_membership_from_tims_3_subsets.fits`: Input data for the fit
 
 ### Data management
 - `convert_gaia_to_XYZUVW.pars`: Parameter file for Chronostar's `prepare_data.py` that converts astrometry to the Cartesian coordinate system
