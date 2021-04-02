@@ -32,6 +32,11 @@ memberships = np.load(os.path.join(folder, 'final_membership.npy'))
 comps = Component.load_raw_components(os.path.join(folder, 'final_comps.npy'))
 ###################################
 
+# Sort components by their number of members. Plot the biggest first.
+indices = np.argsort([np.sum(memberships[:,i]>pmin_membership) for i in len(comps)])
+comps = comps[indices]
+comps = comps[::-1]
+
 # Get python's default(?) list of colors
 #~ prop_cycle = plt.rcParams['axes.prop_cycle']
 #~ colors = prop_cycle.by_key()['color']
