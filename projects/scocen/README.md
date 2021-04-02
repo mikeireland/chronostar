@@ -35,6 +35,7 @@ I think this is `python3`. It works.
 - `final_comps_21.fits`: Components
 - `scocen_vac_DR2_with_21_overlaps.fits`: ScoCen data with component overlaps
 - `scocen_5k_candidates_only_members_with_significant_membership_from_tims_3_subsets.fits`: Input data for the fit
+- `lithium_isochrones/`: Code to plot lithium isochrones
 
 ### Data management
 - `convert_gaia_to_XYZUVW.pars`: Parameter file for Chronostar's `prepare_data.py` that converts astrometry to the Cartesian coordinate system
@@ -44,8 +45,20 @@ I think this is `python3`. It works.
 - `prepare_component_members_for_further_splitting.py`: Print subsets of the big data table that contain members with membership>small value.
 
 ### Code
+- `scocenlib.py`: This is where you set filenames and good components. This file is used by the rest of the code.
 - `cmd_components_simple.py`: Plot CMDs for all the components
 - `pds70.py`: Find what component PDS70 belongs to and its component age
+
+- `XU_comps_CUT.py`: CUT components in the XU spacec
+- `YV_comps.py`: YV space
+- `ZW_comps.py`: ZW space
+- `galaxy_ages.py`: Members in (l, b) coordinates, with overplotted component ages
+- `galaxy_velocities.py`: Members in (l, b) space with overplotted U velocity
+- `manage_background_overlaps.py`: Add background overlaps to the data table
+
+- `cmd_black.py`: CMD with all components in black
+- `galaxy_black.py`: All stars with black color. It is easier to see substructure here.
+
 
 ### Paper plots
 - `scocenlib.py`: Config file with data and component filenames, a list of good/bad components, colours for each component etc.
