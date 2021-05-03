@@ -51,11 +51,13 @@ from . import likelihood
 from . import compfitter
 from . import tabletool
 try:
-    print('Using C implementation in expectmax')
+    print('Trying to use C implementation in expectmax')
     from ._overlap import get_lnoverlaps
 except:
     print("WARNING: Couldn't import C implementation, using slow pythonic overlap instead")
-    logging.info("WARNING: Couldn't import C implementation, using slow pythonic overlap instead")
+    #Do NOT use logging here, as it won't set up a log file at all if logging is attempted prior to
+    #setting up the directory and log file...
+    #logging.info("WARNING: Couldn't import C implementation, using slow pythonic overlap instead")
     from .likelihood import slow_get_lnoverlaps as get_lnoverlaps
 
 #from functools import partial
@@ -1363,7 +1365,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         bic = calc_bic(data, ncomps, overall_lnlike,
                        memb_probs=memb_probs_new,
                        Component=Component)
-
+        if overall_lnlike != overall_lnlike: #!!!
+            import pdb; pdb.set_trace()
         logging.info("---        Iteration results         --")
         logging.info("-- Overall likelihood so far: {} --".\
                      format(overall_lnlike))

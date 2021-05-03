@@ -222,7 +222,7 @@ class ParentFit(object):
 
         # Now that results directory is set up, can set up log file
         logging.basicConfig(filename=self.rdir + 'log.log', level=logging.INFO)
-
+ 
         # Make some logs about how many iterations (+ other stuff) code can run for
         log_message(msg='Component count cap set to {}'.format(
                 self.fit_pars['max_comp_count']),
@@ -544,7 +544,7 @@ class ParentFit(object):
         self.Component.store_raw_components(self.rdir + self.final_comps_file,
                                             prev_result['comps'])
         self.Component.store_components_ascii(self.rdir + 'final_comps_ascii.txt',
-                                              prev_result['comps'])
+                                              prev_result['comps'], overwrite=self.fit_pars['overwrite_prev_run'])
         np.save(self.rdir + self.final_med_and_spans_file, prev_result['med_and_spans'])
         np.save(self.rdir + self.final_memb_probs_file, prev_result['memb_probs'])
         np.save(self.rdir + 'final_likelihood_post_and_bic',
