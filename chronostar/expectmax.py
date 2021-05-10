@@ -343,6 +343,10 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
         # old_memb_probs = np.ones((nstars, ncomps)) / ncomps
     # 'weights' is the same as 'amplitudes', amplitudes for components
     weights = old_memb_probs[:, :ncomps].sum(axis=0)
+    
+    print(weights)
+    if np.min(weights) < 0.01:
+        raise UserWarning("An association must have at least 1 star. <0.01 stars is extreme...")
 
     # [ADVANCED/dodgy] Optionally scale each weight by the component prior, then rebalance
     # such that total expected stars across all components is unchanged
@@ -450,7 +454,9 @@ def expectation(data, comps, old_memb_probs=None,
         that each row sums to 1.0, each column sums to the expected size of
         each component, and the entire array sums to the number of stars.
     """
+    #To see in real-time what is happening. TODO Remove this once a better performance monitoring is in place!
     print('In expectation')
+
     # Tidy input and infer some values
     if not isinstance(data, dict):
         data = tabletool.build_data_dict_from_table(data)
@@ -469,11 +475,17 @@ def expectation(data, comps, old_memb_probs=None,
     iter_cnt = 0
     old_bic = np.inf
     while not memberships_converged:
-        print('Expectation iter cnt: %i'%iter_cnt)
+        if iter_cnt > 0:
+            print('Expectation iter cnt: %i'%iter_cnt)
         if old_memb_probs is None:
             print('Initialising old_memb_probs with equal membership')
             old_memb_probs = np.ones((nstars, n_memb_cols)) / (n_memb_cols)
 
+        #!!!MJI Logging to screen what is about to be done.
+        if inc_posterior:
+            print("Expectation overlaps. Posterior True.")
+        else:
+            print("Expectation overlaps. Posterior False.")
         # Calculate all log overlaps
         lnols = get_all_lnoverlaps(data, comps, old_memb_probs,
                                    inc_posterior=inc_posterior,
@@ -493,6 +505,7 @@ def expectation(data, comps, old_memb_probs=None,
         if np.min(memb_probs.sum(axis=0)) < 10.:
             break
 
+        #!!!MJI Remove einsum here.
         weighted_lnols = np.einsum('ij,ij->ij', lnols, memb_probs)
         lnlike = np.sum(weighted_lnols)
         # Check for convergence
@@ -535,13 +548,10 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     -------
     overall_lnlikelihood: float
     """
-    # logging.info('here00')
     memb_probs = expectation(data, comps,
                              old_memb_probs=old_memb_probs,
                              inc_posterior=inc_posterior,
                              use_box_background=use_box_background)
-
-    # logging.info('here0')
 
     all_ln_ols = get_all_lnoverlaps(data, comps,
                                     old_memb_probs=memb_probs,
@@ -551,7 +561,14 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     # multiplies each log overlap by the star's membership probability
     # (In linear space, takes the star's overlap to the power of its
     # membership probability)
-    weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
+
+    #einsum is an Einstein summation convention. Not suer why it is used here???
+    #weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
+
+    weighted_lnols = all_ln_ols * memb_probs
+
+    #if np.sum(weighted_lnols) != np.sum(weighted_lnols):
+    #    import pdb; pdb.set_trace() #!!!!
 
     if return_memb_probs:
         return np.sum(weighted_lnols), memb_probs
@@ -776,6 +793,8 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
         If ignoring dead components, use this mask to indicate the components
         that didn't die
     """
+    #To help with debugging...
+    print("In Maximisation")
     # Set up some values
     DEATH_THRESHOLD = 2.1       # The total expected stellar membership below
                                 # which a component is deemed 'dead' (if
@@ -1122,8 +1141,12 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     nstars = data['means'].shape[0]
     C_TOL = 0.5
 
-    logging.info("Fitting {} groups with {} burnin steps with cap "
+    if optimisation_method=='emcee':
+        logging.info("Fitting {} groups with {} burnin steps with cap "
                  "of {} iterations".format(ncomps, burnin, max_em_iterations))
+    else:
+        logging.info("Fitting {} groups with {} method with cap of {} EM iterations.".format(ncomps, optimisation_method, max_em_iterations))
+
 
     # INITIALISE RUN PARAMETERS
 
@@ -1220,7 +1243,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             try:
                 old_comps = Component.load_raw_components(idir + 'best_comps.npy')
             # End up here if components aren't loadable due to change in module
-            # So we rebuild from chains
+            # So we rebuild from chains.
+            #!!! WARNING: This only seems to work with emcee fitting.
             except AttributeError:
                 old_comps = ncomps * [None]
                 for i in range(ncomps):
@@ -1354,6 +1378,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         logging.info('DEBUG: new_comps length: {}'.format(len(new_comps)))
 
         # LOG RESULTS OF ITERATION
+        print("About to log without and with posterior lnlikelihoods") #!!!MJI
         overall_lnlike = get_overall_lnlikelihood(data, new_comps,
                                                   old_memb_probs=memb_probs_new,
                                                   inc_posterior=False,
@@ -1365,8 +1390,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         bic = calc_bic(data, ncomps, overall_lnlike,
                        memb_probs=memb_probs_new,
                        Component=Component)
-        if overall_lnlike != overall_lnlike: #!!!
-            import pdb; pdb.set_trace()
+
         logging.info("---        Iteration results         --")
         logging.info("-- Overall likelihood so far: {} --".\
                      format(overall_lnlike))
@@ -1432,6 +1456,8 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         # settle
         temp_stable_state = check_stability(data, new_comps, memb_probs_new,
                                             use_box_background=use_box_background)
+        #if not temp_stable_state:
+        #    import pdb; pdb.set_trace() #!!!
         logging.info('Stability: {}'.format(temp_stable_state))
         if iter_count > 10:
             stable_state = temp_stable_state

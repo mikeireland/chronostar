@@ -81,8 +81,8 @@ def slow_get_lnoverlaps(g_cov, g_mn, st_covs, st_mns, dummy=None):
 
 def calc_alpha(dx, dv, nstars):
     """
-    Assuming we have identified 100% of star mass, and that average
-    star mass is 1 M_sun.
+    Assuming we have identified 100% of star mass with a 1 M_sun missing
+    mass offset, and that average star mass is 1 M_sun.
     
     alpha>1: gravitationally unbound, it is expanding.
     alpha<1: gravitationally bound, it is collapsing.
@@ -94,7 +94,7 @@ def calc_alpha(dx, dv, nstars):
     G_const = 0.004302113488372941  # pc (km/s)^2 / Msun
     G_const = 0.004300917270069976  # pc (km/s)^2 / Msun
     M_sol = 1. # Msun
-    return (dv**2 * dx) / (G_const * nstars * M_sol)
+    return (dv**2 * dx) / (G_const * (nstars+1) * M_sol)
 
 
 def lnlognormal(x, mu=2.1, sig=1.0):
