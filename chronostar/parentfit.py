@@ -416,8 +416,10 @@ class ParentFit(object):
             # This fails when gradient descent is used and med_and_spans are not meaningful.
             try:
                 med_and_spans = np.load(os.path.join(run_dir, 'final/', self.final_med_and_spans_file))
+                print('run_em_unless_loadable.try successful')
             except ValueError:
                 logging.info('med_and_spans not read. Presumably you are using gradient descent optimisation procedure?')
+                print('run_em_unless_loadable.except ValueError')
                 med_and_spans = [None]
             memb_probs = np.load(os.path.join(
                     run_dir, 'final/', self.final_memb_probs_file))
@@ -428,6 +430,7 @@ class ParentFit(object):
             # Handle case where Component class has been modified and can't
             # load the raw components
         except AttributeError:
+            print('run_em_unless_loadable.except AttributeError')
             # TODO: check that the final chains looked for are guaranteed to be saved
             comps = self.build_comps_from_chains(run_dir)
 
@@ -435,6 +438,8 @@ class ParentFit(object):
             # perform the fit.
         #~ except (IOError, FileNotFoundError) as e:
         except IOError:
+            print('run_em_unless_loadable.except IOError')
+            print('run_em_unless_loadable: fitting comps', self.fit_pars['init_memb_probs'])
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
@@ -499,6 +504,9 @@ class ParentFit(object):
 
         TODO: Establish relevance of bg_ln_ols
         """
+        
+        print('calc_score memb_probs', memb_probs)
+        
         lnlike = expectmax.get_overall_lnlikelihood(self.data_dict,
                                                     comps,
                                                     old_memb_probs=memb_probs,

@@ -139,6 +139,12 @@ class NaiveFit(ParentFit):
                             '%i components'%self.ncomps, symbol='*', surround=True)
             pass
 
+        # MZ: just testing. Delete after if works
+        print("self.fit_pars['init_memb_probs']", self.fit_pars['init_memb_probs'])
+        print("self.fit_pars['init_comps']", self.fit_pars['init_comps'])
+
+
+
 
         log_message(msg='FITTING {} COMPONENT'.format(self.ncomps),
                     symbol='*', surround=True)

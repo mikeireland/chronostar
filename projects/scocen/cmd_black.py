@@ -30,8 +30,8 @@ pmin_membership = 0.8
 print('pmin_membership', pmin_membership)
 ############################################
 # CMD limits
-xlim = [-1, 5]
-ylim = [17, -3]
+xlim = [-0.5, 5]
+ylim = [15, -5]
 ############################################
 
 # Read data
@@ -65,10 +65,41 @@ def plot_MS_parametrisation_and_spectral_types(ax, xlim, ylim):
     #~ ax.plot(xms, yms - 0.75, c='brown', label='0.75 mag above the median', linewidth=1, linestyle='--')
     #~ ax.plot(xms, yms - 1.5, c='brown', label='1.5 mag above the median', linewidth=1, linestyle='--')
 
-    ax.axvline(x=0.369, linewidth=0.5, color='k')  # F
-    ax.axvline(x=0.767, linewidth=0.5, color='k')  # G
-    ax.axvline(x=0.979, linewidth=0.5, color='k')  # K
-    ax.axvline(x=1.848, linewidth=0.5, color='k')  # M
+    #~ ax.axvline(x=0.369, linewidth=0.5, color='k')  # F
+    #~ ax.axvline(x=0.767, linewidth=0.5, color='k')  # G
+    #~ ax.axvline(x=0.979, linewidth=0.5, color='k')  # K
+    #~ ax.axvline(x=1.848, linewidth=0.5, color='k')  # M
+
+    #~ ax.set_xlim(xlim[0], xlim[1])
+    #~ ax.set_ylim(ylim[0], ylim[1])
+        
+    return ax
+
+def spectral_types(ax, xlim, ylim, y = -2.4, ymin=0.9):
+    y=-2
+
+    # This is BP-RP
+    lw=0.5
+    ax.axvline(x=-0.037, ymin=ymin, linewidth=lw, color='k') # A0, according to Mamajek
+    ax.axvline(x=0.369, ymin=ymin, linewidth=lw, color='k') # F
+    ax.axvline(x=0.767, ymin=ymin, linewidth=lw, color='k') # G
+    ax.axvline(x=0.979, ymin=ymin, linewidth=lw, color='k') # K
+    ax.axvline(x=1.848, ymin=ymin, linewidth=lw, color='k') # M0
+    #~ ax.axvline(x=4.86, ymin=0.9, linewidth=lw, color='k') # M9 (Mamajek)
+
+    
+    # Annotations
+    #~ y = -2.4
+    c='k'
+    s=12
+    ax.annotate('A', xy=(-0.037+0.15, y), xytext=(-0.037+0.15, y), color=c, size=s)
+    ax.annotate('F', xy=(0.369+0.15, y), xytext=(0.369+0.15, y), color=c, size=s)
+    ax.annotate('G', xy=(0.767+0.05, y), xytext=(0.767+0.05, y), color=c, size=s)
+    ax.annotate('K', xy=(0.979+0.4, y), xytext=(0.979+0.4, y), color=c, size=s)
+    #~ ax.annotate('M', xy=(1.848+0.5, y), xytext=(1.848+0.5, y), color=c, size=s)
+    ax.annotate('M0', xy=(1.848+0.1, y), xytext=(1.848+0.1, y), color=c, size=s)
+    ax.annotate('M5', xy=(3.35-0.05, y), xytext=(3.35-0.05, y), color=c, size=s)
+    ax.annotate('M9', xy=(4.86-0.1, y), xytext=(4.86-0.1, y), color=c, size=s)
 
     ax.set_xlim(xlim[0], xlim[1])
     ax.set_ylim(ylim[0], ylim[1])
@@ -83,7 +114,7 @@ indices = np.argsort([np.sum(tab['membership%s'%c['comp_ID']]>pmin_membership ) 
 comps = comps[indices]
 comps = comps[::-1]
 
-fig=plt.figure()
+fig=plt.figure(figsize=(figsize[1], figsize[0]))
 ax = fig.add_subplot(111)
 
 # In case I want colors after all
@@ -94,6 +125,7 @@ colors = [mycmap(norm(i)) for i in range(len(comps))]
 shuffle(colors) # So that neighbouring components don't have similar colors
 
 i=0
+total=0
 for c in comps:
     comp_ID = c['comp_ID']
 
@@ -105,7 +137,7 @@ for c in comps:
     t=tab[mask]
 
     
-
+    total+=len(t)
 
     
     
@@ -143,9 +175,13 @@ for c in comps:
 
     i+=1
 
+print('%d stars in the plot.'%total)
+
+ax=spectral_types(ax, xlim, ylim)
 ax=plot_MS_parametrisation_and_spectral_types(ax, xlim, ylim)
 
-ax.set_xlabel('BP-RP')
-ax.set_ylabel('Gmag')
+ax.set_xlabel('Bp-Rp')
+ax.set_ylabel(r'$M_\mathrm{G}$')
 
+plt.savefig('cmd_black.pdf')
 plt.show()

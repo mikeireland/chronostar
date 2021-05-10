@@ -326,6 +326,9 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
         The log overlaps of each star with each component, optionally
         with the log background overlaps appended as the final column
     """
+    
+    print('old_memb_probs from the beginning of get_all_lnoverlaps', old_memb_probs)
+    
     # Tidy input, infer some values
     if not isinstance(data, dict):
         data = tabletool.build_data_dict_from_table(data)
@@ -344,7 +347,7 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     # 'weights' is the same as 'amplitudes', amplitudes for components
     weights = old_memb_probs[:, :ncomps].sum(axis=0)
     
-    print(weights)
+    print('weights in get_all_lnoverlaps', weights)
     if np.min(weights) < 0.01:
         raise UserWarning("An association must have at least 1 star. <0.01 stars is extreme...")
 
@@ -519,6 +522,12 @@ def expectation(data, comps, old_memb_probs=None,
         else:
             old_bic = new_bic
             old_memb_probs = memb_probs
+
+
+        # MZ: set memberships_converged to True for the testing purposes!
+        #~ print('expectmax.expectation: MZ: set memberships_converged to True for the testing purposes!')
+        #~ memberships_converged = True
+
 
         iter_cnt += 1
 
@@ -1149,9 +1158,11 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
 
     # INITIALISE RUN PARAMETERS
+    print('## start running expectmax.fit_many_comps', init_comps)
 
     # If initialising with components then need to convert to emcee parameter lists
     if init_comps is not None:
+        print('Initialised by components')
         logging.info('Initialised by components')
         all_init_pars = [ic.get_emcee_pars() for ic in init_comps]
         skip_first_e_step = False
@@ -1159,6 +1170,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         # If memberships are provided, use those
         if init_memb_probs is not None:
             memb_probs_old = init_memb_probs
+            print('init_memb_probs was None, now it is set to', memb_probs_old)
 
         # Otherwise, we initialise memb_probs_old such that each component as an equal
         # amplitude. We do this by assuming each star is equal member of every component
@@ -1167,11 +1179,13 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             logging.info('Initialising amplitudes to be equal')
             memb_probs_old = np.ones((nstars, ncomps+use_bg_column))\
                              / (ncomps+use_bg_column)
+            print('memb_probs_old normalised to', memb_probs_old)
 
     # If initialising with membership probabilities, we need to skip first
     # expectation step, but make sure other values are iterable
     elif init_memb_probs is not None and init_comps is None: # MZ added and init_comps is None
         logging.info('Initialised by memberships')
+        print('Initialised by memberships0')
         skip_first_e_step = True
         all_init_pars = ncomps * [None]
         init_comps = ncomps * [None]
@@ -1181,6 +1195,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # We need all_init_pars for scipy as a starting point
     elif init_memb_probs is not None and init_comps is not None:
         logging.info('Initialised by memberships')
+        print('Initialised by memberships1')
         skip_first_e_step = True
         all_init_pars = np.array([c.get_emcee_pars() for c in init_comps])
         init_comps = ncomps * [None]
@@ -1190,6 +1205,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     # to each component, but 0% likely to be part of the background
     # Currently only implemented blind initialisation for one component
     else:
+        print('NOT initialised by comps and NOT initialised by membs')
         assert ncomps == 1, 'If no initialisation set, can only accept ncomp==1'
         logging.info('No specificed initialisation... assuming equal memberships')
         init_memb_probs = np.ones((nstars, ncomps)) / ncomps
@@ -1246,6 +1262,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             # So we rebuild from chains.
             #!!! WARNING: This only seems to work with emcee fitting.
             except AttributeError:
+                print('fit_many_comps AttributeError (WARNING: This only seems to work with emcee fitting.)')
                 old_comps = ncomps * [None]
                 for i in range(ncomps):
                     chain   = np.load(idir + 'comp{}/final_chain.npy'.format(i))
@@ -1262,6 +1279,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             all_init_pars = [old_comp.get_emcee_pars()
                              for old_comp in old_comps]
             # logging.info('old_overall_lnlike')
+            print('determine old_memb_probs here')
             old_overall_lnlike, old_memb_probs = \
                     get_overall_lnlikelihood(data, old_comps,
                                              inc_posterior=False,
@@ -1287,11 +1305,15 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             logging.info("Managed to find {} previous iterations".format(
                 iter_count
             ))
+            print("Managed to find {} previous iterations".format(
+                iter_count
+            ))
             prev_iters = False
 
     # Until convergence is achieved (or max_iters is exceeded) iterate through
     # the Expecation and Maximisation stages
 
+    print('Start EM algorithm')
     logging.info("MZ: Start EM algorithm")
 
     # TODO: put convergence checking at the start of the loop so restarting doesn't repeat an iteration
@@ -1314,19 +1336,23 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
             log_message('MZ: removed this line due to index error (unstable_comps too big number)')
             log_message(str(unstable_comps))
 
+        print('EM: Expectation step')
         # EXPECTATION
         # Need to handle couple of side cases of initalising by memberships.
         if found_prev_iters:
+            print('Expectation if found_prev_iters')
             logging.info("Using previously found memberships")
             memb_probs_new = memb_probs_old
             found_prev_iters = False
             skip_first_e_step = False       # Unset the flag to initialise with
                                             # memb probs
         elif skip_first_e_step:
+            print('Expectation skip_first_e_step')
             logging.info("Using initialising memb_probs for first iteration")
             memb_probs_new = init_memb_probs
             skip_first_e_step = False
         else:
+            print('Expectation else')
             memb_probs_new = expectation(data, old_comps, memb_probs_old,
                                          inc_posterior=inc_posterior,
                                          use_box_background=use_box_background)
@@ -1336,6 +1362,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         np.save(idir+"membership.npy", memb_probs_new)
 
         # MAXIMISE
+        print('EM: Maximisation step')
         new_comps, all_samples, _, all_init_pos, success_mask =\
             maximisation(data, ncomps=ncomps,
                          burnin_steps=burnin,

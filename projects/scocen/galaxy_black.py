@@ -236,5 +236,5 @@ gx_set_labels_and_ticks_over_360deg(ax)
 
 
 # SAVE FIGURES
-#~ plt.savefig('gx_black.png')
+plt.savefig('gx_black.pdf', format='pdf')
 plt.show()
