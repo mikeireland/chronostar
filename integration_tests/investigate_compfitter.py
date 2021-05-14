@@ -50,6 +50,10 @@ burnin_chain = np.swapaxes(burnin_chain, 0, 1)
 burnin_lnprobs = np.concatenate(list(lnprobs.values()), axis=1)
 burnin_lnprobs = np.swapaxes(burnin_lnprobs, 0, 1)
 
+plt.clf()
+plt.plot(burnin_chain[:,:,-1])
+plt.savefig('ages')
+
 best_comp_per_step = np.argmax(burnin_lnprobs, axis=0)
 
 best_comp_per_step = np.array([chain[np.argmax(lnprob)] for (chain, lnprob) in zip(burnin_chain[::100], burnin_lnprobs[::100]) ])

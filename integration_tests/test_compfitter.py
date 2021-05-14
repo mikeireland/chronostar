@@ -26,10 +26,13 @@ def run_fit_helper(true_comp, starcounts, measurement_error,
                    trace_orbit_func=None,
                    ):
     py_vers = sys.version[0]
-    data_filename = 'temp_data/{}_compfitter_{}.fits'.format(py_vers, run_name)
-    log_filename = 'logs/{}_compfitter_{}.log'.format(py_vers, run_name)
-    plot_dir = 'temp_plots/{}_compfitter_{}'.format(py_vers, run_name)
-    save_dir = 'temp_data/{}_compfitter_{}'.format(py_vers, run_name)
+    base_name = '{}_compfitter_{}'.format(py_vers, run_name)
+
+    data_filename = 'temp_data/{}.fits'.format(base_name)
+    log_filename = 'logs/{}.log'.format(base_name)
+    plot_dir = 'temp_plots/{}'.format(base_name)
+    save_dir = 'temp_data/{}'.format(base_name)
+
     logging.basicConfig(level=logging.INFO,
                         filename=log_filename,
                         filemode='w')
@@ -46,6 +49,7 @@ def run_fit_helper(true_comp, starcounts, measurement_error,
             plot_dir=plot_dir,
             save_dir=save_dir,
             trace_orbit_func=trace_orbit_func,
+            store_burnin_chains=True,
     )
     return res
 
@@ -131,10 +135,6 @@ def test_lcc_like():
             run_name='lcc_like',
     )
 
-    np.save('temp_data/{}_compfitter_lcc_like_'\
-            'true_and_best_comp.npy'.format(PY_VERS),
-            [true_comp, best_comp],)
-
     assert np.allclose(true_comp.get_mean(), best_comp.get_mean(),
                        atol=3.0)
     assert np.allclose(true_comp.get_age(), best_comp.get_age(),
@@ -142,6 +142,13 @@ def test_lcc_like():
     assert np.allclose(true_comp.get_covmatrix(),
                        best_comp.get_covmatrix(),
                        atol=5.0)
+
+    comp_filename = 'temp_data/{}_compfitter_lcc_like_true_and_best_comp.npy'.format(
+            PY_VERS
+    )
+    SphereComponent.store_raw_components(comp_filename, [true_comp, best_comp])
+
+    return true_comp, best_comp, lnprob
 
 if __name__ == '__main__':
     # true_comp, best_comp, lnprob = test_stationary_component()
