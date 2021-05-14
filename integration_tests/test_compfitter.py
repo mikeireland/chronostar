@@ -30,7 +30,7 @@ def run_fit_helper(true_comp, starcounts, measurement_error,
     data_filename = 'temp_data/{}_compfitter_{}.fits'.format(py_vers, run_name)
     log_filename = 'logs/{}_compfitter_{}.log'.format(py_vers, run_name)
     plot_dir = 'temp_plots/{}_compfitter_{}'.format(py_vers, run_name)
-    save_dir = 'temp_data/'
+    save_dir = 'temp_data/{}_compfitter_{}'.format(py_vers, run_name)
     logging.basicConfig(level=logging.INFO,
                         filename=log_filename,
                         filemode='w')
@@ -104,7 +104,9 @@ def test_stationary_component():
 
 def test_lcc_like():
     """
-    Takes about 40 mins
+    Takes about 5 mins with epicyclic
+
+    If burnin is too short (say 200 steps) won't actually find true solution
     """
     mean_now = np.array([50., -100., 25., 1.1, -7.76, 2.25])
 
@@ -122,14 +124,12 @@ def test_lcc_like():
         'age':age,
     })
 
-    nstars = 100
+    nstars = 1000
     tiny_measurement_error = 1e-10
-    short_burnin_step = 200
 
     best_comp, chain, lnprob = run_fit_helper(
             true_comp=true_comp, starcounts=nstars,
             measurement_error=tiny_measurement_error,
-            burnin_step=short_burnin_step,
             trace_orbit_func=trace_epicyclic_orbit,
             run_name='lcc_like',
     )
@@ -147,4 +147,5 @@ def test_lcc_like():
                        atol=5.0)
 
 if __name__ == '__main__':
-    true_comp, best_comp, lnprob = test_stationary_component()
+    # true_comp, best_comp, lnprob = test_stationary_component()
+    true_comp, best_comp, lnprob = test_lcc_like()
