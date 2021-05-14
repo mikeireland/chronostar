@@ -1249,11 +1249,15 @@ class AbstractComponent(object):
             #     color = COLORS[group_ix]
 
         # orb_alpha = 0.1
-        comp_orb = trace_cartesian_orbit(
-                self.get_mean(),
-                times=np.linspace(0, self.get_age(), ntimes),
-                single_age=False
-        )
+        comp_orb = np.array([trace_cartesian_orbit(self.get_mean(),
+                                                   times=t)
+                             for t in np.linspace(0, self.get_age(), ntimes)
+                             ])
+#         comp_orb = trace_cartesian_orbit(
+#                 self.get_mean(),
+#                 times=np.linspace(0, self.get_age(), ntimes),
+#                 single_age=False
+#         )
         line_obj = ax.plot(comp_orb[:, dim1], comp_orb[:, dim2], ls='-',
                            alpha=alpha,
                            color=color, zorder=1, **kwargs)
