@@ -1,2 +1,0 @@
-A directory for temp data to live
-(File created cause git tracks files, not directories)

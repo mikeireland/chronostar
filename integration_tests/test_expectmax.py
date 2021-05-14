@@ -1,4 +1,3 @@
-#!/usr/bin/env python -W ignore
 """
 test_expectmax
 -----------------------------

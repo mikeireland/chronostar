@@ -594,7 +594,7 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
                       trace_orbit_func=None,
                       store_burnin_chains=False,
                       nthreads=1,
-                      optimisation_method=None,
+                      optimisation_method='emcee',
                       nprocess_ncomp=False,
                       ):
 
@@ -695,8 +695,8 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
         trace_orbit_func=trace_orbit_func,
         store_burnin_chains=store_burnin_chains,
         nthreads=nthreads,
-        optimisation_method=optimisation_method,
         nprocess_ncomp=nprocess_ncomp,
+        optimisation_method=optimisation_method,
     )
     logging.info("Finished fit")
     logging.info("Best comp pars:\n{}".format(
@@ -730,7 +730,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
                  store_burnin_chains=False,
                  unstable_comps=None,
                  ignore_stable_comps=False,
-                 nthreads=1, optimisation_method=None,
+                 nthreads=1, optimisation_method='emcee',
                  nprocess_ncomp=False,
                  ):
     """
@@ -1031,7 +1031,7 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
                    store_burnin_chains=False,
                    ignore_stable_comps=False, max_em_iterations=100,
                    record_len=30, bic_conv_tol=0.1, min_em_iterations=30,
-                   nthreads=1, optimisation_method=None,
+                   nthreads=1, optimisation_method='emcee',
                    nprocess_ncomp = False,
                    **kwargs):
     """
