@@ -22,7 +22,6 @@ def dummy_trace_orbit_func(loc, times=None):
     return loc
 
 def run_fit_helper(true_comp, starcounts, measurement_error,
-                   burnin_step=None,
                    run_name='default',
                    trace_orbit_func=None,
                    ):
