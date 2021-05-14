@@ -22,7 +22,6 @@ def dummy_trace_orbit_func(loc, times=None):
     return loc
 
 def run_fit_helper(true_comp, starcounts, measurement_error,
-                   burnin_step=None,
                    run_name='default',
                    trace_orbit_func=None,
                    ):
@@ -44,7 +43,6 @@ def run_fit_helper(true_comp, starcounts, measurement_error,
     res = compfitter.fit_comp(
             data=synth_data.table,
             plot_it=True,
-            burnin_steps=burnin_step,
             plot_dir=plot_dir,
             save_dir=save_dir,
             trace_orbit_func=trace_orbit_func,
@@ -85,7 +83,6 @@ def test_stationary_component():
             true_comp=true_comp, starcounts=nstars,
             measurement_error=measurement_error,
             run_name='stationary',
-            burnin_step=short_burnin_step,
             trace_orbit_func=dummy_trace_orbit_func,
     )
     np.save('temp_data/{}_compfitter_stationary_' \
