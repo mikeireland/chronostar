@@ -537,6 +537,23 @@ def test_multi_coordinate_epicyclic():
 
     assert np.allclose(start_seq_res, start_arr_res)
 
+def test_epicyclic_vs_galpy():
+    # Tolerances for given age. Deviations grow significantly after 30 Myr
+    epi_pos_tol = 15 # 3 pc tolerance
+    epi_vel_tol = 1.5 # 0.5 km/s tolerance
+    age = 30
+
+    solar_now = np.array([0., 0., 25., 11.1, 12.24, 7.25])
+    times = np.linspace(0,-30)
+
+    solar_then_galpy = np.array([torb.trace_cartesian_orbit(solar_now, times=t)
+                        for t in times])
+    solar_then_epi   = np.array([torb.trace_epicyclic_orbit(solar_now, times=t)
+                        for t in times])
+
+    assert np.allclose(solar_then_galpy[:,:3], solar_then_epi[:,:3], atol=epi_pos_tol)
+    assert np.allclose(solar_then_galpy[:,3:], solar_then_epi[:,3:], atol=epi_vel_tol)
+
 
 if __name__ == '__main__':
     test_rotatedLSR()
