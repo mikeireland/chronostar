@@ -99,6 +99,7 @@ def test_2comps_and_background():
         synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,
                                Components=SphereComponent,
                                background_density=background_density,
+                               trace_orbit_func=trace_epicyclic_orbit,
                                )
         synth_data.synthesise_everything()
 
@@ -240,6 +241,7 @@ def test_3comps_and_background():
         synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,
                                Components=SphereComponent,
                                background_density=background_density,
+                               trace_orbit_func=trace_epicyclic_orbit,
                                )
         synth_data.synthesise_everything()
 
