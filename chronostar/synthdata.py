@@ -55,6 +55,7 @@ class SynthData():
     def __init__(self, pars, starcounts, measurement_error=1.0,
                  Components=SphereComponent, savedir=None,
                  tablefilename=None, background_density=None,
+                 trace_orbit_func=None,
                  bg_span_scale=1.2):
         """
         Generates a set of astrometry data based on multiple star bursts with
@@ -104,12 +105,13 @@ class SynthData():
             self.Components = self.ncomps * [Components]
         else:
             self.Components = Components
+        self.trace_orbit_func = trace_orbit_func
         self.m_err = measurement_error
 
         self.components = []
         for i in range(self.ncomps):
             self.components.append(
-                    self.Components[i](self.pars[i])
+                    self.Components[i](self.pars[i], trace_orbit_func=self.trace_orbit_func)
             )
 
         self.background_density = background_density
@@ -233,14 +235,18 @@ class SynthData():
         # if self.background_density is not None:
         #     self.generate_background_stars()
 
-    def project_stars(self, trace_orbit=traceorbit.trace_cartesian_orbit):
+    def project_stars(self):
         """Project stars from xyzuvw then to xyzuvw now based on their age"""
+        if self.trace_orbit_func is None:
+            raise UserWarning(
+                    'Need to explicitly set trace orbit function '
+                    'i.e. with mysynthdata.trace_orbit_func = trace_epicyclic_orbit')
         for star in self.table:
             mean_then = self.extract_data_as_array(
                 table=star,
                 colnames=[dim+'0' for dim in self.cart_labels],
             )
-            xyzuvw_now = trace_orbit(mean_then, times=star['age'])
+            xyzuvw_now = self.trace_orbit_func(mean_then, times=star['age'])
             for ix, dim in enumerate(self.cart_labels):
                 star[dim+'_now'] = xyzuvw_now[ix]
         # if self.background_density is not None:

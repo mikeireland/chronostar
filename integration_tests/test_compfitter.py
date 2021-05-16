@@ -7,6 +7,7 @@ import sys
 sys.path.insert(0,'..')
 from chronostar.component import SphereComponent
 from chronostar.synthdata import SynthData
+import chronostar.traceorbit as torb
 from chronostar.traceorbit import trace_cartesian_orbit
 from chronostar.traceorbit import trace_epicyclic_orbit
 from chronostar import tabletool
@@ -26,28 +27,37 @@ def run_fit_helper(true_comp, starcounts, measurement_error,
                    trace_orbit_func=None,
                    ):
     py_vers = sys.version[0]
-    data_filename = 'temp_data/{}_compfitter_{}.fits'.format(py_vers, run_name)
-    log_filename = 'logs/{}_compfitter_{}.log'.format(py_vers, run_name)
-    plot_dir = 'temp_plots/{}_compfitter_{}'.format(py_vers, run_name)
-    save_dir = 'temp_data/{}_compfitter_{}'.format(py_vers, run_name)
+    torb_func_label = str(trace_orbit_func).split()[1].split('_')[1]
+    base_name = '{}_compfitter_{}_{}'.format(py_vers, run_name, torb_func_label)
+
+    data_filename = 'temp_data/{}.fits'.format(base_name)
+    log_filename = 'logs/{}.log'.format(base_name)
+    plot_dir = 'temp_plots/{}'.format(base_name)
+    save_dir = 'temp_data/{}'.format(base_name)
+
     logging.basicConfig(level=logging.INFO,
                         filename=log_filename,
                         filemode='w')
     synth_data = SynthData(pars=true_comp.get_pars(),
                            starcounts=starcounts,
-                           measurement_error=measurement_error)
+                           measurement_error=measurement_error,
+                           trace_orbit_func=trace_orbit_func)
     synth_data.synthesise_everything()
     tabletool.convert_table_astro2cart(synth_data.table,
                                        write_table=True,
                                        filename=data_filename)
-    res = compfitter.fit_comp(
+    # import ipdb; ipdb.set_trace()
+    best_comp, chain, lnprob = compfitter.fit_comp(
             data=synth_data.table,
             plot_it=True,
             plot_dir=plot_dir,
             save_dir=save_dir,
             trace_orbit_func=trace_orbit_func,
+            store_burnin_chains=True,
+            optimisation_method='emcee',
     )
-    return res
+    data_dict = tabletool.build_data_dict_from_table(synth_data.table)
+    return best_comp, chain, lnprob, data_dict
 
 def test_stationary_component():
     """
@@ -79,7 +89,7 @@ def test_stationary_component():
     nstars = 100
     measurement_error = 1e-10
 
-    best_comp, chain, lnprob = run_fit_helper(
+    best_comp, chain, lnprob, _ = run_fit_helper(
             true_comp=true_comp, starcounts=nstars,
             measurement_error=measurement_error,
             run_name='stationary',
@@ -99,41 +109,38 @@ def test_stationary_component():
                        atol=2.0)
     return best_comp, chain, lnprob
 
-def test_lcc_like():
+def test_lcc_like_epi():
     """
     Takes about 5 mins with epicyclic
 
     If burnin is too short (say 200 steps) won't actually find true solution
     """
+    TORB_FUNC = trace_epicyclic_orbit
     mean_now = np.array([50., -100., 25., 1.1, -7.76, 2.25])
 
     age = 10.
-    mean = trace_cartesian_orbit(mean_now, times=-age)
+    mean = TORB_FUNC(mean_now, times=-age)
     dx = 5.
     dv = 2.
     covmatrix = np.identity(6)
     covmatrix[:3,:3] *= dx**2
     covmatrix[3:,3:] *= dv**2
 
-    true_comp = SphereComponent(attributes={
-        'mean':mean,
-        'covmatrix':covmatrix,
-        'age':age,
-    })
+    true_comp = SphereComponent(
+        attributes={'mean':mean, 'covmatrix':covmatrix, 'age':age,},
+        trace_orbit_func=TORB_FUNC,
+    )
 
     nstars = 1000
     tiny_measurement_error = 1e-10
 
-    best_comp, chain, lnprob = run_fit_helper(
+    # import ipdb; ipdb.set_trace()
+    best_comp, chain, lnprob, data_dict = run_fit_helper(
             true_comp=true_comp, starcounts=nstars,
             measurement_error=tiny_measurement_error,
-            trace_orbit_func=trace_epicyclic_orbit,
+            trace_orbit_func=TORB_FUNC,
             run_name='lcc_like',
     )
-
-    np.save('temp_data/{}_compfitter_lcc_like_'\
-            'true_and_best_comp.npy'.format(PY_VERS),
-            [true_comp, best_comp],)
 
     assert np.allclose(true_comp.get_mean(), best_comp.get_mean(),
                        atol=3.0)
@@ -143,6 +150,63 @@ def test_lcc_like():
                        best_comp.get_covmatrix(),
                        atol=5.0)
 
+    comp_filename = 'temp_data/{}_compfitter_lcc_like_true_and_best_comp.npy'.format(
+            PY_VERS
+    )
+    SphereComponent.store_raw_components(comp_filename, [true_comp, best_comp])
+
+    return true_comp, best_comp, lnprob
+
+
+def test_lcc_like_cart():
+    """
+    Takes about 5 mins with epicyclic
+
+    If burnin is too short (say 200 steps) won't actually find true solution
+    """
+    TORB_FUNC = trace_cartesian_orbit
+    mean_now = np.array([50., -100., 25., 1.1, -7.76, 2.25])
+
+    age = 10.
+    mean = TORB_FUNC(mean_now, times=-age)
+    dx = 5.
+    dv = 2.
+    covmatrix = np.identity(6)
+    covmatrix[:3,:3] *= dx**2
+    covmatrix[3:,3:] *= dv**2
+
+    true_comp = SphereComponent(
+            attributes={'mean':mean, 'covmatrix':covmatrix, 'age':age,},
+            trace_orbit_func=TORB_FUNC,
+    )
+
+    nstars = 1000
+    tiny_measurement_error = 1e-10
+
+    best_comp, chain, lnprob, data_dict = run_fit_helper(
+            true_comp=true_comp, starcounts=nstars,
+            measurement_error=tiny_measurement_error,
+            trace_orbit_func=TORB_FUNC,
+            run_name='lcc_like',
+    )
+
+    assert np.allclose(true_comp.get_mean(), best_comp.get_mean(),
+                       atol=3.0)
+    assert np.allclose(true_comp.get_age(), best_comp.get_age(),
+                       atol=1.0)
+    assert np.allclose(true_comp.get_covmatrix(),
+                       best_comp.get_covmatrix(),
+                       atol=5.0)
+
+    comp_filename = 'temp_data/{}_compfitter_lcc_like_true_and_best_comp.npy'.format(
+            PY_VERS
+    )
+    SphereComponent.store_raw_components(comp_filename, [true_comp, best_comp])
+
+    return true_comp, best_comp, lnprob
+
+
 if __name__ == '__main__':
     # true_comp, best_comp, lnprob = test_stationary_component()
-    true_comp, best_comp, lnprob = test_lcc_like()
+    # true_comp, best_comp, lnprob = test_lcc_like_epi()
+    true_comp, best_comp, lnprob = test_lcc_like_cart()

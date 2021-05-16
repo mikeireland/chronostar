@@ -13,6 +13,7 @@ sys.path.insert(0,'..')
 from chronostar.synthdata import SynthData
 from chronostar.component import SphereComponent, EllipComponent
 from chronostar import tabletool
+from chronostar import traceorbit
 
 PARS =  np.array([
     [0., 0., 0., 0., 0., 0., 10., 5., 1e-5],
@@ -64,7 +65,8 @@ def test_projectStars():
     """Check that the mean of stars after projection matches the mean
     of the component after projection"""
     starcounts = (int(1e3),)
-    sd = SynthData(pars=PARS[:1], starcounts=starcounts, Components=COMPONENTS)
+    sd = SynthData(pars=PARS[:1], starcounts=starcounts, Components=COMPONENTS,
+                   trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     sd.generate_all_init_cartesian()
     sd.project_stars()
 
@@ -85,7 +87,8 @@ def test_measureXYZUVW():
     starcounts = [1000]
 
     sd = SynthData(pars=np.array([compact_comp_pars]), starcounts=starcounts,
-                   Components=COMPONENTS)
+                   Components=COMPONENTS,
+                   trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     sd.generate_all_init_cartesian()
     sd.project_stars()
     sd.measure_astrometry()
@@ -103,7 +106,8 @@ def test_measureXYZUVW():
 def test_storeTable():
     """Check storing table and loading works"""
     filename = 'temp_data/test_storeTable_output.fits'
-    sd = SynthData(pars=PARS, starcounts=STARCOUNTS, Components=COMPONENTS)
+    sd = SynthData(pars=PARS, starcounts=STARCOUNTS, Components=COMPONENTS,
+                   trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     sd.synthesise_everything()
     sd.store_table(filename=filename, overwrite=True)
     stored_table = Table.read(filename)
@@ -113,7 +117,8 @@ def test_storeTable():
 
 def test_synthesiseEverything():
     """Check everything goes to plan with single call"""
-    sd = SynthData(pars=PARS, starcounts=STARCOUNTS, Components=COMPONENTS)
+    sd = SynthData(pars=PARS, starcounts=STARCOUNTS, Components=COMPONENTS,
+                   trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     sd.synthesise_everything()
 
     assert np.isclose(np.sum(STARCOUNTS), len(sd.table))
@@ -122,7 +127,8 @@ def test_synthesiseEverything():
 def test_storeAndLoad():
     """Check that storing and loading works as expected"""
     filename = 'temp_data/test_synthesiseEverything_output.fits'
-    sd = SynthData(pars=PARS, starcounts=STARCOUNTS, Components=COMPONENTS)
+    sd = SynthData(pars=PARS, starcounts=STARCOUNTS, Components=COMPONENTS,
+                   trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     sd.synthesise_everything(filename=filename, overwrite=True)
 
     # Trying to store table at `filename` without overwrite throws error
@@ -152,7 +158,8 @@ def test_artificialMeasurement():
         np.random.seed(1)
         sd = SynthData(pars=pars, starcounts=starcounts,
                        measurement_error=m_err_dict[name],
-                       Components=COMPONENTS)
+                       Components=COMPONENTS,
+                       trace_orbit_func=traceorbit.trace_epicyclic_orbit)
         sd.synthesise_everything()
         sd_dict[name] = sd
 
@@ -195,14 +202,16 @@ def test_multiple_synth_components():
     try:
         synth_data = SynthData(pars=[ass_pars1, ass_pars2],
                                starcounts=starcounts[0],
-                               Components=SphereComponent)
+                               Components=SphereComponent,
+                               trace_orbit_func=traceorbit.trace_epicyclic_orbit)
         raise UserWarning('AssertionError should have been thrown by synthdata')
     except AssertionError:
         pass
 
     synth_data = SynthData(pars=[ass_pars1, ass_pars2],
                            starcounts=starcounts,
-                           Components=SphereComponent)
+                           Components=SphereComponent,
+                           trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     synth_data.synthesise_everything()
 
     assert len(synth_data.table) == np.sum(starcounts)
@@ -239,7 +248,8 @@ def test_different_component_forms():
 
     synth_data = SynthData(pars=[comp1.get_pars(), comp2.get_pars()],
                            starcounts=starcounts,
-                           Components=[SphereComponent, EllipComponent])
+                           Components=[SphereComponent, EllipComponent],
+                           trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     synth_data.synthesise_everything()
     assert len(synth_data.table) == np.sum(starcounts)
 
@@ -265,7 +275,8 @@ def test_background_component():
     synth_data = SynthData(pars=[upper_pars, lower_pars],
                            starcounts=starcounts,
                            background_density=background_density,
-                           bg_span_scale=2.0)
+                           bg_span_scale=2.0,
+                           trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     # synth_data.generate_all_init_cartesian()
     # synth_data.project_stars()
     synth_data.synthesise_everything()
@@ -299,7 +310,8 @@ def test_non_spherical_component():
     my_free_comp = FreeComponent(pars=my_free_pars)
 
     my_synth_data = SynthData(pars=my_free_pars, starcounts=NSTARS,
-                              Components=FreeComponent)
+                              Components=FreeComponent,
+                               trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     my_synth_data.generate_all_init_cartesian()
     ##  Don't actually need everything
     ##  my_synth_data.synthesise_everything()
@@ -342,7 +354,8 @@ def test_neelish_component():
 
     # Generate synthetic data, but only initial mean positions
     my_synth_data = SynthData(pars=my_pars, starcounts=NSTARS,
-                              Components=NeelishComponent)
+                              Components=NeelishComponent,
+                               trace_orbit_func=traceorbit.trace_epicyclic_orbit)
     my_synth_data.generate_all_init_cartesian()
 
     # Build an array of means from stars' initial positions

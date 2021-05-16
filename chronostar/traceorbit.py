@@ -431,14 +431,11 @@ def trace_epicyclic_orbit(xyzuvw_start, times=None, sA=0.89, sB=1.15, sR=1.21, s
         raise UserWarning('Multi age orbit integation no longer supported')
         times = np.array(times)
 
-    # Make sure numbers are floats!
-    xyzuvw_start = xyzuvw_start.astype(np.float)
+    # Make sure numbers are floats, and reshape into 2d
+    xyzuvw_start = np.atleast_2d(xyzuvw_start.astype(np.float))
 
     # Units: Velocities are in km/s, convert into pc/Myr
-    try:
-        xyzuvw_start[3:] = xyzuvw_start[3:] * 1.0227121650537077 # pc/Myr
-    except:
-        xyzuvw_start[:,3:] = xyzuvw_start[:,3:] * 1.0227121650537077 # pc/Myr
+    xyzuvw_start[:,3:] = xyzuvw_start[:,3:] * 1.0227121650537077 # pc/Myr
 
     # Transform to curvilinear
     curvilin = convert_cart2curvilin(xyzuvw_start, ro=ro, vo=vo)
@@ -446,18 +443,14 @@ def trace_epicyclic_orbit(xyzuvw_start, times=None, sA=0.89, sB=1.15, sR=1.21, s
     # Trace orbit with epicyclic approx.
     new_position = epicyclic_approx(curvilin, times=times, sA=sA, sB=sB, sR=sR)
 
-    #print(curvilin)
-    #print(new_position[-1])
-
     # Transform back to cartesian
     xyzuvw_new = convert_curvilin2cart(new_position, ro=ro, vo=vo)
 
     # Units: Transform velocities from pc/Myr back to km/s
-    xyzuvw_new[3:] /= 1.0227121650537077
+    xyzuvw_new[:,3:] /= 1.0227121650537077
 
-#     if single_age:
-#         return xyzuvw_new[-1]
-    return xyzuvw_new
+    # Remove empty dimensions
+    return np.squeeze(xyzuvw_new)
 
 def trace_galpy_orbit(galpy_start, times=None, single_age=True,
                       potential=MWPotential2014, ro=8, vo=220.,
@@ -597,8 +590,6 @@ def trace_cartesian_orbit(xyzuvw_start, times=None, single_age=True,
                                           ro=ro, vo=vo)[-1])
     xyzuvw_ends = np.squeeze(np.array(xyzuvw_ends))
 
-   #  if single_age:
-   #      return xyzuvw[-1]
     return xyzuvw_ends
 
 

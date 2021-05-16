@@ -16,6 +16,7 @@ import sys
 sys.path.insert(0, '..')
 
 from chronostar.component import SphereComponent, EllipComponent, FreeComponent
+import chronostar.traceorbit as torb
 
 COMPONENT_CLASSES = {
     'sphere':SphereComponent,
@@ -65,6 +66,10 @@ DEFAULT_PARS = {
     # Insert new default pars here
 }
 
+TRACEORBIT_FUNCS = {
+    'galpy' : torb.trace_cartesian_orbit,
+    'epi'   : torb.trace_epicyclic_orbit,
+}
 
 def test_general_initialisation():
     for name, ComponentClass in COMPONENT_CLASSES.items():
@@ -221,6 +226,19 @@ def test_get_best_from_chain():
 
     best_comp = SphereComponent.get_best_from_chain(dummy_chain, dummy_lnprob)
     assert np.allclose(dummy_chain[true_best_ix], best_comp.get_emcee_pars())
+
+def test_comp_with_diff_traceorbitfuncs():
+    comps = {torb_name:SphereComponent(SPHERE_PARS, trace_orbit_func=torb_func)
+             for torb_name, torb_func in TRACEORBIT_FUNCS.items()}
+
+    # Assert covmatrix volume approx constant
+    for name, c in comps.items():
+        vol_then = np.prod(np.sqrt(np.linalg.eigvalsh(c.get_covmatrix()))),
+        vol_now  = np.prod(np.sqrt(np.linalg.eigvalsh(c.get_covmatrix_now()))),
+
+        assert np.isclose(
+                vol_then, vol_now, rtol=0.1
+        )
 
 if __name__=='__main__':
     test_simple_projection()
