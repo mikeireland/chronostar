@@ -55,7 +55,7 @@ class SynthData():
     def __init__(self, pars, starcounts, measurement_error=1.0,
                  Components=SphereComponent, savedir=None,
                  tablefilename=None, background_density=None,
-                 trace_orbit_func=traceorbit.trace_cartesian_orbit,
+                 trace_orbit_func=None,
                  bg_span_scale=1.2):
         """
         Generates a set of astrometry data based on multiple star bursts with
@@ -237,6 +237,10 @@ class SynthData():
 
     def project_stars(self):
         """Project stars from xyzuvw then to xyzuvw now based on their age"""
+        if self.trace_orbit_func is None:
+            raise UserWarning(
+                    'Need to explicitly set trace orbit function '
+                    'i.e. with mysynthdata.trace_orbit_func = trace_epicyclic_orbit')
         for star in self.table:
             mean_then = self.extract_data_as_array(
                 table=star,
