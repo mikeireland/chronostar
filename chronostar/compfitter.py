@@ -237,7 +237,7 @@ def get_init_emcee_pos(data, memb_probs=None, nwalkers=None,
     return init_pos
 
 
-def get_best_component(chain, lnprob, Component=SphereComponent):
+def get_best_component(chain, lnprob, Component=SphereComponent, trace_orbit_func=None):
     """
     Simple tool to extract the sample that yielded the highest log prob
     and return the corresponding Component object
@@ -271,7 +271,7 @@ def get_best_component(chain, lnprob, Component=SphereComponent):
         chain = chain.reshape(-1, chain.shape[-1])
 
     best_sample = chain[final_best_ix]
-    best_component = Component(emcee_pars=best_sample)
+    best_component = Component(emcee_pars=best_sample, trace_orbit_func=trace_orbit_func)
     return best_component
 
 
@@ -403,7 +403,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         # stuck on the same cpu. TC faced some issues when trying to do multithreading
         # on mash. Maybe MZ will have better luck :P
         # os.system("taskset -p 0xff %d >> /dev/null" % os.getpid())
-        
+
+        # import ipdb; ipdb.set_trace()
         sampler = emcee.EnsembleSampler(
                 nwalkers, npars, likelihood.lnprob_func,
                 args=[data, memb_probs, trace_orbit_func, optimisation_method],
@@ -497,7 +498,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             logging.info("Plotting done")
 
         # Identify the best component
-        best_component = get_best_component(sampler.chain, sampler.lnprobability)
+        best_component = get_best_component(sampler.chain, sampler.lnprobability, trace_orbit_func=trace_orbit_func)
 
         # Determining the median and span of each parameter
         med_and_span = calc_med_and_span(sampler.chain)
@@ -525,6 +526,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         init_age = init_pars[-1]
         age_offsets = [-9, -4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10., 20., 40.]
         init_ages = np.abs([init_age + age_offset for age_offset in age_offsets])
+        import ipdb; ipdb.set_trace()
         init_guess_comp = Component(emcee_pars=init_pars)
         init_guess_comps = init_guess_comp.split_group_ages(init_ages)
         init_pos = [c.get_emcee_pars() for c in init_guess_comps]
@@ -582,6 +584,6 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
         best_result = return_dict[key]
 
         # Identify and create the best component (with best lnprob)
-        best_component = Component(emcee_pars=best_result.x)
+        best_component = Component(emcee_pars=best_result.x, trace_orbit_func=trace_orbit_func)
 
         return best_component, best_result.x, -best_result.fun
