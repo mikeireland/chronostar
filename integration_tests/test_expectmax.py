@@ -19,7 +19,6 @@ from chronostar.component import SphereComponent
 from chronostar.synthdata import SynthData
 from chronostar import tabletool
 from chronostar import expectmax
-from chronostar import traceorbit
 
 PY_VERS = sys.version[0]
 
@@ -37,7 +36,6 @@ def dummy_trace_orbit_func(loc, times=None):
             return loc + 1000.
     return loc
 
-@pytest.mark.skip
 def test_execution_simple_fit():
     """
     Don't test for correctness, but check that everything actually executes
@@ -73,6 +71,7 @@ def test_execution_simple_fit():
     synth_data = SynthData(pars=sphere_comp_pars, starcounts=[starcount],
                            Components=SphereComponent,
                            background_density=background_density,
+                           trace_orbit_func=dummy_trace_orbit_func,
                            )
     synth_data.synthesise_everything()
 
@@ -84,7 +83,8 @@ def test_execution_simple_fit():
         len(synth_data.table) * [np.log(background_density)]
     synth_data.table.write(data_filename, overwrite=True)
 
-    origins = [SphereComponent(pars) for pars in sphere_comp_pars]
+    origins = [SphereComponent(pars, trace_orbit_func=dummy_trace_orbit_func)
+               for pars in sphere_comp_pars]
 
     best_comps, med_and_spans, memb_probs = \
         expectmax.fit_many_comps(data=synth_data.table, ncomps=ncomps,
@@ -93,7 +93,6 @@ def test_execution_simple_fit():
                                  use_background=True, ignore_stable_comps=False,
                                  max_em_iterations=200)
 
-@pytest.mark.skip
 def test_fit_one_comp_with_background():
     """
     Synthesise a file with negligible error, retrieve initial
@@ -127,6 +126,7 @@ def test_fit_one_comp_with_background():
     ])
     starcount = 200
 
+    # Background density of 1e-9 leads to ~6 stars being generated
     background_density = 1e-9
 
     ncomps = sphere_comp_pars.shape[0]
@@ -137,6 +137,7 @@ def test_fit_one_comp_with_background():
     synth_data = SynthData(pars=sphere_comp_pars, starcounts=[starcount],
                            Components=SphereComponent,
                            background_density=background_density,
+                           trace_orbit_func=dummy_trace_orbit_func,
                            )
     synth_data.synthesise_everything()
 
@@ -149,7 +150,8 @@ def test_fit_one_comp_with_background():
         len(synth_data.table) * [np.log(background_density)]
     synth_data.table.write(data_filename, overwrite=True)
 
-    origins = [SphereComponent(pars) for pars in sphere_comp_pars]
+    origins = [SphereComponent(pars, trace_orbit_func=dummy_trace_orbit_func)
+               for pars in sphere_comp_pars]
 
     best_comps, med_and_spans, memb_probs = \
         expectmax.fit_many_comps(data=synth_data.table, ncomps=ncomps,
@@ -182,7 +184,6 @@ def test_fit_one_comp_with_background():
     assert np.isclose(recovery_count_actual/starcount, mean_membership_confidence,
                       atol=0.05)
 
-@pytest.mark.skip
 def test_fit_many_comps():
     """
     Synthesise a file with negligible error, retrieve initial
@@ -229,13 +230,15 @@ def test_fit_many_comps():
 
     synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,
                            Components=SphereComponent,
+                           trace_orbit_func=dummy_trace_orbit_func,
                            )
     synth_data.synthesise_everything()
     tabletool.convert_table_astro2cart(synth_data.table,
                                        write_table=True,
                                        filename=data_filename)
 
-    origins = [SphereComponent(pars) for pars in sphere_comp_pars]
+    origins = [SphereComponent(pars, trace_orbit_func=dummy_trace_orbit_func)
+               for pars in sphere_comp_pars]
 
     best_comps, med_and_spans, memb_probs = \
         expectmax.fit_many_comps(data=synth_data.table, ncomps=ncomps,
@@ -270,6 +273,7 @@ def test_fit_many_comps():
                            best_comp.get_age(),
                            atol=1.)
 
+# @pytest.mark.skip
 def test_fit_stability_mixed_comps():
     """
     Have a fit with some iterations that have a mix of stable and
@@ -343,13 +347,15 @@ def test_fit_stability_mixed_comps():
 
     synth_data = SynthData(pars=sphere_comp_pars, starcounts=starcounts,
                            Components=SphereComponent,
+                           trace_orbit_func=dummy_trace_orbit_func,
                            )
     synth_data.synthesise_everything()
     tabletool.convert_table_astro2cart(synth_data.table,
                                        write_table=True,
                                        filename=data_filename)
 
-    origins = [SphereComponent(pars) for pars in sphere_comp_pars]
+    origins = [SphereComponent(pars, trace_orbit_func=dummy_trace_orbit_func)
+               for pars in sphere_comp_pars]
     SphereComponent.store_raw_components(savedir + 'origins.npy', origins)
 
     best_comps, med_and_spans, memb_probs = \
