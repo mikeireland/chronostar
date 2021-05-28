@@ -21,27 +21,23 @@ from chronostar import expectmax
 from astropy.table import Table, vstack, join
 
 ##################################################
-### INPUT #############################
+######### INPUT ##################################
 comps_filename = 'data/final_comps_21.fits'
 
+# Filename of data you want to compute overlaps for. Background overlaps are added later in this file!
+gaia_filename = 'data/scocen_vac_DR2_distinct_XYZUVW.fits'
 
 # Save output to this file. This is a copy of gaia_filename plus newly added memberships
-filename_output = 'data/scocen_vac_DR2_with_21_overlaps.fits'
-#~ filename_output = 'data/scocen_vac_EDR3_with_21_overlaps_TODO_update_bgols_with_new_rv.fits'
-#~ filename_output = 'data/scocen_vac_EDR3_SUBTABLE_with_bgols_need_to_update_bg_ols_with_21_overlaps_with_nplus1.fits'
+filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits'
 
-# Filename of data you want to compute overlaps for. It should include
-# 'background_log_overlap'!!
-gaia_filename = 'data/scocen_vac_DR2.fits'
-#~ gaia_filename = 'data/scocen_vac_EDR3.fits'
-#~ gaia_filename = 'data/scocen_vac_EDR3_SUBTABLE_with_bgols_need_to_update_bg_ols.fits'
-
-# Membership file from the fit. This is used for the component amplitudes. Hopefully works well.
-#~ membership_fit_filename = 'data/final_membership.npy'
-
+##################################################
 ##################################################
 print('Computing component overlaps for %s'%gaia_filename)
 print('Output will be saved into %s'%filename_output)
+
+
+
+
 
 ### READ DATA ####################################
 
@@ -52,17 +48,17 @@ print('Number of components: %d'%len(comps))
 data_table = tabletool.read(gaia_filename)
 
 # This table is masked. Unmask:
-data_table=data_table.filled() # TODO: fill with a stupid value!!!!
+#~ data_table=data_table.filled() # TODO: fill with a stupid value!!!!
 
 print('DATA READ', len(data_table))
 
-#~ memberships_fit = np.load(membership_fit_filename)
 
-
+#data_table.remove_column('background_log_overlap') # because we add it a few lines later
 
 
 ### Background overlaps ##########################
-bg_ols_filename = 'data/background_log_overlaps_gaia_DR2.fits'
+#~ bg_ols_filename = 'data/background_log_overlaps_gaia_DR2.fits'
+bg_ols_filename = 'data/background_log_overlaps_scocen_DR2_updated_new_rvs.fits'
 print('ADDING background overlaps from %s'%bg_ols_filename)
 bg_ols = Table.read(bg_ols_filename)
 #~ bg_ols.rename_column('source_id', 'dr2_source_id')
@@ -109,6 +105,7 @@ membership_probabilities = np.array([expectmax.calc_membership_probs(ol) for ol 
 comps_fits = Table.read(comps_filename.replace('.npy', '.fits'))
 
 # Create a table
+# Old memberships are updated here!
 for i in range(membership_probabilities.shape[1]-1):
     comp_id = comps_fits[i]['comp_ID']
     comp_id = comp_id.replace('comp', '')

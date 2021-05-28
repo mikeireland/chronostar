@@ -1,14 +1,14 @@
 #input_file          = data/scocen_vac_EDR3.fits
 #output_file         = data/scocen_vac_EDR3.fits
 
-input_file          = data/scocen_vac_DR2.fits
-output_file         = data/scocen_vac_DR2.fits
+#input_file          = data/scocen_vac_DR2.fits
+#output_file         = data/scocen_vac_DR2.fits
 
-#input_file          = data/scocen_vac_DR2_part2.fits
-#output_file         = data/scocen_vac_DR2_part2.fits
+#input_file          = compute_new_background_overlaps_for_these_866050_stars.fits
+#output_file         = compute_new_background_overlaps_for_these_866050_stars.fits
 
-#input_file          = data/first.fits
-#output_file         = data/first.fits
+input_file          = data/scocen_vac_DR2_distinct_raw.fits
+output_file         = data/scocen_vac_DR2_distinct_XYZUVW.fits
 
 # General usage flags
 overwrite_datafile  = True

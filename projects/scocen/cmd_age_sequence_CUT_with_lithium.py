@@ -42,8 +42,8 @@ except:
     # This table should include EW(Li) column!
     tab0 = Table.read(data_filename)
     
-    Gmag = tab0['phot_g_mean_mag'] - 5 * np.log10(1.0 / (tab0['parallax'] * 1e-3) / 10)  # tab['parallax'] in micro arcsec
-    tab0['Gmag'] = Gmag
+    #~ Gmag = tab0['phot_g_mean_mag'] - 5 * np.log10(1.0 / (tab0['parallax'] * 1e-3) / 10)  # tab['parallax'] in micro arcsec
+    #~ tab0['Gmag'] = Gmag
     
     
     
@@ -181,10 +181,10 @@ for c2 in comps_to_plot:
     mask=tab[membname]>pmin_membership
     t=tab[mask]
 
-    ax.scatter(t['bp_rp'], t['Gmag'], s=1, c=colors[comp_ID], label=r'%s %.1f $\pm$ %.1f Myr'%(comp_ID, age, c['Crossing_time']))
+    ax.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=1, c=colors[comp_ID], label=r'%s %.1f $\pm$ %.1f Myr'%(comp_ID, age, c['Crossing_time']))
     
     # CUT
-    ax2.scatter(t['bp_rp'], t['Gmag'], s=20, c=colors[comp_ID], label=r'%s %.1f $\pm$ %.1f Myr'%(comp_ID, age, c['Crossing_time']))
+    ax2.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=20, c=colors[comp_ID], label=r'%s %.1f $\pm$ %.1f Myr'%(comp_ID, age, c['Crossing_time']))
     
     # AG
     #~ if comp_ID=='G':
@@ -192,17 +192,17 @@ for c2 in comps_to_plot:
     
     
     # Lithium
-    ax3.scatter(t['bp_rp'], t['EW(Li)'], s=10, c=colors[comp_ID], label='')
+    ax3.scatter(t['bp_rp_extinction_corrected'], t['EW(Li)'], s=10, c=colors[comp_ID], label='')
     
     # PDS 70
     mask = np.in1d(t['source_id'], 6110141563309613056)
     edgecolor='lime'
     lw=2
     if np.sum(mask)==1:
-        ax3.scatter(t['bp_rp'][mask], t['EW(Li)'][mask], s=50, c=colors[comp_ID], label='PDS 70', edgecolor=edgecolor, linewidth=lw)        
+        ax3.scatter(t['bp_rp_extinction_corrected'][mask], t['EW(Li)'][mask], s=50, c=colors[comp_ID], label='PDS 70', edgecolor=edgecolor, linewidth=lw)        
         
-        ax.scatter(t['bp_rp'][mask], t['Gmag'][mask], s=50, c=colors[comp_ID], edgecolor=edgecolor, label='PDS 70', linewidth=lw)
-        ax2.scatter(t['bp_rp'][mask], t['Gmag'][mask], s=50, c=colors[comp_ID], edgecolor=edgecolor, label='', linewidth=lw)
+        ax.scatter(t['bp_rp_extinction_corrected'][mask], t['Gmag_extinction_corrected'][mask], s=50, c=colors[comp_ID], edgecolor=edgecolor, label='PDS 70', linewidth=lw)
+        ax2.scatter(t['bp_rp_extinction_corrected'][mask], t['Gmag_extinction_corrected'][mask], s=50, c=colors[comp_ID], edgecolor=edgecolor, label='', linewidth=lw)
 
 
 

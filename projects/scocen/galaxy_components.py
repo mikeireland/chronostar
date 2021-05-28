@@ -20,6 +20,9 @@ import scocenlib as lib
 data_filename = lib.data_filename
 comps_filename = lib.comps_filename
 exclude_components = lib.exclude_components
+exclude_components.append('Q')
+exclude_components.append('B')
+exclude_components.append('J')
 compnames = lib.compnames
 colors = lib.colors
 ############################################
@@ -53,8 +56,8 @@ comps = comps[::-1]
 
 
 # Take only stars with RVs
-mask = tab['radial_velocity_error']<100
-tab=tab[mask]
+#~ mask = tab['radial_velocity_error']<100
+#~ tab=tab[mask]
 print(len(tab))
 
 
@@ -87,6 +90,39 @@ for c in comps:
     label = r'%s (%d), %.1f$\pm$%.1f Myr, %s'%(comp_id, len(t), age, c['Crossing_time'], name_literature)
     
     cb=ax.scatter(t['l'], t['b'], s=1, c=colors[comp_id], marker='.', label=label)
+    
+    total+=len(t)
+    
+print('Total number of stars in this plot:', total)
+
+total=0
+# Plot BJQ components
+fig2=plt.figure(figsize=(figsize[1], figsize[0]))
+ax2=fig2.add_subplot(111)
+
+for c in comps:
+    comp_id = c['comp_ID']
+    if comp_id not in ['B', 'J', 'Q']:
+        continue
+
+    # Take only members of this component
+    mask = tab['membership%s'%comp_id] > pmin_membership 
+    t=tab[mask]
+    
+    #~ print(comp_id, colors[comp_id])
+    
+    # PLOT STARS
+    name_literature = '' # Component name from the literature, e.g. rho Oph
+    try:
+        name_literature = '\n%s'%compnames[comp_id]
+    except:
+        pass
+    
+    age=c['Age']
+    label = r'%s (%d), %.1f$\pm$%.1f Myr, %s'%(comp_id, len(t), age, c['Crossing_time'], name_literature)
+    
+    #~ cb=ax.scatter(t['l'], t['b'], s=1, c=colors[comp_id], marker='.', label=label)
+    ax2.scatter(t['l'], t['b'], s=1, c='k', marker='.', label=label)
     
     total+=len(t)
     
@@ -125,52 +161,60 @@ def plot_3_windows_gx(ax, labels=True, lw=2, ls='-', c='b'):
     ax.plot([337, 337], [14, 18], c=c, linestyle=ls, linewidth=lw)
     ax.plot([340, 340], [14, 18], c=c, linestyle=ls, linewidth=lw)
 
-    #~ # IC2602
-    #~ ax.scatter([289.6014], [-04.9061], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('IC2602',
-                #~ xy=(289.6014, -04.9061), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # IC2602
+    ax.scatter([289.6014], [-04.9061], c=c, s=10)
+    if labels:
+        ax.annotate('IC2602',
+                xy=(289.6014, -04.9061), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # V1062 Sco moving group (a newly discovered MG in ScoCen by Roser et al. 2018)
-    #~ # (X, Y, Z, U, V, W) = (167.20, -49.14, 13.44, -3.80, -19.96, -4.06). from Roser et al. 2018
-    #~ ax.scatter([343.6], [4.3], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('V1062 Sco',
-                #~ xy=(343.6, 4.3), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # V1062 Sco moving group (a newly discovered MG in ScoCen by Roser et al. 2018)
+    # (X, Y, Z, U, V, W) = (167.20, -49.14, 13.44, -3.80, -19.96, -4.06). from Roser et al. 2018
+    ax.scatter([343.6], [4.3], c=c, s=10)
+    if labels:
+        ax.annotate('V1062 Sco',
+                xy=(343.6, 4.3), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # Corona Australis
-    #~ CRA = [359.74400822, -17.51551102] # (l, b)
-    #~ ax.scatter(CRA[0], CRA[1], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('CrA',
-                #~ xy=(359.7, -17.5), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # Corona Australis
+    CRA = [359.74400822, -17.51551102] # (l, b)
+    ax.scatter(CRA[0], CRA[1], c=c, s=10)
+    if labels:
+        ax.annotate('CrA',
+                xy=(359.7, -17.5), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # Rho Ophiuci
-    #~ ROPH = [353.22097900, 16.53342332] # (l, b)
-    #~ ax.scatter(ROPH[0], ROPH[1], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate(r'$\rho$ Oph',
-                #~ xy=(353, 16), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # Rho Ophiuci
+    ROPH = [353.22097900, 16.53342332] # (l, b)
+    ax.scatter(ROPH[0], ROPH[1], c=c, s=10)
+    if labels:
+        ax.annotate(r'$\rho$ Oph',
+                xy=(353, 16), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # IC2391
-    #~ IC2391 = [270.36829815, -6.83062731] # (l, b)
-    #~ ax.scatter(IC2391[0], IC2391[1], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('IC2391',
-                #~ xy=(270, -7), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # IC2391
+    IC2391 = [270.36829815, -6.83062731] # (l, b)
+    ax.scatter(IC2391[0], IC2391[1], c=c, s=10)
+    if labels:
+        ax.annotate('IC2391',
+                xy=(270, -7), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # Platais 8
-    #~ PL8 = [277.6824, -07.6209] # (l, b)
-    #~ ax.scatter(PL8[0], PL8[1], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('Platais 8',
-                #~ xy=(277, -7), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # Platais 8
+    PL8 = [277.6824, -07.6209] # (l, b)
+    ax.scatter(PL8[0], PL8[1], c=c, s=10)
+    if labels:
+        ax.annotate('Platais 8',
+                xy=(277, -7), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+
+    # Platais 9
+    PL9 = [137.32131607, -41.94779643] # (l, b)
+    ax.scatter(PL9[0], PL9[1], c=c, s=10)
+    if labels:
+        ax.annotate('Platais 8',
+                xy=(137, -42), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
     # eps Chamaeleontis
     EPSC = [300.20873944, -15.62481300] # (l, b)
@@ -241,10 +285,13 @@ def manage_legend(ax):
 #~ ax.scatter(tabT['l'], tabT['b'], s=1, c='r', marker='.')
 
 
-plot_3_windows_gx(ax, labels=True, lw=1, ls='-', c='r')
+lib.plot_3_windows_gx(ax, labels=True, lw=1, ls='-', c='r')
 gx_set_labels_and_ticks_over_360deg(ax)
 manage_legend(ax)
 
+
+plot_3_windows_gx(ax2, labels=True, lw=1, ls='-', c='r')
+gx_set_labels_and_ticks_over_360deg(ax2)
 
 # SAVE FIGURES
 #~ plt.savefig('gx.pdf')

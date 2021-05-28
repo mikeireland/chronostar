@@ -24,7 +24,7 @@ data_filename_fit = lib.data_filename_fit # Data with RV that was actually used 
 comps_filename = lib.comps_filename
 good_comps = lib.good_comps
 compnames = lib.compnames
-fig_folder = 'fig_dr2'
+fig_folder = 'fig_diagnostics'
 ############################################
 # Minimal probability required for membership
 pmin_membership = 0.8
@@ -128,7 +128,7 @@ for i, c in enumerate(comps):
     t=tab[mask]
 
 
-    if len(t)<1:
+    if len(t)<10:
         continue
 
     fig=plt.figure(figsize=(14.0, 8.0))

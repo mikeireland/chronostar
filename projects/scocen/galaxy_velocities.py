@@ -72,10 +72,26 @@ comps_raw = comps_raw[::-1]
 fig=plt.figure(figsize=(figsize[1], figsize[0]))
 ax=fig.add_subplot(111)
 
+
+# Random order
+#~ np.random.seed(0)
+#~ tab = np.random.permutation(tab)
+
+vel = 'V'
+
+# All stars
 mask = tab['radial_velocity_error']<100
-cb = ax.scatter(tab['l'][mask], tab['b'][mask], s=1, c=tab['U'][mask], marker='.', vmin=vmin, vmax=vmax)
+cb = ax.scatter(tab['l'][mask], tab['b'][mask], s=1, c=tab[vel][mask], marker='.', vmin=vmin, vmax=vmax)
+
+# Take members only
+m = tab['ra']>1000 # Everything False
+good_comps = ['C', 'E', 'G', 'T', 'A', 'U', 'F', 'D']
+for c in good_comps:
+    m = np.logical_or(m, tab['membership%s'%c]>pmin_membership)
+m = m & mask
+cb = ax.scatter(tab['l'][m], tab['b'][m], s=1, c=tab[vel][m], marker='.', vmin=vmin, vmax=vmax)
 cbar = fig.colorbar(cb)
-cbar.set_label('U [km/s]')
+cbar.set_label('%s [km/s]'%vel)
 
 fig2=plt.figure(figsize=(figsize[1], figsize[0]))
 ax2=fig2.add_subplot(111)

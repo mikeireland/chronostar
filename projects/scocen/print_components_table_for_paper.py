@@ -26,10 +26,10 @@ comps_raw = SphereComponent.load_raw_components(comps_filename)
 print('Number of components: %d'%len(comps_raw))
 
 # Labels
-print('ID & $X_\mathrm{t}$ & $Y_\mathrm{t}$ & $Z_\mathrm{t}$ & $U_\mathrm{t}$ & $V_\mathrm{t}$ & $W_\mathrm{t}$ & $\sigma_{X_\mathrm{t}}$ & $\sigma_{Y_\mathrm{t}}$ & $\sigma_{Z_\mathrm{t}}$ & $\sigma_{U_\mathrm{t}}$ & $\sigma_{V_\mathrm{t}}$ & $\sigma_{W_\mathrm{t}}$ & $X_0$ & $Y_0$ & $Z_0$ & $U_0$ & $V_0$ & $W_0$ & $\sigma_{X_0}$ & $\sigma_{V_0}$ & Age & $\sigma_{\mathrm{Age}}$ & N$_\mathrm{fit}$ & Comment & ID \\\\')
+print('ID & $X_\mathrm{t}$ & $Y_\mathrm{t}$ & $Z_\mathrm{t}$ & $U_\mathrm{t}$ & $V_\mathrm{t}$ & $W_\mathrm{t}$ & $\sigma_{X_\mathrm{t}}$ & $\sigma_{Y_\mathrm{t}}$ & $\sigma_{Z_\mathrm{t}}$ & $\sigma_{U_\mathrm{t}}$ & $\sigma_{V_\mathrm{t}}$ & $\sigma_{W_\mathrm{t}}$ & $X_0$ & $Y_0$ & $Z_0$ & $U_0$ & $V_0$ & $W_0$ & $\sigma_{X_0}$ & $\sigma_{V_0}$ & Age & $\sigma_{\mathrm{Age,\,fit}}$ & N$_\mathrm{fit}$ & Note \\\\')
 
 # Units
-print(' & pc & pc & pc & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & pc & pc & pc & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & pc & pc & pc & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & pc & $\mathrm{km\,s^{-1}}$ & Myr & Myr & & & \\\\')
+print(' & pc & pc & pc & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & pc & pc & pc & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & pc & pc & pc & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & $\mathrm{km\,s^{-1}}$ & pc & $\mathrm{km\,s^{-1}}$ & Myr & Myr & & \\\\')
 
 
 for c, c_raw in zip(comps, comps_raw):
@@ -70,10 +70,12 @@ for c, c_raw in zip(comps, comps_raw):
     
     comment=''
     if comp_id in bg_comps:
-        comment = 'Background'
+        #~ comment = 'Background'
+        comment = 'bg'
     
     if comp_id in comps_multiple_pop:
-        comment = 'MS+PMS'
+        #~ comment = 'MS+PMS'
+        comment = 'bg*'
     
 
     # Number of members used in the fit
@@ -82,5 +84,8 @@ for c, c_raw in zip(comps, comps_raw):
     Nfit = np.sum(mask)
 
 
-    print('%s & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.2f & %.2f & %.2f & %.1f & %.2f & %.1f & %.1f & %d & %s & %s \\\\'%(comp_id, Xt, Yt, Zt, Ut, Vt, Wt, sigmaXt, sigmaYt, sigmaZt, sigmaUt, sigmaVt, sigmaWt, X0, Y0, Z0, U0, V0, W0, sigmaX0, sigmaV0, age, sigma_age, Nfit, comment, comp_id))
+    #~ print('%s & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.1f & %.2f & %.2f & %.2f & %.1f & %.2f & %.1f & %.1f & %d & %s & %s \\\\'%(comp_id, Xt, Yt, Zt, Ut, Vt, Wt, sigmaXt, sigmaYt, sigmaZt, sigmaUt, sigmaVt, sigmaWt, X0, Y0, Z0, U0, V0, W0, sigmaX0, sigmaV0, age, sigma_age, Nfit, comment, comp_id))
+    
+    # Less decimal places
+    print('%s & %.0f & %.0f & %.0f & %.1f & %.1f & %.1f & %.0f & %.0f & %.0f & %.1f & %.1f & %.1f & %.0f & %.0f & %.0f & %.1f & %.1f & %.1f & %.0f & %.1f & %.0f & %.0f & %d & %s \\\\'%(comp_id, Xt, Yt, Zt, Ut, Vt, Wt, sigmaXt, sigmaYt, sigmaZt, sigmaUt, sigmaVt, sigmaWt, X0, Y0, Z0, U0, V0, W0, sigmaX0, sigmaV0, age, sigma_age, Nfit, comment))
     

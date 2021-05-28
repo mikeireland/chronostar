@@ -20,10 +20,14 @@ import scocenlib as lib
 data_filename = lib.data_filename
 comps_filename = lib.comps_filename
 exclude_components = lib.exclude_components
+exclude_components.append('J')
+exclude_components.append('B')
+exclude_components.append('Q')
 ############################################
 
 # Minimal probability required for membership
-pmin_membership = 0.5
+pmin_membership = 0.5 # nice
+#~ pmin_membership = 0.9
 #~ pmin_membership = 0.1
 ############################################
 
@@ -70,11 +74,23 @@ for c in comps:
     # PLOT STARS
 
     
+    # Black
     cb=ax.scatter(t['l'], t['b'], s=1, c='k', marker='.')
+    
+    # Colors: memberships
+    #~ t.sort('membership%s'%comp_id)
+    #~ cb=ax.scatter(t['l'], t['b'], s=1, c=t['membership%s'%comp_id], marker='.', vmin=0.5, vmax=1)
     
     total+=len(t)
     
 print('Total number of stars in this plot:', total)
+
+
+
+mask = tab['source_id']==6001669793442284416
+ax.scatter(tab['l'][mask], tab['b'][mask], s=50, c='lime', marker='.')
+
+
 
 def plot_3_windows_gx(ax, labels=True, lw=2, ls='-', c='b'):
     """
@@ -139,52 +155,62 @@ def plot_3_windows_gx(ax, labels=True, lw=2, ls='-', c='b'):
     plot_window(ax, x1=297, x2=303, y1=-4, y2=0, c=c, ls=ls, lw=lw)
 
 
-    #~ # IC2602
-    #~ ax.scatter([289.6014], [-04.9061], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('IC2602',
-                #~ xy=(289.6014, -04.9061), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # V1062 Sco moving group (a newly discovered MG in ScoCen by Roser et al. 2018)
-    #~ # (X, Y, Z, U, V, W) = (167.20, -49.14, 13.44, -3.80, -19.96, -4.06). from Roser et al. 2018
-    #~ ax.scatter([343.6], [4.3], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('V1062 Sco',
-                #~ xy=(343.6, 4.3), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # IC2602
+    ax.scatter([289.6014], [-04.9061], c=c, s=10)
+    if labels:
+        ax.annotate('IC2602',
+                xy=(289.6014, -04.9061), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # Corona Australis
-    #~ CRA = [359.74400822, -17.51551102] # (l, b)
-    #~ ax.scatter(CRA[0], CRA[1], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('CrA',
-                #~ xy=(359.7, -17.5), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # V1062 Sco moving group (a newly discovered MG in ScoCen by Roser et al. 2018)
+    # (X, Y, Z, U, V, W) = (167.20, -49.14, 13.44, -3.80, -19.96, -4.06). from Roser et al. 2018
+    ax.scatter([343.6], [4.3], c=c, s=10)
+    if labels:
+        ax.annotate('V1062 Sco',
+                xy=(343.6, 4.3), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # Rho Ophiuci
-    #~ ROPH = [353.22097900, 16.53342332] # (l, b)
-    #~ ax.scatter(ROPH[0], ROPH[1], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate(r'$\rho$ Oph',
-                #~ xy=(353, 16), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # Corona Australis
+    CRA = [359.74400822, -17.51551102] # (l, b)
+    ax.scatter(CRA[0], CRA[1], c=c, s=10)
+    if labels:
+        ax.annotate('CrA',
+                xy=(359.7, -17.5), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # IC2391
-    #~ IC2391 = [270.36829815, -6.83062731] # (l, b)
-    #~ ax.scatter(IC2391[0], IC2391[1], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('IC2391',
-                #~ xy=(270, -7), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # Esplin et al. 2018: rho Oph location (they are separating between rho Oph and USco)
+    # Rho Ophiuci
+    ROPH = [353.22097900, 16.53342332] # (l, b)
+    ax.scatter(ROPH[0], ROPH[1], c=c, s=10)
+    if labels:
+        ax.annotate(r'$\rho$ Oph',
+                xy=(353, 16), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
-    #~ # Platais 8
-    #~ PL8 = [277.6824, -07.6209] # (l, b)
-    #~ ax.scatter(PL8[0], PL8[1], c=c, s=10)
-    #~ if labels:
-        #~ ax.annotate('Platais 8',
-                #~ xy=(277, -7), xycoords='data',
-                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+    # IC2391
+    IC2391 = [270.36829815, -6.83062731] # (l, b)
+    ax.scatter(IC2391[0], IC2391[1], c=c, s=10)
+    if labels:
+        ax.annotate('IC2391',
+                xy=(270, -7), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+
+    # Platais 8
+    PL8 = [277.6824, -07.6209] # (l, b)
+    ax.scatter(PL8[0], PL8[1], c=c, s=10)
+    if labels:
+        ax.annotate('Platais 8',
+                xy=(277, -7), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
+
+    # Platais 9
+    PL9 = [270, 5] # (l, b)
+    ax.scatter(PL9[0], PL9[1], c=c, s=10)
+    if labels:
+        ax.annotate('Platais 9',
+                xy=(270, 5), xycoords='data',
+                xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)
 
     # eps Chamaeleontis
     EPSC = [300.20873944, -15.62481300] # (l, b)
@@ -234,7 +260,40 @@ plot_3_windows_gx(ax, labels=True, lw=1, ls='-', c='r')
 gx_set_labels_and_ticks_over_360deg(ax)
 
 
+#### PLOTTING JBQ separately ###############################
+fig=plt.figure(figsize=(figsize[1]*1.5, figsize[0]*2))
+ax=fig.add_subplot(111)
+
+total=0 # Total number of stars in the plot
+
+# Plot components (stars) one by one with different colours
+for c in comps:
+    comp_id = c['comp_ID']
+    if comp_id not in ['J', 'B', 'Q']:
+        continue
+
+    # Take only members of this component
+    mask = tab['membership%s'%comp_id] > pmin_membership 
+    t=tab[mask]
+    
+    #~ print(comp_id, colors[comp_id])
+    
+    # PLOT STARS
+
+    
+    # Black
+    cb=ax.scatter(t['l'], t['b'], s=1, c='k', marker='.')
+    
+    # Colors: memberships
+    #~ t.sort('membership%s'%comp_id)
+    #~ cb=ax.scatter(t['l'], t['b'], s=1, c=t['membership%s'%comp_id], marker='.', vmin=0.5, vmax=1)
+    
+    total+=len(t)
+    
+print('Total number of stars in the JBQ plot:', total)
+plot_3_windows_gx(ax, labels=True, lw=1, ls='-', c='r')
+gx_set_labels_and_ticks_over_360deg(ax)
 
 # SAVE FIGURES
-plt.savefig('gx_black.pdf', format='pdf')
+#~ plt.savefig('gx_black.pdf', format='pdf')
 plt.show()

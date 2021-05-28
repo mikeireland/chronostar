@@ -125,7 +125,7 @@ ax.set_xlabel('Z [pc]')
 ax.set_ylabel('W [km/s]')
 
 # LEGEND
-legend=ax.legend(markerscale=1, frameon=True, loc='center right', bbox_to_anchor=(0.56, 0.8), title='Kinematic ages', prop={'size': 8}, facecolor='white', edgecolor='none', framealpha=1, ncol=2)
+legend=ax.legend(markerscale=1, frameon=True, loc='right', bbox_to_anchor=(0.56, 0.8), title='Kinematic ages', prop={'size': 8}, facecolor='white', edgecolor='none', framealpha=1, ncol=2)
 plt.setp(legend.get_title(),fontsize=10)
 #~ ax.legend(ncol=2, markerscale=1)
 fig.subplots_adjust(bottom=0.15, top=0.9)
