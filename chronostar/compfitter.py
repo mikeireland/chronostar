@@ -545,15 +545,16 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             manager = multiprocessing.Manager()
             return_dict = manager.dict()
 
-            def worker(pos, return_dict):
+            def worker(i, pos, return_dict):
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
-                return_dict[result.fun] = result
+                #~ return_dict[result.fun] = result
+                return_dict[i] = result
             #TODO: tol: is this value optimal?
 
 
             jobs = []
             for i in range(nwalkers):
-                process = multiprocessing.Process(target=worker, args=(init_pos[i], return_dict))
+                process = multiprocessing.Process(target=worker, args=(i, init_pos[i], return_dict))
                 jobs.append(process)
 
             # Start the processes
@@ -570,16 +571,23 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             """
             return_dict=dict()
             logging.info('Running %i fits'%(len(init_pos)))
-            for pos in init_pos:
+            for i, pos in enumerate(init_pos):
                 logging.info(' init age: %5.2f'%pos[-1])
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
-                return_dict[result.fun] = result
+                #~ return_dict[result.fun] = result
+                return_dict[i] = result
                 logging.info('         res: %5.2f | %5.3f'%(result.x[-1], -result.fun))
 
         # Select the best result. Keys are lnprob values.
-        keys = list(return_dict.keys())
-        key = np.nanmin(keys)
-        best_result = return_dict[key]
+        #~ keys = list(return_dict.keys())
+        #~ key = np.nanmin(keys)
+        #~ best_result = return_dict[key]
+        
+        keys = list(return_dict.keys()) # Keep keys so you always have the same order
+        result_fun = [[k, return_dict[k].fun] for k in keys]
+        result_fun_sorted = sorted(result_fun, key=lambda x: x[1])
+        best_key = result_fun_sorted[0][0]
+        best_result = return_dict[best_key]
 
         # Identify and create the best component (with best lnprob)
         best_component = Component(emcee_pars=best_result.x)
