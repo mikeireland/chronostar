@@ -53,7 +53,7 @@ from astropy.io import ascii
 import string
 
 from . import transform
-from .traceorbit import trace_cartesian_orbit
+from .traceorbit import trace_cartesian_orbit, trace_epicyclic_orbit
 from .transform import transform_covmatrix
 #~ from chronostar.compfitter import approx_currentday_distribution
 #~ from . import compfitter
@@ -230,7 +230,7 @@ class AbstractComponent(object):
 
         # Set cartesian orbit tracing function
         if trace_orbit_func is None:
-            self.trace_orbit_func = trace_cartesian_orbit
+            self.trace_orbit_func = trace_epicyclic_orbit #trace_cartesian_orbit # TODO
         else:
             self.trace_orbit_func = trace_orbit_func
 
@@ -891,7 +891,7 @@ class AbstractComponent(object):
                 return res
         except: # fits file
             tab = Table.read(filename)
-            res = np.array([tab['X'], tab['Y'], tab['Z'], tab['U'], tab['V'], tab['W'], tab['dX'], tab['dV'], tab['Age']])
+            res = np.array([tab['X'], tab['Y'], tab['Z'], tab['U'], tab['V'], tab['W'], tab['dX'], tab['dV'], tab['age']])
             return res.T
 
 
@@ -948,6 +948,12 @@ class AbstractComponent(object):
         for i, colname in enumerate(current_day_atts):
             tabcomps[colname] = current_day_pars[:,i]
             tabcomps[colname].unit = current_day_units[i]
+
+
+        # trace_orbit_func name. This is not ideal to be written in every row
+        # but it's ok for now.
+        trace_orbit_func_name = components[0].trace_orbit_func.__name__
+        tabcomps['trace_orbit_func'] = [trace_orbit_func_name]*len(tabcomps)
 
         return tabcomps
 

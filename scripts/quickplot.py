@@ -3,6 +3,9 @@ MZ - 2021 - Mar - 18
 Basic plotting script for Chronostar results. Make a quick plot for
 the final or partial results of the fit to see what's going on.
 Plot CMD, gx plot and XU and XY plots.
+
+python quickplot.py path/to/final/folder/ path/to/the/input/fits/file/with/stellar/data.fits
+
 """
 
 import numpy as np
@@ -47,14 +50,15 @@ comps = comps[indices]
 #~ colors = ['blue', 'red', 'green', 'orange', 'purple', 'brown', 'yellow', ]
 
 # Colormap
-norm=plt.Normalize(vmin=0, vmax=len(comps))
-mycmap = plt.get_cmap('gist_rainbow')
-#~ colors = [cm.viridis(norm(i)) for i in range(len(comps))]
-colors = [mycmap(norm(i)) for i in range(len(comps))]
-shuffle(colors) # So that neighbouring components don't have similar colors
+colors = ['k', 'b', 'r', 'g', 'orange', 'lime', 'purple', 'brown', 'cyan', 'magenta', 'olive', 'yellow', 'pink', 'tomato', 'gold', 'violet', 'darkgreen', 'dodgerblue', 'steelblue', 'crimson', 'teal', 'dimgray', 'lightcoral']
+#~ norm=plt.Normalize(vmin=0, vmax=len(comps))
+#~ mycmap = plt.get_cmap('gist_rainbow')
+#colors = [cm.viridis(norm(i)) for i in range(len(comps))]
+#~ colors = [mycmap(norm(i)) for i in range(len(comps))]
+#~ shuffle(colors) # So that neighbouring components don't have similar colors
 
 
-def plot_xyzuvw():
+def plot_xyzuvw(comps):
     """
     In the velocity plot, filter out stars with very big RV errors.
     This is to remove RV-less stars.
@@ -276,7 +280,7 @@ def plot_cmd_galaxy(comps):
     print('%s saved.'%path)
 
 
-plot_xyzuvw()
+plot_xyzuvw(comps)
 plot_cmd_galaxy(comps)
 
 # Cornerplot

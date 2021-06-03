@@ -22,13 +22,21 @@ from astropy.table import Table, vstack, join
 
 ##################################################
 ######### INPUT ##################################
-comps_filename = 'data/final_comps_21.fits'
+#~ comps_filename = 'data/final_comps_21.fits'
+#~ comps_filename = 'data/final_comps_21_with_cra.fits'
+#~ comps_filename = 'data/final_comps_8_CrA.fits'
+#~ comps_filename = 'data/final_comps_CE_9G_not_converged_yet.fits'
+comps_filename = 'data/final_comps_21_additional_comps.fits'
 
 # Filename of data you want to compute overlaps for. Background overlaps are added later in this file!
 gaia_filename = 'data/scocen_vac_DR2_distinct_XYZUVW.fits'
 
 # Save output to this file. This is a copy of gaia_filename plus newly added memberships
-filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits'
+#~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits'
+#~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_cra.fits'
+#~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_cra_only.fits'
+#~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_CE_only.fits'
+filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_plus_additional_comps.fits'
 
 ##################################################
 ##################################################

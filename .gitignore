@@ -15,6 +15,10 @@ stat_dumps
 *.txt
 *.cmd
 *.stat
+*.pptx
+*.pars
+*.lprof
+*.prof
 
 # Config files
 *.json

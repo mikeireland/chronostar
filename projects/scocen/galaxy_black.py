@@ -92,6 +92,27 @@ ax.scatter(tab['l'][mask], tab['b'][mask], s=50, c='lime', marker='.')
 
 
 
+
+
+# Add JQ PMS M dwarfs
+jq = Table.read('data/input_may2021/scocen_vac_DR2_distinct_JQ_7k_stars_for_a_new_fit.fits')
+lshift=100
+mask = np.where(jq['l']<lshift)
+jq['l'][mask] = 360 + jq['l'][mask]
+ax.scatter(jq['l'], jq['b'], s=1, c='k', marker='.')
+
+
+# Add B20 PMS M dwarfs
+#~ b20 = Table.read('data/input_may2021/scocen_vac_DR2_distinct_B20_800_stars_for_a_new_fit.fits')
+#~ lshift=100
+#~ mask = np.where(b20['l']<lshift)
+#~ b20['l'][mask] = 360 + b20['l'][mask]
+mask = (tab['l']>370) & (tab['membershipB'] > pmin_membership )
+ax.scatter(tab[mask]['l'], tab[mask]['b'], s=1, c='k', marker='.')
+
+
+
+
 def plot_3_windows_gx(ax, labels=True, lw=2, ls='-', c='b'):
     """
     Plot lines designating USco, UCL, LCC
@@ -239,7 +260,7 @@ def gx_set_labels_and_ticks_over_360deg(ax):
     
     #~ plt.gca().invert_xaxis()
     #~ ax.set_ylim(-40, 60)
-    ax.set_ylim(-40, 60)
+    ax.set_ylim(-40, 40)
     ax.set_xlim(400, 240)
 
     ax.xaxis.set_major_locator(ticker.MultipleLocator(20))
@@ -267,10 +288,14 @@ ax=fig.add_subplot(111)
 total=0 # Total number of stars in the plot
 
 # Plot components (stars) one by one with different colours
+clrs = ['k', 'r', 'b']
+i=0
 for c in comps:
     comp_id = c['comp_ID']
     if comp_id not in ['J', 'B', 'Q']:
         continue
+
+    print(comp_id)
 
     # Take only members of this component
     mask = tab['membership%s'%comp_id] > pmin_membership 
@@ -282,7 +307,10 @@ for c in comps:
 
     
     # Black
-    cb=ax.scatter(t['l'], t['b'], s=1, c='k', marker='.')
+    #~ cb=ax.scatter(t['l'], t['b'], s=1, c='k', marker='.')
+    cb=ax.scatter(t['l'], t['b'], s=1, c=clrs[i], marker='.')
+    
+    i+=1
     
     # Colors: memberships
     #~ t.sort('membership%s'%comp_id)

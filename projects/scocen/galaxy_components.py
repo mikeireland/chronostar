@@ -23,7 +23,7 @@ exclude_components = lib.exclude_components
 exclude_components.append('Q')
 exclude_components.append('B')
 exclude_components.append('J')
-compnames = lib.compnames
+#~ compnames = lib.compnames
 colors = lib.colors
 ############################################
 
@@ -102,21 +102,21 @@ ax2=fig2.add_subplot(111)
 
 for c in comps:
     comp_id = c['comp_ID']
-    if comp_id not in ['B', 'J', 'Q']:
+    if comp_id in exclude_components:
         continue
 
     # Take only members of this component
     mask = tab['membership%s'%comp_id] > pmin_membership 
     t=tab[mask]
     
-    #~ print(comp_id, colors[comp_id])
+    print(comp_id, len(t), colors[comp_id])
     
     # PLOT STARS
     name_literature = '' # Component name from the literature, e.g. rho Oph
-    try:
-        name_literature = '\n%s'%compnames[comp_id]
-    except:
-        pass
+    #~ try:
+        #~ name_literature = '\n%s'%compnames[comp_id]
+    #~ except:
+        #~ pass
     
     age=c['Age']
     label = r'%s (%d), %.1f$\pm$%.1f Myr, %s'%(comp_id, len(t), age, c['Crossing_time'], name_literature)
