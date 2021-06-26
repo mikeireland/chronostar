@@ -12,18 +12,18 @@ what colors are associated with what components etc.
 #~ data_filename = 'data/scocen_vac_DR2_with_21_overlaps.fits' # This one should have RVs fixed
 #~ data_filename = 'data/scocen_vac_DR2_with_21_overlaps_may2021_test2.fits' # This one should have RVs fixed. Works fine...
 
-#~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits' # This one should have RVs fixed
+data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits' # This one should have RVs fixed
 
 #~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_cra.fits' # This one should have RVs fixed. Added CrA
-data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_plus_additional_comps.fits'
+#~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_plus_additional_comps.fits'
 
 # Data that was used for the fitting
 data_filename_fit = 'data/scocen_5k_candidates_only_members_with_significant_membership_from_tims_3_subsets.fits'
 
 # Fits file (the same content as npy file)
-#~ comps_filename = 'data/final_comps_21.fits'
+comps_filename = 'data/final_comps_21.fits'
 #~ comps_filename = 'data/final_comps_21_with_cra.fits'
-comps_filename = 'data/final_comps_21_additional_comps.fits'
+#~ comps_filename = 'data/final_comps_21_additional_comps.fits'
 
 # Healthy components (only PMS sequence)
 good_comps = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'T', 'U', 'B', 'Q', 'J', 'V', 'W']
@@ -38,7 +38,7 @@ bg_comps = ['K', 'L', 'M', 'N', 'O', 'P', 'R', 'S']
 exclude_components = ['K', 'L', 'M', 'N', 'O', 'P', 'R', 'S']
 
 # Colors only for good_comps. I don't know so many colors that I could assign them to bad comps as well.
-colors = {'A': 'g', 'C': 'orange', 'D': 'yellow', 'E': 'purple', 'F': 'lime', 'G': 'b', 'H': 'magenta', 'I': 'cyan', 'T': 'k', 'U': 'r', 'B': 'grey', 'Q': 'olive', 'J': 'pink', 'V': 'teal', 'W': 'violet', 'X': 'k', 'Y': 'orange', 'Z': 'green', '1': 'blue', '2': 'red', '3': 'cyan', '4': 'yellow', '5': 'pink', '6': 'brown'}
+colors = {'A': 'g', 'C': 'orange', 'D': 'yellow', 'E': 'purple', 'F': 'lime', 'G': 'b', 'H': 'magenta', 'I': 'cyan', 'T': 'k', 'U': 'r', 'B': 'grey', 'Q': 'olive', 'J': 'pink', 'V': 'teal', 'W': 'violet', 'X': 'k', 'Y': 'orange', 'Z': 'green', '1': 'blue', '2': 'red', '3': 'cyan', '4': 'orange', '5': 'k', '6': 'brown'}
 
 # Comparison with the literature
 compnames = {'C': r'$\rho$Oph', 'D': 'V1062 Sco', 'F': 'V1062 Sco', 'B': 'CrA', 'H': 'IC2602', 'T': 'UCL, incl. PDS70', 'Q': r'incl. IC2391, $\epsilon$Cha', 'I': 'Platais 8', 'G': 'UCL', 'A': 'LCC', 'U': 'LCC', 'E': 'CrA'}

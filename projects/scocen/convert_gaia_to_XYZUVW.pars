@@ -10,8 +10,12 @@
 #input_file          = data/scocen_vac_DR2_distinct_raw.fits
 #output_file         = data/scocen_vac_DR2_distinct_XYZUVW.fits
 
-input_file          = data/scocen_VAC_DR2_distinct_extended_longitude_raw.fits
-output_file         = data/scocen_VAC_DR2_distinct_extended_longitude_XYZUVW.fits
+#input_file          = data/scocen_VAC_DR2_distinct_extended_longitude_raw.fits
+#output_file         = data/scocen_VAC_DR2_distinct_extended_longitude_XYZUVW.fits
+
+input_file          = data/allsky_young_Mdwarfs_with_full_astrometry.fits
+output_file         = data/allsky_young_Mdwarfs_with_full_astrometry_XYZUVW.fits
+
 
 # General usage flags
 overwrite_datafile  = True

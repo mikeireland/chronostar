@@ -180,6 +180,12 @@ for c2 in comps_to_plot:
     
     mask=tab[membname]>pmin_membership
     t=tab[mask]
+    
+    # Only stars with RV
+    mask = t['radial_velocity_error']<100
+    t=t[mask]
+
+    print(comp_ID, len(t))
 
     ax.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=1, c=colors[comp_ID], label=r'%s %.1f $\pm$ %.1f Myr'%(comp_ID, age, c['Crossing_time']))
     
