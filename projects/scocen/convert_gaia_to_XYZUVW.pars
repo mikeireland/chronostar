@@ -1,3 +1,5 @@
+# python /Users/marusa/chronostar/scripts/prepare_data.py convert_gaia_to_XYZUVW.pars
+
 #input_file          = data/scocen_vac_EDR3.fits
 #output_file         = data/scocen_vac_EDR3.fits
 
@@ -13,8 +15,11 @@
 #input_file          = data/scocen_VAC_DR2_distinct_extended_longitude_raw.fits
 #output_file         = data/scocen_VAC_DR2_distinct_extended_longitude_XYZUVW.fits
 
-input_file          = data/allsky_young_Mdwarfs_with_full_astrometry.fits
-output_file         = data/allsky_young_Mdwarfs_with_full_astrometry_XYZUVW.fits
+#input_file          = data/allsky_young_Mdwarfs_with_full_astrometry.fits
+#output_file         = data/allsky_young_Mdwarfs_with_full_astrometry_XYZUVW.fits
+
+input_file          = data/allsky_young_Mdwarfs_with_full_astrometry_bailer-jones_distances_parallax_is_from_BJ_distance_RVS_to_be_fixed.fits
+output_file         = data/allsky_young_Mdwarfs_with_full_astrometry_bailer-jones_distances_parallax_is_from_BJ_distance_RVS_to_be_fixed_XYZUVW.fits
 
 
 # General usage flags

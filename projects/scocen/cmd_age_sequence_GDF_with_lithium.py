@@ -23,10 +23,11 @@ comps_filename = lib.comps_filename
 compnames = lib.compnames
 colors = lib.colors
 ############################################
-comps_to_plot = ['C', 'U', 'T'] # AGE SEQUENCE IS REAL!!! ['C', 'A', 'U', 'G', 'F', 'T']
+comps_to_plot = ['G', 'D', 'F'] # ['A', 'G'] # , 'D', 'F'
 ############################################
 # Minimal probability required for membership
 pmin_membership = 0.9
+#~ pmin_membership = 0.5
 ############################################
 # CMD limits
 xlim = [-0.5, 5]
@@ -48,21 +49,21 @@ except:
     
     
     
-    tab0.rename_column('EW(Li)', 'ewliii')
     
     
-    # ADD LITHIUM INFO
-    galah = Table.read('/Users/marusa/galah/lithium/ewli/GALAH_EW_Lithium_Zerjal_20181025.fits')
-    lithium_galah = galah[['source_id', 'EW(Li)']]
     
-    results_2m3 = Table.read('/Users/marusa/observing/23m/paper/data/2m3_results.fits')
-    lithium_2m3 = results_2m3[['source_id', 'EW(Li)']]
+    #~ # ADD LITHIUM INFO
+    #~ galah = Table.read('/Users/marusa/galah/lithium/ewli/GALAH_EW_Lithium_Zerjal_20181025.fits')
+    #~ lithium_galah = galah[['source_id', 'EW(Li)']]
     
-    from astropy.table import vstack, unique, join
-    lithium = vstack([lithium_galah, lithium_2m3])
-    lithium = unique(lithium, keys=['source_id'], keep='last')  # Some are repeated!
+    #~ results_2m3 = Table.read('/Users/marusa/observing/23m/paper/data/2m3_results.fits')
+    #~ lithium_2m3 = results_2m3[['source_id', 'EW(Li)']]
+    
+    #~ from astropy.table import vstack, unique, join
+    #~ lithium = vstack([lithium_galah, lithium_2m3])
+    #~ lithium = unique(lithium, keys=['source_id'], keep='last')  # Some are repeated!
 
-    tab0 = join(tab0, lithium, keys='source_id', join_type='left')
+    #~ tab0 = join(tab0, lithium, keys='source_id', join_type='left')
     
     
     
@@ -176,45 +177,60 @@ for c2 in comps_to_plot:
 
     comp_ID = c['comp_ID']        
     membname = 'membership%s'%comp_ID
-    age=c['Age']
+    age=c['age']
     
     mask=tab[membname]>pmin_membership
     t=tab[mask]
     
-    # Only stars with RV
-    #~ mask = t['radial_velocity_error']<100
-    #~ t=t[mask]
+    if comp_ID=='D':
+        edgecolor='none'
+    else:
+        edgecolor='none'
 
-    print(comp_ID, len(t))
-
-    ax.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=1, c=colors[comp_ID], label=r'%s %.0f $\pm$ %.0f Myr'%(comp_ID, age, c['Crossing_time']))
+    ax.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=10, c=colors[comp_ID], label=r'%s %.0f $\pm$ %.0f Myr'%(comp_ID, age, c['Crossing_time']), edgecolor=edgecolor)
     
-    # CUT
-    ax2.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=20, c=colors[comp_ID], label=r'%s %.0f $\pm$ %.0f Myr'%(comp_ID, age, c['Crossing_time']))
     
     # AG
     #~ if comp_ID=='G':
-    #~ ax2.scatter(t['bp_rp'], t['Gmag'], s=1, c=colors[comp_ID], label=r'%s %.1f $\pm$ %.1f Myr'%(comp_ID, age, c['Crossing_time']))
+    ax2.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=20, c=colors[comp_ID], label=r'%s %.1f $\pm$ %.1f Myr'%(comp_ID, age, c['Crossing_time']), edgecolor=edgecolor)
     
     
     # Lithium
-    ax3.scatter(t['bp_rp_extinction_corrected'], t['EW(Li)'], s=10, c=colors[comp_ID], label='')
-    
-    # PDS 70
-    mask = np.in1d(t['source_id'], 6110141563309613056)
-    edgecolor='lime'
+    ax3.scatter(t['bp_rp_extinction_corrected'], t['EW(Li)'], s=10, c=colors[comp_ID], label='', edgecolor=edgecolor)
+ 
+ 
+ 
+    # HD 139614, astroseismic age. Membership 65\% - so change membership_pmin accordingly
+    mask = np.in1d(t['source_id'], 6001669793442284416)
+    print(np.sum(mask))
+    edgecolor='red'
     lw=2
     if np.sum(mask)==1:
-        ax3.scatter(t['bp_rp_extinction_corrected'][mask], t['EW(Li)'][mask], s=50, c=colors[comp_ID], label='PDS 70', edgecolor=edgecolor, linewidth=lw)        
+        ax3.scatter(t['bp_rp_extinction_corrected'][mask], t['EW(Li)'][mask], s=50, c=colors[comp_ID], label='HD 139614', edgecolor=edgecolor, linewidth=lw)        
         
-        ax.scatter(t['bp_rp_extinction_corrected'][mask], t['Gmag_extinction_corrected'][mask], s=50, c=colors[comp_ID], edgecolor=edgecolor, label='PDS 70', linewidth=lw)
+        ax.scatter(t['bp_rp_extinction_corrected'][mask], t['Gmag_extinction_corrected'][mask], s=50, c=colors[comp_ID], edgecolor=edgecolor, label='HD 139614', linewidth=lw)
         ax2.scatter(t['bp_rp_extinction_corrected'][mask], t['Gmag_extinction_corrected'][mask], s=50, c=colors[comp_ID], edgecolor=edgecolor, label='', linewidth=lw)
+
+
 
 
 
 isochrone(ax, plot_young_iso=False)
 isochrone(ax2, plot_young_iso=False)
 
+
+def plot_parameterised_T_component(ax, c='k', linewidth=0.5):
+    # T component parameterised
+    z = [1.70651855e-02, -3.58744486e-01,  3.21391646e+00, -1.59756421e+01,
+      4.80705454e+01, -8.97595246e+01,  1.03105814e+02, -7.12054267e+01,
+      2.97638504e+01, -8.15185920e+00,  4.20486412e+00,  1.62953376e+00]
+    p = np.poly1d(z)
+    x = np.linspace(0, 4, 100)
+
+    ax.plot(x, p(x), c=c, linewidth=linewidth)
+
+plot_parameterised_T_component(ax, c='k')
+plot_parameterised_T_component(ax2, c='k')
 
 ### Make plots pretty
 
@@ -266,11 +282,15 @@ plt.setp(ax2.get_xticklabels(), visible=False)
    
 # LEGEND
 handles, labels = ax.get_legend_handles_labels()
-labels = [labels[1], labels[2], labels[3], labels[4], labels[0]]
-handles = [handles[1], handles[2], handles[3], handles[4], handles[0]]
+#~ labels = [labels[1], labels[2], labels[3], labels[4], labels[0]]
+#~ handles = [handles[1], handles[2], handles[3], handles[4], handles[0]]
 legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.23, 0.23), title='Kinematic ages', prop={'size': 8})
 plt.setp(legend.get_title(),fontsize=10)
-legend.legendHandles[3]._sizes = [40]
+legend.legendHandles[1]._sizes = [20]
+legend.legendHandles[2]._sizes = [20]
+legend.legendHandles[3]._sizes = [20]
+#~ legend.legendHandles[4]._sizes = [20]
+
 
 
 #~ ax3.legend(loc='center left', frameon=False)
@@ -309,6 +329,5 @@ ax.set_yticklabels(ytick_labels)
 fig.subplots_adjust(bottom=0.1, top=0.9)
 fig.subplots_adjust(hspace=0, wspace=0)
 
-plt.savefig('cmd_li_CUT_90percent_membership.pdf')
-
+plt.savefig('cmd_li_GDF_90percent_membership.pdf')
 plt.show()

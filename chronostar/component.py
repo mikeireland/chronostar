@@ -231,6 +231,7 @@ class AbstractComponent(object):
         # Set cartesian orbit tracing function
         if trace_orbit_func is None:
             self.trace_orbit_func = trace_epicyclic_orbit #trace_cartesian_orbit # TODO
+            #~ print('Component: trace_EPICYCLIC_orbit')
         else:
             self.trace_orbit_func = trace_orbit_func
 

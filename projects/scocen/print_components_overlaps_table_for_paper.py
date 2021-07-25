@@ -57,7 +57,8 @@ for c in comps:
     age = c['Age']
     crossing_time = c['Crossing_time']
     
-    line += '%d & %d '%(age, crossing_time)
+    # %.0f does the roundup properly while %d rounds everything down!
+    line += '%0.f & %.0f '%(age, crossing_time)
 
     line += ' \\\\'
 
