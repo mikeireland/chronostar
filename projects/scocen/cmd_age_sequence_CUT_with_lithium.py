@@ -200,6 +200,14 @@ for c2 in comps_to_plot:
     # Lithium
     ax3.scatter(t['bp_rp_extinction_corrected'], t['EW(Li)'], s=10, c=colors[comp_ID], label='')
     
+    
+    # Stars with lithium below the detection limit. Are these on the main sequence?
+    #~ ml = t['EW(Li)']<0.2
+    #~ ax3.scatter(t['bp_rp_extinction_corrected'][ml], t['EW(Li)'][ml], s=10, c=colors[comp_ID], label='', edgecolor='magenta', linewidth=0.8)
+    
+    #~ ax.scatter(t['bp_rp_extinction_corrected'][ml], t['Gmag_extinction_corrected'][ml], s=20, c=colors[comp_ID], label='', edgecolor='magenta', linewidth=0.8)
+    
+    
     # PDS 70
     mask = np.in1d(t['source_id'], 6110141563309613056)
     edgecolor='lime'
@@ -215,6 +223,19 @@ for c2 in comps_to_plot:
 isochrone(ax, plot_young_iso=False)
 isochrone(ax2, plot_young_iso=False)
 
+
+def plot_parameterised_T_component(ax, c='k', linewidth=0.5):
+    # T component parameterised
+    z = [1.70651855e-02, -3.58744486e-01,  3.21391646e+00, -1.59756421e+01,
+      4.80705454e+01, -8.97595246e+01,  1.03105814e+02, -7.12054267e+01,
+      2.97638504e+01, -8.15185920e+00,  4.20486412e+00,  1.62953376e+00]
+    p = np.poly1d(z)
+    x = np.linspace(0, 4, 100)
+
+    ax.plot(x, p(x), c=c, linewidth=linewidth, label='Parameterised component T (15 $\pm$ 3 Myr)')
+
+plot_parameterised_T_component(ax, c='k')
+plot_parameterised_T_component(ax2, c='k')
 
 ### Make plots pretty
 
@@ -265,12 +286,22 @@ plt.setp(ax2.get_xticklabels(), visible=False)
 
    
 # LEGEND
+#~ handles, labels = ax.get_legend_handles_labels()
+#~ labels = [labels[1], labels[2], labels[3], labels[4], labels[0]]
+#~ handles = [handles[1], handles[2], handles[3], handles[4], handles[0]]
+#~ legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.23, 0.23), title='Kinematic ages', prop={'size': 8})
+#~ plt.setp(legend.get_title(),fontsize=10)
+#~ legend.legendHandles[3]._sizes = [40]
+
+# LEGEND with parameterised component T
 handles, labels = ax.get_legend_handles_labels()
-labels = [labels[1], labels[2], labels[3], labels[4], labels[0]]
-handles = [handles[1], handles[2], handles[3], handles[4], handles[0]]
-legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.23, 0.23), title='Kinematic ages', prop={'size': 8})
+labels = [labels[0], labels[2], labels[3], labels[4], labels[5], labels[1]]
+handles = [handles[0], handles[2], handles[3], handles[4], handles[5], handles[1]]
+#~ legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.23, 0.23), title='Kinematic ages', prop={'size': 8})
+legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.42, 0.23), title='Kinematic ages', prop={'size': 8})
 plt.setp(legend.get_title(),fontsize=10)
-legend.legendHandles[3]._sizes = [40]
+legend.get_title().set_position((-35, 0))
+legend.legendHandles[4]._sizes = [40]
 
 
 #~ ax3.legend(loc='center left', frameon=False)

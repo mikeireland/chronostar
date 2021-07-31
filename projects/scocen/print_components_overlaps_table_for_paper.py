@@ -7,7 +7,7 @@ Ages, crossing time
 """
 
 import numpy as np
-from astropy.table import Table
+from astropy.table import Table, unique
 
 ############################################
 # Some things are the same for all the plotting scripts and we put
@@ -25,6 +25,8 @@ pmin_memberships = [0.5, 0.8, 0.9]
 
 tab = Table.read(data_filename)
 comps = Table.read(comps_filename)
+
+tab = unique(tab, keys='source_id')
 
 total50=0
 total80=0

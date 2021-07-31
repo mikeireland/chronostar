@@ -12,7 +12,8 @@ what colors are associated with what components etc.
 #~ data_filename = 'data/scocen_vac_DR2_with_21_overlaps.fits' # This one should have RVs fixed
 #~ data_filename = 'data/scocen_vac_DR2_with_21_overlaps_may2021_test2.fits' # This one should have RVs fixed. Works fine...
 
-data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits' # This one should have RVs fixed
+#~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits' # This one should have RVs fixed
+data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_reddening_correction.fits' # This one should have RVs fixed
 
 #~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_cra.fits' # This one should have RVs fixed. Added CrA
 #~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_plus_additional_comps.fits'

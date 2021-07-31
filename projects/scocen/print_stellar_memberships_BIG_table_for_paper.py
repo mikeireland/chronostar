@@ -18,8 +18,8 @@ from chronostar.component import SphereComponent
 # this into a single library to avoid confusion.
 import scocenlib as lib
 data_filename = lib.data_filename
-good_comps = ['A', 'C', 'D', 'F', 'G', 'H', 'I', 'T', 'U'] # No B and E
-print('Revise component LIST!!! there is no E or B now!!!')
+good_comps = ['A', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'T', 'U'] # No B and E
+print('Revise component LIST!!! there is no B!!!')
 ############################################
 
 # Read data
@@ -41,8 +41,12 @@ for comp_ID in good_comps:
     mask = mask | m
 
 tab = tab[mask]
-print(len(tab))
+print('Number of stars in good comps with memb. prob. >0.5: ', len(tab))
 
+
+from collections import Counter
+c_li = Counter(tab['EW(Li)_ref'])
+c_rv = Counter(tab['radial_velocity_ref'])
 
 
 ### EXAMPLE TABLE
@@ -51,36 +55,101 @@ mask = (tab['EW(Li)']>0.1) & (tab['radial_velocity_error']<10)
 tab=tab[mask]
 
 
+# References
+# Merge together references for Lithium and RV as some of them are the same
+ewli_ref = set(tab['EW(Li)_ref'])
+rv_ref = set(tab['radial_velocity_ref'])
+refs = ewli_ref.union(rv_ref)
+
+# Banyan should be last because I should replace it with the actual references there!
+refs=list(refs)
+refs.append(refs.pop(refs.index('Banyan Sigma')))
+
+ref_dict = dict(zip(refs, range(1, len(refs)+1)))
+print('ref_dict')
+print(ref_dict)
 
 
-# Labels. BP-RP is dereddened
-print('source\_id & bp\_rp & BP-RP & g & g\_ext & RV & $\sigma_\mathrm{RV}$ & RV\_ref& best\_comp & best\_comp\_membership & EW(Li) & $\sigma\mathrm{EW(Li)}$ & EW(Li)\_ref \\\\')
+def table_with_basic_columns():
+    # Labels. BP-RP is dereddened
+    #~ print('source\_id & bp\_rp & BP-RP & G & G\_ext & RV & $\sigma_\mathrm{RV}$ & RV\_ref& best\_comp & best\_comp\_membership & EW(Li) & $\sigma\mathrm{EW(Li)}$ & EW(Li)\_ref \\\\')
+    print('source\_id & bp\_rp & BP-RP & G & G\_ext & RV & $\sigma_\mathrm{RV}$ & best\_comp & best\_comp\_membership & EW(Li) & $\sigma\mathrm{EW(Li)}$ & Ref \\\\')
 
 
-# Units
-print('Gaia\,DR2 & & & & & & & & & & & & \\\\')
+    # Units
+    print('Gaia\,DR2 & & & & & & & & & & & & RV/Li \\\\')
 
 
 
-for x in tab[:100]:
-    line = '%d & '%x['source_id']
-    line += '%.2f & '%x['bp_rp']
-    line += '%.2f & '%x['bp_rp_extinction_corrected']
-    line += '%.2f & '%x['phot_g_mean_mag']
-    line += '%.2f & '%x['phot_g_mean_mag_extinction_corrected']
-    line += '%.1f & '%x['radial_velocity']
-    line += '%.1f & '%x['radial_velocity_error']
-    line += '%s & '%x['radial_velocity_ref']
-    line += '%s & '%x['best_component']
-    line += '%.2f & '%x['best_component_membership']
-    line += '%.2f & '%x['EW(Li)']
-    line += '%.2f & '%x['EW(Li)_err']
-    line += '%s  '%x['EW(Li)_ref']
+    for x in tab[:50]:
+        line = '%d & '%x['source_id']
+        line += '%.2f & '%x['bp_rp']
+        line += '%.2f & '%x['bp_rp_extinction_corrected']
+        line += '%.2f & '%x['phot_g_mean_mag']
+        line += '%.2f & '%x['phot_g_mean_mag_extinction_corrected']
+        line += '%.1f & '%x['radial_velocity']
+        line += '%.1f & '%x['radial_velocity_error']
+        #~ line += '%d & '%rv_ref_dict[x['radial_velocity_ref']]
+        line += '%s & '%x['best_component']
+        line += '%.2f & '%x['best_component_membership']
+        line += '%.2f & '%x['EW(Li)']
+        line += '%.2f & '%x['EW(Li)_err']
+        #~ line += '%d '%ewli_ref_dict[x['EW(Li)_ref']]
+        line += '%d/%d '%(ref_dict[x['radial_velocity_ref']], ref_dict[x['EW(Li)_ref']])
 
-    line += ' \\\\'
-    
-    line = line.replace('nan', '   ')
-    line = line.replace('N/A', '   ')
+        line += ' \\\\'
+        
+        line = line.replace('nan', '   ')
+        line = line.replace('N/A', '   ')
 
 
-    print(line)
+        print(line)
+
+def table_with_basic_columns_and_kinematics():
+    print('source\_id & (BP-RP)$_0$ & G$_0$ & RV & $\sigma_\mathrm{RV}$ & X & Y & Z & U & V & W & $\sigma_\mathrm{X}$ & $\sigma_\mathrm{Y}$ & $\sigma_\mathrm{Z}$ & $\sigma_\mathrm{U}$ & $\sigma_\mathrm{V}$ & $\sigma_\mathrm{W}$ & comp & p & EW(Li) & $\sigma\mathrm{EW(Li)}$ & Ref \\\\')
+
+
+    # Units
+    print('Gaia\,DR2 & & & & & & & & & & & & & & & & & & & \AA & \AA & RV/Li \\\\')
+
+
+
+    for x in tab[:50]:
+        line = '%d & '%x['source_id']
+        line += '%.2f & '%x['bp_rp_extinction_corrected']
+        line += '%.2f & '%x['phot_g_mean_mag_extinction_corrected']
+        line += '%.1f & '%x['radial_velocity']
+        line += '%.1f & '%x['radial_velocity_error']
+        
+        line += '%.1f & '%x['X']
+        line += '%.1f & '%x['Y']
+        line += '%.1f & '%x['Z']
+        line += '%.1f & '%x['U']
+        line += '%.1f & '%x['V']
+        line += '%.1f & '%x['W']
+        
+        line += '%.1f & '%x['X_error']
+        line += '%.1f & '%x['Y_error']
+        line += '%.1f & '%x['Z_error']
+        #~ if '%.1f & '%x['Z_error']=='0.0 & ':
+            #~ print('**********', x['Z_error'])
+        line += '%.1f & '%x['U_error']
+        line += '%.1f & '%x['V_error']
+        line += '%.1f & '%x['W_error']
+        
+        line += '%s & '%x['best_component']
+        line += '%.2f & '%x['best_component_membership']
+        line += '%.2f & '%x['EW(Li)']
+        line += '%.2f & '%x['EW(Li)_err']
+        #~ line += '%d '%ewli_ref_dict[x['EW(Li)_ref']]
+        line += '%d/%d '%(ref_dict[x['radial_velocity_ref']], ref_dict[x['EW(Li)_ref']])
+
+        line += ' \\\\'
+        
+        line = line.replace('nan', '   ')
+        line = line.replace('N/A', '   ')
+
+
+        print(line)
+
+table_with_basic_columns_and_kinematics()

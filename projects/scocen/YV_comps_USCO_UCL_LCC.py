@@ -89,13 +89,20 @@ for i, c in enumerate(comps):
     else:
         zorder=1
 
+    if comp_ID=='D':
+        markeredgecolor='k'
+        markersize=2
+    else:
+        markeredgecolor='none'
+        markersize=2
+
     
     #~ label = '%s (%.2f$\pm$%.2f Myr) %d'%(labels[comp_ID], age, c['Age_reliable'], len(t))
     #~ label = '%s'%(labels[comp_ID])
     label = '%s'%(labels[comp_ID])
     label = label.replace('(', '(%.0f\,$\pm$\,%.0f\,Myr; '%(age, c['Crossing_time']))
     #~ print(label)
-    ax.errorbar(t['Y'], t['V'], xerr=t['Y_error'], yerr=t['V_error'], c=colors[comp_ID], fmt='o', markersize=1, lw=lw, zorder=zorder, label = label)
+    ax.errorbar(t['Y'], t['V'], xerr=t['Y_error'], yerr=t['V_error'], c=colors[comp_ID], fmt='o', markersize=markersize, lw=lw, zorder=zorder, label = label, markeredgewidth=0.2, markeredgecolor=markeredgecolor)
 
 
     

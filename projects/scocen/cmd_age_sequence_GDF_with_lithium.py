@@ -182,21 +182,25 @@ for c2 in comps_to_plot:
     mask=tab[membname]>pmin_membership
     t=tab[mask]
     
+    linewidth=0.2
     if comp_ID=='D':
-        edgecolor='none'
+        edgecolor='k'
+        #~ s=8
+        s=4
     else:
         edgecolor='none'
+        s=4
 
-    ax.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=10, c=colors[comp_ID], label=r'%s %.0f $\pm$ %.0f Myr'%(comp_ID, age, c['Crossing_time']), edgecolor=edgecolor)
+    ax.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=s, c=colors[comp_ID], label=r'%s %.0f $\pm$ %.0f Myr'%(comp_ID, age, c['Crossing_time']), edgecolor=edgecolor, linewidth=linewidth)
     
     
     # AG
     #~ if comp_ID=='G':
-    ax2.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=20, c=colors[comp_ID], label=r'%s %.1f $\pm$ %.1f Myr'%(comp_ID, age, c['Crossing_time']), edgecolor=edgecolor)
+    ax2.scatter(t['bp_rp_extinction_corrected'], t['Gmag_extinction_corrected'], s=6, c=colors[comp_ID], label=r'%s %.1f $\pm$ %.1f Myr'%(comp_ID, age, c['Crossing_time']), edgecolor=edgecolor, linewidth=linewidth)
     
     
     # Lithium
-    ax3.scatter(t['bp_rp_extinction_corrected'], t['EW(Li)'], s=10, c=colors[comp_ID], label='', edgecolor=edgecolor)
+    ax3.scatter(t['bp_rp_extinction_corrected'], t['EW(Li)'], s=10, c=colors[comp_ID], label='', edgecolor=edgecolor, linewidth=linewidth)
  
  
  
@@ -227,7 +231,7 @@ def plot_parameterised_T_component(ax, c='k', linewidth=0.5):
     p = np.poly1d(z)
     x = np.linspace(0, 4, 100)
 
-    ax.plot(x, p(x), c=c, linewidth=linewidth)
+    ax.plot(x, p(x), c=c, linewidth=linewidth, label='Parameterised component T (15 $\pm$ 3 Myr)')
 
 plot_parameterised_T_component(ax, c='k')
 plot_parameterised_T_component(ax2, c='k')
@@ -238,8 +242,12 @@ plot_parameterised_T_component(ax2, c='k')
 # INSET
 # CUT
 #~ ax2=spectral_types(ax2, xlim, ylim, y = 3)
-xlim2 = [0.7, 1.8]
-ylim2 = [8, 2]
+# G and K
+#~ xlim2 = [0.7, 1.8]
+#~ ylim2 = [8, 2]
+# M
+xlim2 = [2.2, 3.5]
+ylim2 = [12, 7]
 ax2.set_xlim(xlim2[0], xlim2[1])
 ax2.set_ylim(ylim2[0], ylim2[1])
 
@@ -282,14 +290,17 @@ plt.setp(ax2.get_xticklabels(), visible=False)
    
 # LEGEND
 handles, labels = ax.get_legend_handles_labels()
-#~ labels = [labels[1], labels[2], labels[3], labels[4], labels[0]]
-#~ handles = [handles[1], handles[2], handles[3], handles[4], handles[0]]
-legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.23, 0.23), title='Kinematic ages', prop={'size': 8})
+labels = [labels[0], labels[2], labels[3], labels[4], labels[1]]
+handles = [handles[0], handles[2], handles[3], handles[4], handles[1]]
+#~ legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.23, 0.23), title='Kinematic ages', prop={'size': 8})
+legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.42, 0.23), title='Kinematic ages', prop={'size': 8})
 plt.setp(legend.get_title(),fontsize=10)
+#~ legend.get_title().set_position((-100, 0))
+legend.get_title().set_position((-35, 0))
 legend.legendHandles[1]._sizes = [20]
 legend.legendHandles[2]._sizes = [20]
 legend.legendHandles[3]._sizes = [20]
-#~ legend.legendHandles[4]._sizes = [20]
+legend.legendHandles[4]._sizes = [20]
 
 
 
