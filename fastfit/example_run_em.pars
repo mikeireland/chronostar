@@ -1,0 +1,14 @@
+data_table          = /Users/marusa/chronostar/data/paper1/beta_Pictoris_with_gaia_small_everything_final_radial_velocity_reinit_masked.fits
+stellar_id_colname  = gaia_dr2
+
+folder_destination  = test99
+filename_init_comps = example_best_comps5.npy
+
+# filename_init_memb_probs = 
+
+max_comp_count      = 40
+min_em_iterations   = 15
+lnlike_convergence_slice_size = 5
+
+use_background      = True
+

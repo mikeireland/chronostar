@@ -1,0 +1,12 @@
+data_table          = synt/3_naive_2comps_and_background_data.fits
+stellar_id_colname  = name
+
+#folder_destination  = result_synt
+folder_destination  = result_synt_test_if_merged_chronostar_works
+
+max_comp_count      = 40
+min_em_iterations   = 15
+lnlike_convergence_slice_size = 5
+
+use_background      = True
+
