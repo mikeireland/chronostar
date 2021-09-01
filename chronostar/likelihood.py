@@ -342,3 +342,62 @@ def lnprob_func(pars, data, memb_probs=None,
         if not np.isfinite(lp):
             return np.inf
         return - (lp + lnlike(comp, data, memb_probs, **kwargs))
+
+def lnprob_func_gradient_descent(pars, args, **kwargs):
+    """Computes the log-probability for a fit to a group.
+
+    Parameters
+    ----------
+    pars
+        Parameters describing the group model being fitted
+        e.g. for SphereComponent:
+            0,1,2,3,4,5,   6,   7,  8
+            X,Y,Z,U,V,W,lndX,lndV,age
+    data
+    data: dict
+        'means': [nstars,6] float array_like
+            the central estimates of star phase-space properties
+        'covs': [nstars,6,6] float array_like
+            the phase-space covariance matrices of stars
+        'bg_lnols': [nstars] float array_like (opt.)
+            the log overlaps of stars with whatever pdf describes
+            the background distribution of stars.
+    memb_probs
+        array of weights [0.0 - 1.0] for each star, describing how likely
+        they are members of group to be fitted.
+    Component: Class implmentation of component.AbstractComponent
+        A class that can read in `pars`, and generate the three key
+        attributes for the modelled origin point:
+        mean, covariance matrix, age
+        As well as get_current_day_projection()
+        See AbstractComponent to see which methods must be implemented
+        for a new model.
+    trace_orbit_func: function {None}
+        A function that, given a starting phase-space position, and an
+        age, returns a new phase-space position. Leave as None to use
+        default (traceorbit.trace_cartesian_orbit) set in the abstract
+        component initializer.
+    kwargs:
+        Any extra parameters will be carried over to lnlike.
+        As of 2019-12-04 this feature has never been utilised.
+
+    Returns
+    -------
+    logprob
+        the logarithm of the posterior probability of the fit
+    """
+    
+    # This is how scipy.optimize.minimize handles parameters
+    data=args[0]
+    memb_probs = args[1]
+    trace_orbit_func = args[2]
+    Component=args[3]
+    
+    # TODO: Does the creation of comp take a lot of time?
+    comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
+    lp = lnprior(comp, memb_probs)
+
+
+    if not np.isfinite(lp):
+        return np.inf
+    return - (lp + lnlike(comp, data, memb_probs, **kwargs))

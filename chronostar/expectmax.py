@@ -939,6 +939,170 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
            all_final_pos, success_mask
 
 
+def maximisation_gradient_descent(data, ncomps=None, memb_probs=None, 
+                 all_init_pars=None, all_init_pos=None,
+                 convergence_tol=1,
+                 Component=SphereComponent,
+                 trace_orbit_func=None,
+                 optimisation_method='Nelder-Mead',
+                 idir=None,
+                 ):
+    """
+    MZ: changed the code but not the docs...
+    
+    Performs the 'maximisation' step of the EM algorithm
+
+    all_init_pars must be given in 'internal' form, that is the standard
+    deviations must be provided in log form.
+
+    Parameters
+    ----------
+    data: dict
+        See fit_many_comps
+    ncomps: int
+        Number of components being fitted
+    memb_probs: [nstars, ncomps {+1}] float array_like
+        See fit_many_comps
+    burnin_steps: int
+        The number of steps for each burnin loop
+    idir: str
+        The results directory for this iteration
+    all_init_pars: [ncomps, npars] float array_like
+        The initial parameters around which to initialise emcee walkers
+    all_init_pos: [ncomps, nwalkers, npars] float array_like
+        The actual exact positions at which to initialise emcee walkers
+        (from, say, the output of a previous emcee run)
+    plot_it: bool {False}
+        Whehter to plot lnprob chains (from burnin, etc) as we go
+    pool: MPIPool object {None}
+        pool of threads to execute walker steps concurrently
+    convergence_tol: float {0.25}
+        How many standard devaitions an lnprob chain is allowed to vary
+        from its mean over the course of a burnin stage and still be
+        considered "converged". Default value allows the median of the
+        final 20 steps to differ by 0.25 of its standard deviations from
+        the median of the first 20 steps.
+    ignore_dead_comps : bool {False}
+        if componennts have fewer than 2(?) expected members, then ignore
+        them
+    ignore_stable_comps : bool {False}
+        If components have been deemed to be stable, then disregard them
+    Component: Implementation of AbstractComponent {Sphere Component}
+        The class used to convert raw parametrisation of a model to
+        actual model attributes.
+    trace_orbit_func: function {None}
+        A function to trace cartesian oribts through the Galactic potential.
+        If left as None, will use traceorbit.trace_cartesian_orbit (base
+        signature of any alternate function on this ones)
+    optimisation_method: str {'emcee'}
+        Optimisation method to be used in the maximisation step to fit
+        the model. Default: emcee. Available: scipy.optimise.minimize with
+        the Nelder-Mead method. Note that in case of the gradient descent,
+        no chain is returned and meds and spans cannot be determined.
+    nprocess_ncomp: bool {False}
+        How many processes to use in the maximisation of ncomps with
+        python's multiprocessing library in case Nelder-Mead is used.
+        
+    Returns
+    -------
+    new_comps: [ncomps] Component array
+        For each component's maximisation, we have the best fitting component
+    all_samples: [ncomps, nwalkers, nsteps, npars] float array
+        An array of each component's final sampling chain
+    all_lnprob: [ncomps, nwalkers, nsteps] float array
+        An array of each components lnprob
+    all_final_pos: [ncomps, nwalkers, npars] float array
+        The final positions of walkers from each separate Compoment
+        maximisation. Useful for restarting the next emcee run.
+    success_mask: np.where mask
+        If ignoring dead components, use this mask to indicate the components
+        that didn't die
+    """
+
+    new_comps = []
+    all_lnprob = []
+    all_final_pos = []
+
+    for i in range(ncomps):
+        best_comp, final_pos, lnprob = compfitter.fit_comp_gradient_descent_multiprocessing(
+            data=data, memb_probs=memb_probs[:, i],
+            convergence_tol=convergence_tol,
+            init_pos=all_init_pos[i],
+            init_pars=all_init_pars[i], Component=Component,
+            trace_orbit_func=trace_orbit_func,
+            optimisation_method=optimisation_method, # e.g. Nelder-Mead
+        )
+
+        # Save results
+        gdir = os.path.join(idir, "comp{}/".format(i))
+        mkpath(gdir)
+        best_comp.store_raw(gdir + 'best_comp_fit.npy')
+        np.save(gdir + 'final_lnprob.npy', lnprob)
+
+
+        new_comps.append(best_comp)
+        all_final_pos.append(final_pos)
+        all_lnprob.append(lnprob)
+
+
+    return new_comps, all_lnprob, all_final_pos
+
+
+def maximisation_gradient_descent_multiprocessing(data, ncomps=None, 
+        memb_probs=None, all_init_pars=None, all_init_pos=None,
+        convergence_tol=1, Component=SphereComponent,
+        trace_orbit_func=None, optimisation_method='Nelder-Mead',
+        idir=None,
+        ):
+    """
+    MZ: changed the code but not the docs...
+    """
+
+    manager = multiprocessing.Manager()
+    return_dict = manager.dict()
+
+    def worker(i, return_dict):
+        best_comp, final_pos, lnprob = compfitter.fit_comp_gradient_descent_multiprocessing(
+            data=data, memb_probs=memb_probs[:, i],
+            convergence_tol=convergence_tol,
+            init_pos=all_init_pos[i],
+            init_pars=all_init_pars[i], Component=Component,
+            trace_orbit_func=trace_orbit_func,
+            optimisation_method=optimisation_method, # e.g. Nelder-Mead
+        )
+
+        # Save results
+        #~ gdir = os.path.join(idir, "comp{}/".format(i))
+        #~ mkpath(gdir)
+        #~ best_comp.store_raw(gdir + 'best_comp_fit.npy')
+        #~ np.save(gdir + 'final_lnprob.npy', lnprob)
+
+        return_dict[i] = [best_comp, lnprob, final_pos]
+
+
+    jobs = []
+    for i in range(ncomps):
+        process = multiprocessing.Process(target=worker, 
+            args=(i, return_dict))
+        jobs.append(process)
+
+    # Start the processes
+    for j in jobs:
+        j.start()
+
+    # Ensure all of the processes have finished
+    for j in jobs:
+        j.join()
+
+
+    new_comps = [return_dict[i][0] for i in range(ncomps)]
+    all_lnprob = [return_dict[i][1] for i in range(ncomps)]
+    all_final_pos = [return_dict[i][2] for i in range(ncomps)]
+
+
+    return new_comps, all_lnprob, all_final_pos
+
+
 def check_stability(data, best_comps, memb_probs, use_box_background=False):
     """
     Checks if run has encountered problems
