@@ -9,10 +9,13 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+import os
 plt.ion()
 
 # Pretty plots
 from fig_settings import *
+
+from magnetic_isochrones import magnetic_isochrones as magiso
 
 ############################################
 # Some things are the same for all the plotting scripts and we put
@@ -234,8 +237,44 @@ def plot_parameterised_T_component(ax, c='k', linewidth=0.5):
 
     ax.plot(x, p(x), c=c, linewidth=linewidth, label='Parameterised component T (15 $\pm$ 3 Myr)')
 
-plot_parameterised_T_component(ax, c='k')
-plot_parameterised_T_component(ax2, c='k')
+#~ plot_parameterised_T_component(ax, c='k')
+#~ plot_parameterised_T_component(ax2, c='k')
+
+
+def plot_baraffe_isochrone(ax, ax2, age=10, c='magenta', ls='-', lw=1):
+    """
+    Plot Baraffe isochrones
+    """
+    root = 'baraffe_isochrones'
+    filename = os.path.join(root, 'BHAC15_iso.GAIA.age0.0%02d0.dat'%age)
+    iso = np.loadtxt(filename, comments='!')
+    
+    mask = iso[:,-2]-iso[:,-1]<4.25
+    
+    ax.plot(iso[mask,-2]-iso[mask,-1], iso[mask,-3], c=c, lw=lw, ls=ls, label='Baraffe %g Myr'%age)
+    ax2.plot(iso[mask,-2]-iso[mask,-1], iso[mask,-3], c=c, lw=lw, ls=ls)
+
+def plot_magnetic_isochrone(ax, ax2, age=None, c='k', ls='-', lw=1, root='magnetic_isochrones/MagneticUpperSco-master/models/iso/mag/'):
+    """
+    Feiden 2016 magnetic isochrone using Mamajek's relation to convert
+    Teff to Bp-Rp and logL to M_G
+    """
+    filename = os.path.join(root, 'dmestar_%07.1fmyr_z+0.00_a+0.00_phx_magBeq.iso'%age)
+    magiso10Myr = magiso.get_isochrone(filename=filename)
+    ax.plot(magiso10Myr[:,0], magiso10Myr[:,1], c=c, lw=lw, ls=ls, label='Magnetic %g Myr'%age)
+    ax2.plot(magiso10Myr[:,0], magiso10Myr[:,1], c=c, lw=lw, ls=ls)
+
+
+ls='--'
+plot_magnetic_isochrone(ax, ax2, age=5, c='g', ls=ls)
+plot_magnetic_isochrone(ax, ax2, age=10, c='r', ls=ls)
+plot_magnetic_isochrone(ax, ax2, age=15, c='k', ls=ls)
+
+ls='-'
+plot_baraffe_isochrone(ax, ax2, age=5, c='g', ls=ls)
+plot_baraffe_isochrone(ax, ax2, age=10, c='r', ls=ls)
+plot_baraffe_isochrone(ax, ax2, age=15, c='k', ls=ls)
+    
 
 ### Make plots pretty
 
@@ -340,6 +379,6 @@ ax.set_yticklabels(ytick_labels)
 fig.subplots_adjust(bottom=0.1, top=0.9)
 fig.subplots_adjust(hspace=0, wspace=0)
 
-plt.savefig('cmd_li_CUT_90percent_membership.pdf')
+#~ plt.savefig('cmd_li_CUT_90percent_membership.pdf')
 
 plt.show()
