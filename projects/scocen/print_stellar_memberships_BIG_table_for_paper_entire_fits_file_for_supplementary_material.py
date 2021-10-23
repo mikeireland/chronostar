@@ -9,7 +9,7 @@ Print only members of ScoCen. Background stars are not important!
 """
 
 import numpy as np
-from astropy.table import Table, unique
+from astropy.table import Table, unique, join
 import astropy.units as u
 
 from chronostar.component import SphereComponent
@@ -32,6 +32,7 @@ except:
 
 print('UNIQUE TABLE')
 tab = unique(tab, keys='source_id')
+print(len(tab))
 
 """
 Take only ScoCen members
@@ -101,10 +102,10 @@ print(tab[mask])
 """
 Bubar et al. 2018: Lithium in Sco-Cen
 
-MML7    Gaia DR2 5854812388999707008 MtVel  2.54 ± 0.14
-MML13   Gaia DR2 6053028978057952256 MtVel  2.53 ± 0.28
+MML7    Gaia DR2 5854812388999707008 MtVel  2.54 \pm 0.14
+MML13   Gaia DR2 6053028978057952256 MtVel  2.53 \pm 0.28
 MML28   	Gaia DR2 6080177569354209024
-MML30   Gaia DR2 6080364825623490688 MtVel  2.18 ± 0.12
+MML30   Gaia DR2 6080364825623490688 MtVel  2.18 \pm 0.12
 
 """
 
@@ -175,4 +176,4 @@ tab['EW(Li)_error'].unit = u.angstrom
 
 print(tab)
 
-tab.write('scocen_kinematics_and_membership_probabilities_gaiaDR2.fits')
+#~ tab.write('scocen_kinematics_and_membership_probabilities_gaiaDR2.fits')

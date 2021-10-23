@@ -3,6 +3,7 @@ Plot CMDs for CUT components and show that components with higher kinematic
 age show less overluminosity in comparison to others.
 """
 
+import os
 import numpy as np
 from astropy.table import Table
 import matplotlib.pyplot as plt
@@ -13,6 +14,9 @@ plt.ion()
 
 # Pretty plots
 from fig_settings import *
+
+from magnetic_isochrones import magnetic_isochrones as magiso
+
 
 ############################################
 # Some things are the same for all the plotting scripts and we put
@@ -200,9 +204,12 @@ for c2 in comps_to_plot:
     
     
     # Lithium
-    ax3.scatter(t['bp_rp_extinction_corrected'], t['EW(Li)'], s=10, c=colors[comp_ID], label='', edgecolor=edgecolor, linewidth=linewidth)
- 
- 
+    mask = np.isfinite(t['EW(Li)_err'])
+    ax3.errorbar(t['bp_rp_extinction_corrected'][mask], t['EW(Li)'][mask], yerr=t['EW(Li)_err'][mask], markersize=3, c=colors[comp_ID], label='', linewidth=0.5, fmt='o') 
+    
+    if comp_ID=='D':
+        ax3.errorbar(t['bp_rp_extinction_corrected'][mask], t['EW(Li)'][mask], yerr=t['EW(Li)_err'][mask], markersize=3, c=colors[comp_ID], label='', linewidth=0.5, fmt='o', ecolor='k')
+        ax3.scatter(t['bp_rp_extinction_corrected'], t['EW(Li)'], s=10, c=colors[comp_ID], label='', edgecolor=edgecolor, linewidth=linewidth, zorder=50) 
  
     # HD 139614, astroseismic age. Membership 65\% - so change membership_pmin accordingly
     mask = np.in1d(t['source_id'], 6001669793442284416)
@@ -219,8 +226,8 @@ for c2 in comps_to_plot:
 
 
 
-isochrone(ax, plot_young_iso=False)
-isochrone(ax2, plot_young_iso=False)
+#~ isochrone(ax, plot_young_iso=False)
+#~ isochrone(ax2, plot_young_iso=False)
 
 
 def plot_parameterised_T_component(ax, c='k', linewidth=0.5):
@@ -233,8 +240,54 @@ def plot_parameterised_T_component(ax, c='k', linewidth=0.5):
 
     ax.plot(x, p(x), c=c, linewidth=linewidth, label='Parameterised component T (15 $\pm$ 3 Myr)')
 
-plot_parameterised_T_component(ax, c='k')
-plot_parameterised_T_component(ax2, c='k')
+#~ plot_parameterised_T_component(ax, c='k')
+#~ plot_parameterised_T_component(ax2, c='k')
+
+
+
+
+def plot_baraffe_isochrone(ax, ax2, age=10, c='magenta', ls='-', lw=1, fln=None, label=None):
+    """
+    Plot Baraffe isochrones, Baraffe et al. 2015, 2015A&A...577A..42B
+    """
+    root = 'baraffe_isochrones'
+    if fln is None:
+        fln = 'BHAC15_iso.GAIA.age0.0%02d0.dat'%age
+    filename = os.path.join(root, fln)
+    iso = np.loadtxt(filename, comments='!')
+    
+    mask = iso[:,-2]-iso[:,-1]<4.25
+    
+    if label is None:
+        label = 'BHAC15, %g Myr'%age
+    ax.plot(iso[mask,-2]-iso[mask,-1], iso[mask,-3], c=c, lw=lw, ls=ls, label=label)
+    ax2.plot(iso[mask,-2]-iso[mask,-1], iso[mask,-3], c=c, lw=lw, ls=ls)
+
+def plot_magnetic_isochrone(ax, ax2, age=None, c='k', ls='-', lw=1, root='magnetic_isochrones/MagneticUpperSco-master/models/iso/mag/'):
+    """
+    Feiden 2016 magnetic isochrone using Mamajek's relation to convert
+    Teff to Bp-Rp and logL to M_G
+    """
+    filename = os.path.join(root, 'dmestar_%07.1fmyr_z+0.00_a+0.00_phx_magBeq.iso'%age)
+    magiso10Myr = magiso.get_isochrone(filename=filename)
+    ax.plot(magiso10Myr[:,0], magiso10Myr[:,1], c=c, lw=lw, ls=ls, label='F16, magnetic, %g Myr'%age)
+    ax2.plot(magiso10Myr[:,0], magiso10Myr[:,1], c=c, lw=lw, ls=ls)
+
+
+ls='-'
+lw=1
+#~ plot_magnetic_isochrone(ax, ax2, age=5, c='g', ls=ls)
+plot_magnetic_isochrone(ax, ax2, age=10, c='b', ls=ls, lw=lw)
+plot_magnetic_isochrone(ax, ax2, age=15, c='g', ls=ls, lw=lw)
+
+ls='-'
+lw=1
+plot_baraffe_isochrone(ax, ax2, age=5, c='k', ls=ls, lw=lw)
+plot_baraffe_isochrone(ax, ax2, age=10, c='cyan', ls=ls, lw=lw)
+plot_baraffe_isochrone(ax, ax2, age=15, c='magenta', ls=ls, lw=lw)
+plot_baraffe_isochrone(ax, ax2, age=1000, c='k', ls=':', lw=1, fln='BHAC15_iso.GAIA.age1.0000.dat', label='BHAC15, 1 Gyr')
+    
+
 
 ### Make plots pretty
 
@@ -289,18 +342,22 @@ plt.setp(ax2.get_xticklabels(), visible=False)
 
    
 # LEGEND
-handles, labels = ax.get_legend_handles_labels()
-labels = [labels[0], labels[2], labels[3], labels[4], labels[1]]
-handles = [handles[0], handles[2], handles[3], handles[4], handles[1]]
+#~ handles, labels = ax.get_legend_handles_labels()
+#~ labels = [labels[0], labels[2], labels[3], labels[4], labels[1]]
+#~ handles = [handles[0], handles[2], handles[3], handles[4], handles[1]]
+handles0, labels0 = ax.get_legend_handles_labels()
+indices = [-3, -2, -1, 0, 1, 2, 3, 4, 5]
+labels = [labels0[i] for i in indices]
+handles = [handles0[i] for i in indices]
 #~ legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.23, 0.23), title='Kinematic ages', prop={'size': 8})
-legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.42, 0.23), title='Kinematic ages', prop={'size': 8})
+legend=ax.legend(handles, labels, markerscale=5, frameon=False, loc='center right', bbox_to_anchor=(0.26, 0.31), title='Kinematic ages', prop={'size': 8})
 plt.setp(legend.get_title(),fontsize=10)
 #~ legend.get_title().set_position((-100, 0))
-legend.get_title().set_position((-35, 0))
+legend.get_title().set_position((-20, 0))
 legend.legendHandles[1]._sizes = [20]
 legend.legendHandles[2]._sizes = [20]
 legend.legendHandles[3]._sizes = [20]
-legend.legendHandles[4]._sizes = [20]
+legend.legendHandles[0]._sizes = [20]
 
 
 
@@ -340,5 +397,6 @@ ax.set_yticklabels(ytick_labels)
 fig.subplots_adjust(bottom=0.1, top=0.9)
 fig.subplots_adjust(hspace=0, wspace=0)
 
-plt.savefig('cmd_li_GDF_90percent_membership.pdf')
+#~ plt.savefig('cmd_li_GDF_90percent_membership.pdf')
+plt.savefig('cmd_li_GDF_90percent_membership_with_isochrones_new_reddening.pdf')
 plt.show()

@@ -18,8 +18,20 @@
 #input_file          = data/allsky_young_Mdwarfs_with_full_astrometry.fits
 #output_file         = data/allsky_young_Mdwarfs_with_full_astrometry_XYZUVW.fits
 
-input_file          = data/allsky_young_Mdwarfs_with_full_astrometry_bailer-jones_distances_parallax_is_from_BJ_distance_RVS_to_be_fixed.fits
-output_file         = data/allsky_young_Mdwarfs_with_full_astrometry_bailer-jones_distances_parallax_is_from_BJ_distance_RVS_to_be_fixed_XYZUVW.fits
+#input_file          = data/allsky_young_Mdwarfs_with_full_astrometry_bailer-jones_distances_parallax_is_from_BJ_distance_RVS_to_be_fixed.fits
+#output_file         = data/allsky_young_Mdwarfs_with_full_astrometry_bailer-jones_distances_parallax_is_from_BJ_distance_RVS_to_be_fixed_XYZUVW.fits
+
+# Updated radial velocity to 5 pm 1.5 (Gaia has 3 pm 1.4) [km/s]
+#input_file          = data/pds70.fits
+#output_file         = data/pds70_XYZUVW.fits
+
+#input_file          = data/scocen_gaiadr2_for_the_paper_rv_li.fits
+#output_file         = data/scocen_gaiadr2_for_the_paper_rv_li_XYZUVW.fits
+
+input_file          = data/scocen_gaiadr2_for_the_paper_rv_no_ges_li.fits
+output_file         = data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW.fits
+
+
 
 
 # General usage flags

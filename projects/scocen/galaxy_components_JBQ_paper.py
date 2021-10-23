@@ -116,7 +116,7 @@ def plot_3_windows_gx(ax, labels=True, lw=2, ls='-', c='b'):
 
     # Unknown cluster on the left
     if labels:
-        ax.annotate('Unknown?',
+        ax.annotate('overdensity',
                 xy=(378, 7), xycoords='data',
                 xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)    
 
@@ -204,5 +204,8 @@ plt.tight_layout()
 
 # SAVE FIGURES
 #~ plt.savefig('gx_components_JBQ.pdf')
+
+ax.set_rasterized(True)
+plt.savefig('gx_components_JBQ_rasterized.pdf')
 
 plt.show()

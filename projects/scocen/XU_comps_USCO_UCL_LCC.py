@@ -26,6 +26,7 @@ good_comps = ['C', 'U', 'T', 'A', 'G', 'F', 'D'] # Q only has two points, and th
 comps_for_line_fit = ['U', 'T', 'A', 'G', 'F', 'D'] # H and I have very different W velocities and are not associated with ScoCen. C screws up the fit completely!
 compnames = lib.compnames
 colors = lib.colors
+add_labels = True
 ############################################
 # Minimal probability required for membership
 pmin_membership = 0.9 # In the paper
@@ -97,16 +98,21 @@ for i, c in enumerate(comps):
     if comp_ID=='D':
         markeredgecolor='k'
         markersize=2
+        #~ fmt='o', 
+        ecolor='k'
+        elinewidth=0.3
     else:
         markeredgecolor='none'
         markersize=2
+        ecolor=colors[comp_ID] # errorbar color
+        elinewidth=0.5
     
     #~ label = '%s (%.2f$\pm$%.2f Myr) %d'%(labels[comp_ID], age, c['Age_reliable'], len(t))
     #~ label = '%s'%(labels[comp_ID])
     label = '%s'%(labels[comp_ID])
     label = label.replace('(', '(%.0f\,$\pm$\,%.0f\,Myr; '%(age, c['Crossing_time']))
     #~ print(label)
-    ax.errorbar(t['X'], t['U'], xerr=t['X_error'], yerr=t['U_error'], c=colors[comp_ID], fmt='o', markersize=markersize, lw=lw, zorder=zorder, label=label, markeredgewidth=0.2, markeredgecolor=markeredgecolor)    
+    ax.errorbar(t['X'], t['U'], xerr=t['X_error'], yerr=t['U_error'], c=colors[comp_ID], fmt='o', markersize=markersize, lw=lw, zorder=zorder, label=label, markeredgewidth=0.2, markeredgecolor=markeredgecolor, ecolor=ecolor, elinewidth=elinewidth)    
 
     
     # Plot components
@@ -121,6 +127,45 @@ for i, c in enumerate(comps):
     mean_now = comps_raw[i].get_mean_now()
     print(comp_ID, mean_now[0], mean_now[3], len(t))
 
+
+def add_labels_to_the_plot():
+    """
+    Add component labels to the plot
+    """
+    
+    fs=12 # fontsize
+    c='k'
+    
+    ax.annotate('A', xy=(73, 5), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('U', xy=(55, -1), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('C', xy=(120, 1), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)    
+    
+    ax.annotate('G', xy=(120, 9), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('T', xy=(87, 1.5), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('D', xy=(158, 4.5), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('F', xy=(170, 10.5), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs) 
+
+if add_labels:
+    add_labels_to_the_plot()
 
 
 # FIT A LINE: y [km/s] = k * x [pc], so units for k are km/s/pc. 1/k should be age
@@ -148,7 +193,7 @@ print('Age', age, 'Myr')
 
 # Plot a line
 x = [0, 200]
-ax.plot(x, p(x), c='k', linestyle='-', linewidth=0.5, label='Age = %.0f Myr'%age)
+ax.plot(x, p(x), c='k', linestyle='-', linewidth=0.5, label='Expansion age = %.0f Myr'%age)
 print(z)
 print(z_cov)
 
@@ -184,6 +229,7 @@ plt.setp(legend.get_title(),fontsize=10)
 
 
 
-plt.savefig('XU_comps_scocen.pdf')
+#~ plt.savefig('XU_comps_scocen.pdf')
+plt.savefig('XU_comps_scocen_with_labels.pdf')
     
 plt.show()

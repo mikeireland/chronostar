@@ -25,6 +25,7 @@ exclude_components.append('B')
 exclude_components.append('J')
 compnames = lib.compnames
 colors = lib.colors
+add_labels = True # Add component labels in the plot
 ############################################
 
 # Minimal probability required for membership
@@ -91,7 +92,10 @@ for c in comps:
     #~ label = r'%s (%d), %.1f$\pm$%.1f Myr, %s'%(comp_id, len(t), age, c['Crossing_time'], name_literature)
     label = r'%s (%d)'%(comp_id, len(t))
     
-    cb=ax.scatter(t['l'], t['b'], s=1, c=colors[comp_id], marker='.', label=label, alpha=0.6)
+    if comp_id=='D':
+        ax.scatter(t['l'], t['b'], s=30, c=colors[comp_id], edgecolor='k', linewidth=0.2, marker='.', label=label)
+    else:
+        ax.scatter(t['l'], t['b'], s=1, c=colors[comp_id], marker='.', label=label, alpha=0.6)
     
     total+=len(t)
     
@@ -164,16 +168,81 @@ def manage_legend(ax):
     #~ fig.subplots_adjust(bottom=0.15, top=0.9)
     # Put a legend below current axis
     #~ ax.legend(loc='upper center', bbox_to_anchor=(1.18, 1.05), frameon=False,
-    ax.legend(loc='upper center', bbox_to_anchor=(1.09, 1.03), frameon=False,
+    legend = ax.legend(loc='upper center', bbox_to_anchor=(1.09, 1.03), frameon=False,
               fancybox=False, shadow=False, ncol=1, markerscale=10)
+    legend.legendHandles[7]._sizes = [100]
 
+def add_labels_to_the_plot():
+    """
+    Add component labels to the plot
+    """
+    
+    fs=12 # fontsize
+    c='k'
+    
+    ax.annotate('A', xy=(295, 15), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('U', xy=(310, -9), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('C', xy=(350, 26), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    #~ ax.annotate('E', xy=(367.5, -6.8), 
+    ax.annotate('E', xy=(376, -16), 
+    #~ ax.annotate('E', xy=(370.5, 5.7), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('G', xy=(340, 26), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('H', xy=(290, -15), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('I', xy=(275, 5), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('T', xy=(310, 24), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    #~ ax.annotate('D', xy=(345, 3), 
+    ax.annotate('D', xy=(341, -15), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+
+    w=0.05
+    lw=0.3
+    hw=1.5
+    hl=2
+    ax.arrow(340, -10, 3, 11, width=w, lw=lw, head_width=hw, 
+        head_length=hl, color='k')
+
+    #~ ax.annotate('F', xy=(340, -4), 
+    ax.annotate('F', xy=(334, -8), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+
+    ax.arrow(335, -5, 2.3, 6, width=w, lw=lw, head_width=hw, 
+        head_length=hl, color='k')
 
 plot_3_windows_gx(ax, labels=False, lw=0.5, ls='-', c='k')
 gx_set_labels_and_ticks_over_360deg(ax)
 manage_legend(ax)
 
+if add_labels:
+    add_labels_to_the_plot()
+
 
 # SAVE FIGURES
-plt.savefig('gx_components.pdf')
+plt.savefig('gx_components_with_labels.pdf')
 
 plt.show()

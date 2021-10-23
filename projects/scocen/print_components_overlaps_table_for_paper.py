@@ -26,7 +26,9 @@ pmin_memberships = [0.5, 0.8, 0.9]
 tab = Table.read(data_filename)
 comps = Table.read(comps_filename)
 
-tab = unique(tab, keys='source_id')
+#~ print(len(tab), 'before unique')
+#~ tab = unique(tab, keys='source_id')
+#~ print(len(tab), 'after unique')
 
 total50=0
 total80=0

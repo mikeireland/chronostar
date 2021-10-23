@@ -218,7 +218,7 @@ def gx_set_labels_and_ticks_over_360deg(ax):
 # Data used in the fit
 fig=plt.figure(figsize=(figsize[1], figsize[0]))
 ax=fig.add_subplot(111)
-ax.scatter(tabf['l'], tabf['b'], s=1, c='k', marker='.', label='')
+ax.scatter(tabf['l'], tabf['b'], s=1, c='k', marker='.', label='', alpha=0.5)
 print('Total number of stars in this plot:', len(tabf))
 gx_set_labels_and_ticks_over_360deg(ax)
 plot_3_windows_gx(ax, labels=True, lw=1, ls='-', c='k')

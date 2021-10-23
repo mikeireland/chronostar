@@ -26,6 +26,7 @@ good_comps = ['C', 'U', 'T', 'A', 'G', 'F', 'D'] # Q only has two points, and th
 comps_for_line_fit = ['U', 'T', 'A', 'G', 'F', 'D'] # H and I have very different W velocities and are not associated with ScoCen. C screws up the fit completely!
 compnames = lib.compnames
 colors = lib.colors
+add_labels = True
 ############################################
 # Minimal probability required for membership
 pmin_membership = 0.9 # In the paper
@@ -92,17 +93,20 @@ for i, c in enumerate(comps):
     if comp_ID=='D':
         markeredgecolor='k'
         markersize=2
+        ecolor='k'
+        elinewidth=0.3
     else:
         markeredgecolor='none'
         markersize=2
-
+        ecolor=colors[comp_ID] # errorbar color
+        elinewidth=0.5
     
     #~ label = '%s (%.2f$\pm$%.2f Myr) %d'%(labels[comp_ID], age, c['Age_reliable'], len(t))
     #~ label = '%s'%(labels[comp_ID])
     label = '%s'%(labels[comp_ID])
     label = label.replace('(', '(%.0f\,$\pm$\,%.0f\,Myr; '%(age, c['Crossing_time']))
     #~ print(label)
-    ax.errorbar(t['Y'], t['V'], xerr=t['Y_error'], yerr=t['V_error'], c=colors[comp_ID], fmt='o', markersize=markersize, lw=lw, zorder=zorder, label = label, markeredgewidth=0.2, markeredgecolor=markeredgecolor)
+    ax.errorbar(t['Y'], t['V'], xerr=t['Y_error'], yerr=t['V_error'], c=colors[comp_ID], fmt='o', markersize=markersize, lw=lw, zorder=zorder, label = label, markeredgewidth=0.2, markeredgecolor=markeredgecolor, ecolor=ecolor, elinewidth=elinewidth)
 
 
     
@@ -120,9 +124,61 @@ for i, c in enumerate(comps):
     print(comp_ID, mean_now[0], mean_now[3], len(t))
 
 
+def add_labels_to_the_plot():
+    """
+    Add component labels to the plot
+    """
+    
+    fs=12 # fontsize
+    c='k'
+    
+    ax.annotate('A', xy=(-40, -13), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('U', xy=(-18, -8.5), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('C', xy=(-5, -4), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)    
+    
+    ax.annotate('G', xy=(45, -10.7), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('T', xy=(15, -9), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('D', xy=(-50, -6), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs)  
+    
+    ax.annotate('F', xy=(62, -12), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs) 
+    
+    ax.annotate('UCL group', xy=(13, -13.3), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs) 
+    
+    ax.annotate('LCC group', xy=(-25, -11), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs) 
+    
+    ax.annotate('USCO', xy=(-35, -1.5), 
+        xycoords='data', xytext=(0, 1), textcoords='offset points', 
+        color=c, fontsize=fs) 
+
+
+if add_labels:
+    add_labels_to_the_plot()
+    
 
 ax.set_xlim(-125, 75)
-ax.set_ylim(-14, 1)
+ax.set_ylim(-14, 2)
 
 ax.set_xlabel('Y [pc]')
 ax.set_ylabel(r'V [$\mathrm{km\,s^{-1}}$]')
@@ -150,6 +206,7 @@ plt.setp(legend.get_title(),fontsize=10)
 
 
 
-plt.savefig('YV_comps_scocen.pdf')
+#~ plt.savefig('YV_comps_scocen.pdf')
+plt.savefig('YV_comps_scocen_with_labels.pdf')
     
 plt.show()

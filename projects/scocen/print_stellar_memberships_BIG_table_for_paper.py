@@ -113,8 +113,14 @@ def table_with_basic_columns_and_kinematics():
     print('Gaia\,DR2 & & & & & & & & & & & & & & & & & & & \AA & \AA & RV/Li \\\\')
 
 
-
-    for x in tab[:50]:
+    N=35
+    i=0
+    for x in tab:
+        if x['X_error']>0.09 and x['Y_error']>0.09 and x['Z_error']>0.09 and x['U_error']>0.09 and x['V_error']>0.09 and x['W_error']>0.09:
+            pass
+        else:
+            continue
+        
         line = '%d & '%x['source_id']
         line += '%.2f & '%x['bp_rp_extinction_corrected']
         line += '%.2f & '%x['phot_g_mean_mag_extinction_corrected']
@@ -151,5 +157,9 @@ def table_with_basic_columns_and_kinematics():
 
 
         print(line)
+        i+=1
+        
+        if i==N:
+            break
 
 table_with_basic_columns_and_kinematics()

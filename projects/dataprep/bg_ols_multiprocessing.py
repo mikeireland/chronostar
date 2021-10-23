@@ -91,7 +91,10 @@ rank=comm.Get_rank()
 if rank == 0:
     # PREPARE STELLAR DATA
     #~ datafile = '/priv/mulga1/marusa/chronostar/data/ScoCen_box_result_15M_ready_for_bg_ols.fits'
-    datafile = 'solar_neighbourhood_determine_bg_ols_for_these_stars.fits'
+    #~ datafile = 'solar_neighbourhood_determine_bg_ols_for_these_stars.fits'
+    #~ datafile = 'solar_neighbourhood_determine_bg_ols_for_these_stars.fits'
+    #~ datafile = '/Users/marusa/chronostar/projects/scocen/data/pds70_XYZUVW.fits'
+    datafile = '/Users/marusa/chronostar/projects/scocen/data/scocen_gaiadr2_for_the_paper_rv_li_XYZUVW_subset_compute_bg_old_for_these_stars.fits'
     data_table = tabletool.read(datafile)
     historical = 'c_XU' in data_table.colnames
     #data_table = data_table[:20] #TODO for testing
@@ -118,7 +121,8 @@ if rank == 0:
     # PREPARE BACKGROUND DATA
     print('Read background Gaia data')
     background_means = tabletool.build_data_dict_from_table(
-        '/home/tcrun/chronostar/data/gaia_cartesian_full_6d_table.fits',
+        #~ '/home/tcrun/chronostar/data/gaia_cartesian_full_6d_table.fits',
+        '/Users/marusa/chronostar/data/gaia_cartesian_full_6d_table.fits',
         only_means=True,
     )
 
@@ -183,7 +187,8 @@ for star_cov, star_mean in zip(star_covs, star_means):
 bg_ln_ols_result = comm.gather(bg_ln_ols, root=0)
 if rank == 0:
     bg_ln_ols_result = list(itertools.chain.from_iterable(bg_ln_ols_result))
-    np.savetxt('bgols_multiprocessing_round2_%d.dat'%NI, bg_ln_ols_result)
+    #~ np.savetxt('bgols_multiprocessing_round2_%d.dat'%NI, bg_ln_ols_result)
+    np.savetxt('pds70_%d.dat'%NI, bg_ln_ols_result)
 
     time_end = time.time()
     print(rank, 'done', time_end - time_start)

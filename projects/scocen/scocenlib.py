@@ -13,7 +13,21 @@ what colors are associated with what components etc.
 #~ data_filename = 'data/scocen_vac_DR2_with_21_overlaps_may2021_test2.fits' # This one should have RVs fixed. Works fine...
 
 #~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits' # This one should have RVs fixed
-data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_reddening_correction.fits' # This one should have RVs fixed
+#~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_reddening_correction.fits' # This one should have RVs fixed # THIS ONE IS USED IN THE PAPER
+#~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_reddening_correction2.fits' # This one should have RVs fixed. This was reconstructed after I accidentally saved only a table with 10k scocen members. But I want to have all 800k stars
+#~ data_filename = 'data/test.fits' # This one should have RVs fixed. This was reconstructed after I accidentally saved only a table with 10k scocen members. But I want to have all 800k stars
+#~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_iterative_color_depedent_reddening_correction.fits' # This one should have RVs fixed. Reddening is computed with a revised Adam's code in an iterative processs! This is the GOOD version.
+#~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_iterative_color_depedent_reddening_correction_Ref.fits' # This one should have RVs fixed. Reddening is computed with a revised Adam's code in an iterative processs! This is the GOOD version. Added references for the paper.
+#~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_iterative_color_depedent_reddening_correction_Ref_RizzutoLithium.fits' # This one should have RVs fixed. Reddening is computed with a revised Adam's code in an iterative processs! This is the GOOD version. Added references for the paper, and Rizzuto lithium
+
+
+# New radial velocities: merged repeats from RAVE, 2.3m and APOGEE into one single value.
+# Lithium added manually, including Rizzuto EW(Li)
+# New background overlaps, except: Those beyond 200pc are mostly missing and are set to -99999. Since we don't really have many members beyond 200pc I decided that it's ok and leave it.
+#~ data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_li_XYZUVW_overlaps_with_21_components.fits'
+#~ data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_li_XYZUVW_overlaps_with_21_components_and_reddening_correction.fits'
+data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW_overlaps_with_21_components_and_reddening_correction.fits'
+#~ data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW_overlaps_with_21_components.fits'
 
 #~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_cra.fits' # This one should have RVs fixed. Added CrA
 #~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_plus_additional_comps.fits'

@@ -22,23 +22,28 @@ from astropy.table import Table, vstack, join
 
 ##################################################
 ######### INPUT ##################################
-#~ comps_filename = 'data/final_comps_21.fits'
+comps_filename = 'data/final_comps_21.fits'
 #~ comps_filename = 'data/final_comps_21_with_cra.fits'
 #~ comps_filename = 'data/final_comps_8_CrA.fits'
 #~ comps_filename = 'data/final_comps_CE_9G_not_converged_yet.fits'
-comps_filename = 'data/final_comps_JQ_7B_not_converged_yet.fits'
+#~ comps_filename = 'data/final_comps_JQ_7B_not_converged_yet.fits'
 #~ comps_filename = 'data/final_comps_21_additional_comps.fits'
 
 # Filename of data you want to compute overlaps for. Background overlaps are added later in this file!
-gaia_filename = 'data/scocen_vac_DR2_distinct_XYZUVW.fits'
+#~ gaia_filename = 'data/scocen_vac_DR2_distinct_XYZUVW.fits'
+#~ gaia_filename = 'data/scocen_vac_DR2_distinct_XYZUVW_pds70_corrected_rv.fits'
+#~ gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_li_XYZUVW.fits'
+gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW.fits'
 
 # Save output to this file. This is a copy of gaia_filename plus newly added memberships
 #~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits'
 #~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_cra.fits'
 #~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_cra_only.fits'
 #~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_CE_only.fits'
-filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_JQ_only.fits'
+#~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_JQ_only.fits'
+#~ filename_output = 'data/scocen_vac_DR2_distinct_XYZUVW_pds70_corrected_rv_with_overlaps.fits'
 #~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_plus_additional_comps.fits'
+filename_output = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW_overlaps_with_21_components.fits'
 
 ##################################################
 ##################################################
@@ -66,14 +71,40 @@ print('DATA READ', len(data_table))
 #data_table.remove_column('background_log_overlap') # because we add it a few lines later
 
 
-### Background overlaps ##########################
-#~ bg_ols_filename = 'data/background_log_overlaps_gaia_DR2.fits'
-bg_ols_filename = 'data/background_log_overlaps_scocen_DR2_updated_new_rvs.fits'
-print('ADDING background overlaps from %s'%bg_ols_filename)
-bg_ols = Table.read(bg_ols_filename)
-#~ bg_ols.rename_column('source_id', 'dr2_source_id')
-#~ data_table = join(data_table, bg_ols, keys='dr2_source_id', join_type='left')
-data_table = join(data_table, bg_ols, keys='source_id', join_type='left')
+#### Background overlaps ###############################################
+if 'background_log_overlap' not in data_table.colnames:
+    print('Adding background overlaps...')
+    #~ bg_ols_filename = 'data/background_log_overlaps_gaia_DR2.fits'
+    bg_ols_filename = 'data/background_log_overlaps_scocen_DR2_updated_new_rvs.fits'
+    #~ print('ADDING background overlaps from %s'%bg_ols_filename)
+    bg_ols = Table.read(bg_ols_filename)
+    from astropy.table import unique
+    b = unique(bg_ols)
+    bg_ols_dict = dict(zip(b['source_id'], b['background_log_overlap']))
+
+    # bg ols for PDS70 with updated RV
+    #~ mask = bg_ols['source_id']==6110141563309613056
+    #~ bg_ols['background_log_overlap'][mask]=-17.445963936315973
+    #~ print('BG OLS FOR PDS70!!!')
+
+    #~ bg_ols.rename_column('source_id', 'dr2_source_id')
+    #~ print('LEN before adding BG OLS', len(data_table))
+    ####~ data_table = join(data_table, bg_ols, keys='dr2_source_id', join_type='left')
+    #~ data_table = join(data_table, bg_ols, keys='source_id', join_type='left') # Use this one
+    #~ print('LEN after adding BG OLS', len(data_table))
+
+    print('Add bg ols')
+    data_table['background_log_overlap'] = [np.nan]*len(data_table)
+    for i, x in enumerate(data_table):
+        try:
+            overlap = bg_ols_dict[x['source_id']]
+            data_table[i]['background_log_overlap'] = overlap
+        except:
+            print(i, x['source_id'], 'NO BG OVERLAP!!!')
+    print('bg ols done.')
+else:
+    print('Background overlaps already available!')
+    
 mask = (data_table['background_log_overlap']<0)
 if np.sum(np.logical_not(mask))>0:
     print('WARNING: %d stars do not have background overlaps.'%np.sum(np.logical_not(mask)))
