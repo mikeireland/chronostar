@@ -33,7 +33,9 @@ comps_filename = 'data/final_comps_21.fits'
 #~ gaia_filename = 'data/scocen_vac_DR2_distinct_XYZUVW.fits'
 #~ gaia_filename = 'data/scocen_vac_DR2_distinct_XYZUVW_pds70_corrected_rv.fits'
 #~ gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_li_XYZUVW.fits'
-gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW.fits'
+#~ gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW.fits'
+#~ gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges2_li_XYZUVW.fits' # Fixed issue with RV
+gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges3_li_XYZUVW.fits' # Fixed issue with RV
 
 # Save output to this file. This is a copy of gaia_filename plus newly added memberships
 #~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components.fits'
@@ -43,7 +45,8 @@ gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW.fits'
 #~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_JQ_only.fits'
 #~ filename_output = 'data/scocen_vac_DR2_distinct_XYZUVW_pds70_corrected_rv_with_overlaps.fits'
 #~ filename_output = 'data/scocen_vac_DR2_distinct_overlaps_with_21_plus_additional_comps.fits'
-filename_output = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW_overlaps_with_21_components.fits'
+#~ filename_output = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges2_li_XYZUVW_overlaps_with_21_components.fits'
+filename_output = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges3_li_XYZUVW_overlaps_with_21_components.fits'
 
 ##################################################
 ##################################################
@@ -51,6 +54,17 @@ print('Computing component overlaps for %s'%gaia_filename)
 print('Output will be saved into %s'%filename_output)
 
 
+# Remove stars beyond 200pc
+tab = Table.read(gaia_filename)
+#~ mask = np.isfinite(tab['background_log_overlap'])
+mask = tab['dist']<=200
+print('within 200pc', np.sum(mask))
+#~ tab[mask].write('data/scocen_gaiadr2_for_the_paper_rv_no_ges2_li_XYZUVW_within200pc.fits')
+#~ gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges2_li_XYZUVW_within200pc.fits' # Fixed issue with RV
+#~ filename_output = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges2_li_XYZUVW_within200pc_overlaps_with_21_components.fits'
+tab[mask].write('data/scocen_gaiadr2_for_the_paper_rv_no_ges3_li_XYZUVW_within200pc.fits')
+gaia_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges3_li_XYZUVW_within200pc.fits' # Fixed issue with RV
+filename_output = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges3_li_XYZUVW_within200pc_overlaps_with_21_components.fits'
 
 
 
@@ -114,7 +128,7 @@ else:
     
     
 # This table is masked. Unmask:
-data_table=data_table.filled(-999999) # TODO: fill with a stupid value!!!!
+#~ data_table=data_table.filled(-999999) # TODO: fill with a stupid value!!!!
 ############################################################################
 ############ COMPONENT OVERLAPS ############################################
 ############################################################################

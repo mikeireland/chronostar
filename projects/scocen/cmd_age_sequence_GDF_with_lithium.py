@@ -213,7 +213,7 @@ for c2 in comps_to_plot:
  
     # HD 139614, astroseismic age. Membership 65\% - so change membership_pmin accordingly
     mask = np.in1d(t['source_id'], 6001669793442284416)
-    print(np.sum(mask))
+    #~ print(np.sum(mask))
     edgecolor='red'
     lw=2
     if np.sum(mask)==1:

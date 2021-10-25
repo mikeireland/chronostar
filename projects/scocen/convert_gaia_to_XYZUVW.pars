@@ -28,8 +28,15 @@
 #input_file          = data/scocen_gaiadr2_for_the_paper_rv_li.fits
 #output_file         = data/scocen_gaiadr2_for_the_paper_rv_li_XYZUVW.fits
 
-input_file          = data/scocen_gaiadr2_for_the_paper_rv_no_ges_li.fits
-output_file         = data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW.fits
+#input_file          = data/scocen_gaiadr2_for_the_paper_rv_no_ges_li.fits
+#output_file         = data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW.fits
+
+#input_file          = data/scocen_gaiadr2_for_the_paper_rv_no_ges2_li.fits
+#output_file         = data/scocen_gaiadr2_for_the_paper_rv_no_ges2_li_XYZUVW.fits
+
+input_file          = data/scocen_gaiadr2_for_the_paper_rv_no_ges3_li.fits
+output_file         = data/scocen_gaiadr2_for_the_paper_rv_no_ges3_li_XYZUVW.fits
+
 
 
 

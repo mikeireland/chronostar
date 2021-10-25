@@ -26,8 +26,11 @@ what colors are associated with what components etc.
 # New background overlaps, except: Those beyond 200pc are mostly missing and are set to -99999. Since we don't really have many members beyond 200pc I decided that it's ok and leave it.
 #~ data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_li_XYZUVW_overlaps_with_21_components.fits'
 #~ data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_li_XYZUVW_overlaps_with_21_components_and_reddening_correction.fits'
-data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW_overlaps_with_21_components_and_reddening_correction.fits'
+#~ data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW_overlaps_with_21_components_and_reddening_correction.fits'
 #~ data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges_li_XYZUVW_overlaps_with_21_components.fits'
+#~ data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges2_li_XYZUVW_within200pc_overlaps_with_21_components.fits'
+#~ data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges2_li_XYZUVW_within200pc_overlaps_with_21_components_and_reddening_correction.fits'
+data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges3_li_XYZUVW_within200pc_overlaps_with_21_components_and_reddening_correction.fits'
 
 #~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_components_with_cra.fits' # This one should have RVs fixed. Added CrA
 #~ data_filename = 'data/scocen_vac_DR2_distinct_overlaps_with_21_plus_additional_comps.fits'

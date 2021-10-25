@@ -11,7 +11,8 @@ from astropy.table import Table
 # Some things are the same for all the plotting scripts and we put
 # this into a single library to avoid confusion.
 import scocenlib as lib
-data_filename = lib.data_filename
+#~ data_filename = lib.data_filename
+data_filename = 'data/scocen_gaiadr2_for_the_paper_rv_no_ges3_li_XYZUVW_within200pc_overlaps_with_21_components.fits'
 comps_filename = lib.comps_filename
 comps_multiple_pop = lib.comps_multiple_pop
 bg_comps = lib.bg_comps

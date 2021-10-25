@@ -78,9 +78,15 @@ for c in comps:
     # PLOT STARS
     label = r'%s (%d)'%(comp_id, len(t))
     
-    cb=ax.scatter(t['l'], t['b'], s=1, c='grey', marker='.', alpha=0.2)
+    ax.scatter(t['l'], t['b'], s=1, c='grey', marker='.', alpha=0.5)
     
     total+=len(t)
+    
+    
+    # Check if stars are in Platais 9 (l=267, b=3.7, dist=182pc)
+    #~ mask = (t['l']>260) & (t['l']<275) & (t['b']>0) & (t['b']<10) & (t['dist']>160)
+    #~ ax.scatter(t['l'][mask], t['b'][mask], s=1, c='r', marker='.')
+    
     
 print('Total number of stars in this plot:', total)
 
@@ -115,9 +121,14 @@ def plot_3_windows_gx(ax, labels=True, lw=2, ls='-', c='b'):
 
 
     # Unknown cluster on the left
+    #~ if labels:
+        #~ ax.annotate('overdensity',
+                #~ xy=(378, 7), xycoords='data',
+                #~ xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)    
+
     if labels:
-        ax.annotate('overdensity',
-                xy=(378, 7), xycoords='data',
+        ax.annotate('Platais 9',
+                xy=(278, 9), xycoords='data',
                 xytext=(0, 1), textcoords='offset points', color=c, fontsize=12)    
 
     # Corona Australis

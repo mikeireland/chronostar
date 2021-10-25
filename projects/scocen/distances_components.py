@@ -40,7 +40,7 @@ except:
     comps = comps0
 
 
-tab = unique(tab, keys='source_id')
+#~ tab = unique(tab, keys='source_id')
 
 
 print('Shifting l by 100 to put ScoCen in the middle')
@@ -63,7 +63,8 @@ ax = fig.add_subplot(111)
 #~ b = {'A': 20, 'C': 25, 'D': 20, 'E': 40, 'F': 20, 'G': 20, 'I': 20, 'T': 20, 'U': 20}
 #~ b = {'A': 20, 'C': 50, 'D': 30, 'E': 100, 'F': 30, 'G': 20, 'T': 50, 'U': 25}
 #~ b = {'A': 20, 'C': 45, 'D': 30, 'E': 40, 'F': 30, 'G': 20, 'T': 50, 'U': 25, 'B':500} # version 1
-b = {'A': 20, 'C': 32, 'D': 30, 'E': 40, 'F': 30, 'G': 20, 'T': 50, 'U': 25, 'B':500} # version 2
+#~ b = {'A': 20, 'C': 32, 'D': 30, 'E': 40, 'F': 30, 'G': 20, 'T': 50, 'U': 25, 'B':500} # version 2
+b = {'A': 20, 'C': 45, 'D': 30, 'E': 35, 'F': 30, 'G': 20, 'T': 50, 'U': 25, 'B':500} # version 3 no_ges2
 
 #~ usco=Table()
 
@@ -152,11 +153,11 @@ def add_labels_to_the_plot():
         xycoords='data', xytext=(0, 1), textcoords='offset points', 
         color=c, fontsize=fs)  
      
-    ax.annotate('D', xy=(175, 52), 
+    ax.annotate('D', xy=(175, 47), 
         xycoords='data', xytext=(0, 1), textcoords='offset points', 
         color=c, fontsize=fs)  
 
-    ax.annotate('F', xy=(183, 23), 
+    ax.annotate('F', xy=(190, 14), 
         xycoords='data', xytext=(0, 1), textcoords='offset points', 
         color=c, fontsize=fs)  
 
