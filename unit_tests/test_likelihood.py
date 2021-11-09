@@ -24,7 +24,7 @@ def astropyCalcAlpha(dx,dv,nstars):
     Calculated alpha is unitless
     """
     return ((dv * u.km / u.s) ** 2 * dx * u.pc /
-            (const.G * nstars * const.M_sun)).decompose().value
+            (const.G * (nstars+1) * const.M_sun)).decompose().value
 
 
 def test_calcAlpha():

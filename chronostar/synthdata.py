@@ -55,7 +55,7 @@ class SynthData():
     def __init__(self, pars, starcounts, measurement_error=1.0,
                  Components=SphereComponent, savedir=None,
                  tablefilename=None, background_density=None,
-                 trace_orbit_func=None,
+                 trace_orbit_func=traceorbit.trace_epicyclic_orbit,
                  bg_span_scale=1.2):
         """
         Generates a set of astrometry data based on multiple star bursts with
