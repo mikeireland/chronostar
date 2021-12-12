@@ -1,11 +1,11 @@
 ## Fastfit
 Expectation-maximisation algorithm `run_em.py` can be run independently. 'fastfit.py' is the main code here, and is run as 'python3 fastfit.py parameters.pars'. `fastfit.py` is a simplified version of Chronostar. It is using gradiend descent only.
 
-- `run_em.py`: parameters can either be entered as an argument to `run_em.run_expectmax_simple` if called from another script. It `run_em.py` is run independently, it is run as `run_em.py example_run_em.pars`. Note that one or both of parameters `filename_init_memb_probs` or `filename_init_comps` are mandatory.
+- `run_em.py`: parameters can either be entered as an argument to `run_em.run_expectmax_simple` if called from another script. It `run_em.py` is run independently, it is run as `python3 run_em.py example_run_em.pars`. Note that one or both of parameters `filename_init_memb_probs` or `filename_init_comps` are mandatory.
 
 - `fastfit.py` is run as `python3 fastfit.py example_synthetic.pars`. 
 
-
+- `run_em_c_modules.c`: `run_em`, but with C modules for expectation and maximisation. TODO.
 
 
 ### More notes
@@ -25,3 +25,18 @@ Attached figure shows lnprob function (divided by its max value (which is negati
 
 Next step:
 I’ve tested the code with bPic data. The result has 2 components, and one of them is beta Pic, but it has significantly less members than in Tim’s paper. Also, 2 comps are less than in Tim’s paper though (6 components). Need to run Chronostar with emcee again to see if results agree and try to understand why we get different results.
+
+
+
+
+### Changes (making Chronostar more modular)
+- Maximisation is now in `maximisation.py`. It doesn't take `Component` objects anymore, but arrays. 
+- Conversion of velocities from km/s to pc/Myr should be done in the input data. This would avoid unit conversion in every single step of epicyclic propagation. Input velocities are left in km/s for now. TODO.
+- Add ro, vo, Oort's constants etc. to the params list.
+- Fix the LSR bug (sign). Add LSR to the params file.
+- prepare_data (astrometry to cartesian): Implement distances, e.g. from Bailer-Jones. What to do with assymetric uncertainties, and correlation coefficients? See this paper as well: https://arxiv.org/abs/2111.01860
+
+### Already implemented
+- `chronostar/prepare_input_data.py`: run with `python3 ../chronostar/prepare_input_data.py example_convert_astrometry_to_XYZUVW.pars`. This takes a table with astrometry downloaded from Gaia website and transforms it into cartesian system. It replaces the missing radial velocities with the values provided. Parameters are in `example_convert_astrometry_to_XYZUVW.pars`.
+
+- `temporal_propagation.c`: Works for a 6D point, but not yet for a covariance matrix. Need to use `gsl_matrix` but compiler doesn't like it.
