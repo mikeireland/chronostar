@@ -100,7 +100,8 @@ def test_expectation():
 
     memb_probs = expectation(st_mns, st_covs, gr_mn, gr_cov, 
         old_memb_probs, nstars, ncomps, old_memb_probs)
-    
+    # No idea what arguments are expected here. There must be 8 or them, according to the error messages. So I added a few variables at the end to make them 8. But the error message now is
+    # 'TypeError: in method 'expectation', argument 8 of type 'double *''
 
 
 
