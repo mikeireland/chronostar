@@ -59,9 +59,9 @@ gausft = np.fft.rfft(np.fft.fftshift(gaus))
 def g_kernal_den(col, gmag, n=100, r=0.01, data=tree, 
                  show_PDF=False, show_NearPop=True):
     age_h=make_hists(col, gmag, n=n, r=r, data=data);
-    age_pdf=np.fft.irfft(np.fft.rfft(age_h)*gausft);
-    grated=integrate.simps(age_pdf*10**lgage);
-    normed=age_pdf*10**lgage/grated;
+    age_pdf=np.fft.irfft(np.fft.rfft(age_h*10**lgage)*gausft);
+    grated=np.trapz(age_pdf,10**lgage);
+    normed=age_pdf/grated;
     if show_PDF:
          fig, ax = plt.subplots()
          ax.plot(lgage,normed)
