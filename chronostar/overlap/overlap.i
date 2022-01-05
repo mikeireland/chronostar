@@ -17,10 +17,9 @@
 
 /* rangevec must match the names given in header
  * however names in function definitions do not need to match header or here*/
-%apply (double* ARGOUT_ARRAY1, int DIM1) {
-    (double* rangevec, int n),
-    (double* lnols_output, int n)
-}
+%apply (double* ARGOUT_ARRAY1, int DIM1) \
+    {(double* rangevec, int n),
+    (double* lnols_output, int n)}
 
 %apply (double* IN_ARRAY3, int DIM1, int DIM2, int DIM3) \
       {(double* npyArray3D, int npyLength1D, int npyLength2D, int npyLength3D),

@@ -1,6 +1,11 @@
 /*
  * Expectation module. Compute membership probabilities here.
  * Overlaps are computed here.
+ * 
+ * 
+ * Missing in the interface file:     int inc_posterior, int amp_prior, double use_box_background, 
+    int using_bg);
+ * 
 */
 
 #include <stdio.h>
@@ -10,10 +15,12 @@
 #include <gsl/gsl_blas.h>
 
 
-void get_lnoverlaps(double* gr_cov, int gr_dim1, int gr_dim2, 
-    double* gr_mn, int gr_mn_dim, double* st_covs, int st_dim1, 
-    int st_dim2, int st_dim3, double* st_mns, int st_mn_dim1, 
-    int st_mn_dim2, double* lnols_output, int n) {
+void get_lnoverlaps(
+    double* gr_cov, int gr_dim1, int gr_dim2, 
+    double* gr_mn, int gr_mn_dim, 
+    double* st_covs, int st_dim1, int st_dim2, int st_dim3, 
+    double* st_mns, int st_mn_dim1, int st_mn_dim2, 
+    double* lnols_output, int n) {
     
     /* Function: get_lnoverlaps
     * ------------------------
@@ -126,10 +133,19 @@ void get_lnoverlaps(double* gr_cov, int gr_dim1, int gr_dim2,
 
 
 // No iterations - old version
-void get_all_lnoverlaps(double* st_mns, double* st_covs,
-    double* gr_mns, double* gr_covs, double* old_memb_probs, 
+//~ void get_all_lnoverlaps(double* st_mns, double* st_covs,
+    //~ double* gr_mns, double* gr_covs, double* old_memb_probs, 
+    //~ int inc_posterior, int amp_prior, double use_box_background, 
+    //~ int nstars, int ncomps, double* lnols, int using_bg) {
+void get_all_lnoverlaps(
+    double* st_mns, int st_mn_dim1, int st_mn_dim2,
+    double* st_covs, int st_dim1, int st_dim2, int st_dim3,
+    double* gr_mns, int gr_mn_dim1, int gr_mn_dim2,
+    double* gr_covs, int gr_dim1, int gr_dim2, int gr_dim3,
+    double* old_memb_probs, int memb_dim1, int memb_dim2,
     int inc_posterior, int amp_prior, double use_box_background, 
-    int nstars, int ncomps, double* lnols, int using_bg) {
+    double* lnols, int lnols_dim1, int lnols_dim2,
+    int using_bg) {
     /*
      * lnols: result is saved here. This is an array [nstars, ncomps+1]
      * comps_means: an array [ncomps][ndim] where ndim=9 for spherical components
@@ -192,12 +208,13 @@ void get_all_lnoverlaps(double* st_mns, double* st_covs,
 //~ //        old_memb_probs = np.ones((nstars, ncomps)) / ncomps
     
     // Compute weights. These are amplitudes of components and are equal to the number of members in each of the components.
-    double weights[ncomps];
+    //~ double weights[ncomps];
+    double weights[gr_mn_dim1];
     double sum;
-    for (i=0; i<ncomps; i++) {
+    for (i=0; i<gr_mn_dim1; i++) {
         sum=0.0;
-        for (j=0; j<nstars; j++) {
-            sum+=old_memb_probs[j*ncomps+i];
+        for (j=0; j<st_mn_dim1; j++) {
+            sum+=old_memb_probs[j*gr_mn_dim1+i];
         }
         weights[i] = sum;
     }
@@ -227,34 +244,34 @@ void get_all_lnoverlaps(double* st_mns, double* st_covs,
     
     
     double* gr_cov;
-    int gr_dim1=6; // number of components
-    int gr_dim2=6; 
+    //~ int gr_dim1=6; // number of components
+    //~ int gr_dim2=6; 
     double* gr_mn;
-    int gr_mn_dim=6;
+    //~ int gr_mn_dim=6;
     //~ double* st_covs; 
-    int st_dim1=nstars;
-    int st_dim2=6;
-    int st_dim3=6;
+    //~ int st_dim1=nstars;
+    //~ int st_dim2=6;
+    //~ int st_dim3=6;
     //~ double* st_mns; 
-    int st_mn_dim1=nstars;
-    int st_mn_dim2=6;
-    int n=nstars;    
+    //~ int st_mn_dim1=nstars;
+    //~ int st_mn_dim2=6;
+    //~ int n=nstars;    
     
-    double lnols_comp[nstars]; // for every component
-    for (i=0; i<ncomps; i++) {
+    double lnols_comp[st_mn_dim1]; // for every component
+    for (i=0; i<gr_mn_dim1; i++) {
         gr_mn = &gr_mns[i*gr_dim2]; // does this work?
         gr_cov = &gr_covs[i*gr_dim2]; // does this work?
         
-        get_lnoverlaps(gr_cov, gr_dim1, gr_dim2, 
-            gr_mn, gr_mn_dim, 
+        get_lnoverlaps(gr_cov, gr_dim2, gr_dim3, 
+            gr_mn, gr_mn_dim2, 
             st_covs, st_dim1, st_dim2, st_dim3, 
             st_mns, st_mn_dim1, st_mn_dim2, 
-            lnols_comp, n);
+            lnols_comp, st_mn_dim1);
         
         // lnols_output is multidim...
         // lnols: result is saved here. This is an array [nstars, ncomps+1]
-        for (j=0; j<nstars; j++) {
-            lnols[j*ncomps+i] = log(weights[i]) + lnols_comp[j];
+        for (j=0; j<st_mn_dim1; j++) {
+            lnols[j*gr_mn_dim1+i] = log(weights[i]) + lnols_comp[j];
         }
     }
 
@@ -305,9 +322,18 @@ void calc_membership_probs(double *star_lnols, int ncomps,
     }
 }
 
-void expectation(double* means_stars, double* covs_stars, int nstars,
-    double* means_comps, double* covs_comps, int ncomps, 
-    double* memb_probs, double* old_memb_probs) {
+//~ void expectation(double* means_stars, double* covs_stars, int nstars,
+    //~ double* means_comps, double* covs_comps, int ncomps, 
+    //~ double* memb_probs, double* old_memb_probs) {
+
+void expectation(
+    double* st_mns, int st_mn_dim1, int st_mn_dim2, 
+    double* st_covs, int st_dim1, int st_dim2, int st_dim3,
+    double* gr_mns, int gr_mns_dim1, int gr_mns_dim2, 
+    double* gr_covs, int gr_dim1, int gr_dim2, int gr_dim3, 
+    double* old_memb_probs, int omemb_dim1, int omemb_dim2,
+    double* memb_probs, int memb_dim1, int memb_dim2) {
+
     /*
      * Take stellar data and components, compute overlaps and return
      * membership probabilities for these stars to be in the components.
@@ -315,16 +341,31 @@ void expectation(double* means_stars, double* covs_stars, int nstars,
      * Result: memb_probs [nstars * ncomps(+1?)]
      */
 
+
     int inc_posterior = 0;
     int amp_prior = 0;
     int use_box_background = 0;
     int using_bg = 1;
     
     // Calculate all log overlaps
-    double lnols[nstars*ncomps]; // ncomps+1?    
-    get_all_lnoverlaps(means_stars, covs_stars, means_comps, covs_comps,
-        old_memb_probs, inc_posterior, amp_prior, use_box_background, 
-        nstars, ncomps, lnols, using_bg);
+    //~ double lnols[nstars*ncomps]; // ncomps+1?  
+    int lnols_dim1 = st_mn_dim1;  
+    int lnols_dim2 = gr_mns_dim1;  
+    double lnols[lnols_dim1*lnols_dim2]; // ncomps+1?
+    //~ get_all_lnoverlaps(means_stars, covs_stars, means_comps, covs_comps,
+        //~ old_memb_probs, inc_posterior, amp_prior, use_box_background, 
+        //~ nstars, ncomps, lnols, using_bg);
+  
+    get_all_lnoverlaps(
+        st_mns, st_mn_dim1, st_mn_dim2,
+        st_covs, st_dim1, st_dim2, st_dim3,
+        gr_mns, gr_mns_dim1, gr_mns_dim2,
+        gr_covs, gr_dim1, gr_dim2, gr_dim3,
+        old_memb_probs, memb_dim1, memb_dim2,
+        inc_posterior, amp_prior, use_box_background, 
+        lnols, lnols_dim1, lnols_dim2,
+        using_bg);        
+        
 
     // Calculate membership probabilities, tidying up 'nan's as required
     
@@ -334,11 +375,12 @@ void expectation(double* means_stars, double* covs_stars, int nstars,
     // for i in range(ncomps):
     //        star_memb_probs[i] = 1. / np.sum(np.exp(star_lnols - star_lnols[i]))
     
-    double memb_probs_i[ncomps];
-    for (int i=0; i<nstars; i++) {
-        calc_membership_probs(&lnols[i*ncomps], ncomps, memb_probs_i);
-        for (int j=0; j<ncomps; j++) {
-            memb_probs[i*ncomps+j] = memb_probs_i[j];
+    double memb_probs_i[gr_mns_dim1];
+    for (int i=0; i<st_mn_dim1; i++) {
+        calc_membership_probs(&lnols[i*gr_mns_dim1], gr_mns_dim1, 
+            memb_probs_i);
+        for (int j=0; j<gr_mns_dim1; j++) {
+            memb_probs[i*gr_mns_dim1+j] = memb_probs_i[j];
         }
     }
     
