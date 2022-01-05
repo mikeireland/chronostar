@@ -244,11 +244,6 @@ void test_expectation() {
 
     int ncomps = 1;
     
-    const int memb_dim1 = nstars;
-    const int memb_dim2 = ncomps;
-    const int omemb_dim1 = nstars;
-    const int omemb_dim2 = ncomps;
-    
     double memb_probs[nstars*ncomps]; // result goes here
     double old_memb_probs[nstars*ncomps];
     
@@ -258,20 +253,9 @@ void test_expectation() {
         }
     }
 
-    //~ expectation(st_mns, st_covs, nstars, gr_mn, gr_cov, ncomps, 
-        //~ memb_probs, old_memb_probs);
+    expectation(st_mns, st_covs, nstars, gr_mn, gr_cov, ncomps, 
+        memb_probs, old_memb_probs);
     
-    
-    expectation(
-        st_mns, st_mn_dim1, st_mn_dim2, 
-        st_covs, st_dim1, st_dim2, st_dim3,
-        gr_mn, 1, gr_mn_dim, 
-        gr_cov, 1, gr_dim1, gr_dim2, 
-        memb_probs, memb_dim1, memb_dim2,
-        old_memb_probs, omemb_dim1, omemb_dim2);
-    
-    
-    //~ printf("nstars %d\n", nstars);
     //~ for (int i=0; i<nstars; i++) {
         //~ for (int j=0; j<ncomps; j++) {
             //~ printf("%f ", memb_probs[i*ncomps+j]);
