@@ -1,19 +1,45 @@
-/*
- * Expectation module. Compute membership probabilities here.
- * Overlaps are computed here.
-*/
-
 #include <stdio.h>
-#include <math.h>
+
+//#ifndef DARWIN 
+//#include <malloc.h>
+//#endif
+
+#include <stddef.h>
+#include <Python.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_linalg.h>
 #include <gsl/gsl_blas.h>
+#include <string.h>
+#include <math.h>
 
 
-void get_lnoverlaps(double* gr_cov, int gr_dim1, int gr_dim2, 
-    double* gr_mn, int gr_mn_dim, double* st_covs, int st_dim1, 
-    int st_dim2, int st_dim3, double* st_mns, int st_mn_dim1, 
-    int st_mn_dim2, double* lnols_output, int n) {
+
+/*
+ * Expectation module. Compute membership probabilities here.
+ * Overlaps are computed here.
+ * 
+ * 
+ * Missing in the interface file:     int inc_posterior, int amp_prior, double use_box_background, 
+    int using_bg);
+ * 
+*/
+//~ #include <stddef.h>
+//~ #include <Python.h>
+
+
+//~ #include <stdio.h>
+//~ #include <math.h>
+//~ #include <gsl/gsl_matrix.h>
+//~ #include <gsl/gsl_linalg.h>
+//~ #include <gsl/gsl_blas.h>
+
+
+void get_lnoverlaps(
+    double* gr_cov, int gr_dim1, int gr_dim2, 
+    double* gr_mn, int gr_mn_dim, 
+    double* st_covs, int st_dim1, int st_dim2, int st_dim3, 
+    double* st_mns, int st_mn_dim1, int st_mn_dim2, 
+    double* lnols_output, int n) {
     
     /* Function: get_lnoverlaps
     * ------------------------
@@ -126,10 +152,20 @@ void get_lnoverlaps(double* gr_cov, int gr_dim1, int gr_dim2,
 
 
 // No iterations - old version
-void get_all_lnoverlaps(double* st_mns, double* st_covs,
-    double* gr_mns, double* gr_covs, double* old_memb_probs, 
+//~ void get_all_lnoverlaps(double* st_mns, double* st_covs,
+    //~ double* gr_mns, double* gr_covs, double* old_memb_probs, 
+    //~ int inc_posterior, int amp_prior, double use_box_background, 
+    //~ int nstars, int ncomps, double* lnols, int using_bg) {
+void get_all_lnoverlaps(
+    double* st_mns, int st_mn_dim1, int st_mn_dim2,
+    double* st_covs, int st_dim1, int st_dim2, int st_dim3,
+    double* gr_mns, int gr_mn_dim1, int gr_mn_dim2,
+    double* gr_covs, int gr_dim1, int gr_dim2, int gr_dim3,
+    double* bg_lnols, int bg_dim,
+    double* old_memb_probs, int memb_dim1, int memb_dim2,
     int inc_posterior, int amp_prior, double use_box_background, 
-    int nstars, int ncomps, double* lnols, int using_bg) {
+    double* lnols, int lnols_dim1, int lnols_dim2,
+    int using_bg) {
     /*
      * lnols: result is saved here. This is an array [nstars, ncomps+1]
      * comps_means: an array [ncomps][ndim] where ndim=9 for spherical components
@@ -180,6 +216,7 @@ void get_all_lnoverlaps(double* st_mns, double* st_covs,
         with the log background overlaps appended as the final column
      */
     
+    
     int i, j;
 
     // Tidy input, infer some values
@@ -192,15 +229,35 @@ void get_all_lnoverlaps(double* st_mns, double* st_covs,
 //~ //        old_memb_probs = np.ones((nstars, ncomps)) / ncomps
     
     // Compute weights. These are amplitudes of components and are equal to the number of members in each of the components.
-    double weights[ncomps];
+    //~ double weights[ncomps];
+    
+    //~ for (i=0; i<memb_dim2; i++) printf("omp %f\n", old_memb_probs[i]);
+    //~ printf("end\n");
+
+    double weights[gr_mn_dim1];
+    
     double sum;
-    for (i=0; i<ncomps; i++) {
+    for (j=0; j<memb_dim2-1; j++) {
         sum=0.0;
-        for (j=0; j<nstars; j++) {
-            sum+=old_memb_probs[j*ncomps+i];
+        for (i=0; i<memb_dim1; i++) {
+            sum+=old_memb_probs[i*memb_dim2+j];
         }
-        weights[i] = sum;
+        weights[j] = sum;
     }
+    
+
+    //~ for (i=0; i<memb_dim1; i++) {
+        //~ sum=0.0;
+        //~ for (j=0; j<memb_dim2-1; j++) { // no bg
+            //~ sum+=old_memb_probs[j*memb_dim1+i];
+        //~ }
+        //~ printf("i %d\n", i);
+        //~ weights[i] = sum;
+    //~ }
+
+    //~ for (i=0; i<gr_mn_dim1; i++) {
+        //~ printf("weights %f\n", weights[i]);
+    //~ }
 
     // Optionally scale each weight by the component prior, then rebalance
     // such that total expected stars across all components is unchanged
@@ -227,42 +284,84 @@ void get_all_lnoverlaps(double* st_mns, double* st_covs,
     
     
     double* gr_cov;
-    int gr_dim1=6; // number of components
-    int gr_dim2=6; 
+    //~ int gr_dim1=6; // number of components
+    //~ int gr_dim2=6; 
     double* gr_mn;
-    int gr_mn_dim=6;
+    //~ int gr_mn_dim=6;
     //~ double* st_covs; 
-    int st_dim1=nstars;
-    int st_dim2=6;
-    int st_dim3=6;
+    //~ int st_dim1=nstars;
+    //~ int st_dim2=6;
+    //~ int st_dim3=6;
     //~ double* st_mns; 
-    int st_mn_dim1=nstars;
-    int st_mn_dim2=6;
-    int n=nstars;    
+    //~ int st_mn_dim1=nstars;
+    //~ int st_mn_dim2=6;
+    //~ int n=nstars;    
     
-    double lnols_comp[nstars]; // for every component
-    for (i=0; i<ncomps; i++) {
+    double lnols_comp[st_mn_dim1]; // for every component
+    for (i=0; i<gr_mn_dim1; i++) {
         gr_mn = &gr_mns[i*gr_dim2]; // does this work?
-        gr_cov = &gr_covs[i*gr_dim2]; // does this work?
+        gr_cov = &gr_covs[i*gr_dim2*gr_dim3]; // does this work?
         
-        get_lnoverlaps(gr_cov, gr_dim1, gr_dim2, 
-            gr_mn, gr_mn_dim, 
+        //~ if (i==0) {
+            //~ printf("comp %d mns\n", i);
+            //~ for (int ii=0; ii<6; ii++) printf("%f ", gr_mn[ii]);
+            //~ printf("\n");
+            
+            //~ printf("comp %d cov\n", i);
+            //~ for (int ii=0; ii<6; ii++) {
+                //~ for (int jj=0; jj<6; jj++) {
+                    //~ printf("%f ", gr_cov[ii*6+jj]);
+                //~ }
+                //~ printf("\n");
+            //~ }
+            //~ printf("\n");
+        //~ }
+        
+        get_lnoverlaps(gr_cov, gr_dim2, gr_dim3, 
+            gr_mn, gr_mn_dim2, 
             st_covs, st_dim1, st_dim2, st_dim3, 
             st_mns, st_mn_dim1, st_mn_dim2, 
-            lnols_comp, n);
+            lnols_comp, st_mn_dim1);
+        
+
         
         // lnols_output is multidim...
         // lnols: result is saved here. This is an array [nstars, ncomps+1]
-        for (j=0; j<nstars; j++) {
-            lnols[j*ncomps+i] = log(weights[i]) + lnols_comp[j];
+        
+        // PREV
+        //~ for (j=0; j<st_mn_dim1; j++) {
+            //~ lnols[j*gr_mn_dim1+i] = log(weights[i]) + lnols_comp[j];
+        //~ }
+        
+        
+        // NEW
+        for (j=0; j<st_mn_dim1; j++) {
+            //~ lnols[i*gr_mn_dim1+j] = log(weights[i]) + lnols_comp[j];
+            //~ lnols[j*st_mn_dim1+i] = log(weights[i]) + lnols_comp[j];
+            lnols[i*st_mn_dim1+j] = log(weights[i]) + lnols_comp[j];
+            //~ if (i<2) printf("i=%d j=%d index=%d %f \n", i, j, i*st_mn_dim1+j, lnols[i*st_mn_dim1+j]);
+            //~ printf("set %d %d %d\n", i, j, j*st_mn_dim1+i);
         }
+        //~ printf("\n\n");
+
+
+
+        //~ printf("comp %d lnols:\n", i);
+        //~ for (int k=0; k<10; k++) {
+            //~ printf("%f ", lnols_comp[k]);
+        //~ }
+        //~ printf("\n");
+
+
     }
 
-    // TODO
-    //~ // insert one time calculated background overlaps
-    //~ if using_bg:
-        //~ lnols[:,-1] = data['bg_lnols']
+    //~ printf("START get_all_lnoverlaps BGOLS, %d\n", j*gr_mn_dim1+i);
 
+    // TODO
+    // Insert one time calculated background overlaps
+    for (i=0; i<bg_dim; i++) {
+        lnols[st_mn_dim1*gr_mn_dim1+i] = bg_lnols[i];
+    }
 
 }
 
@@ -305,15 +404,25 @@ void calc_membership_probs(double *star_lnols, int ncomps,
     }
 }
 
-void expectation(double* means_stars, double* covs_stars, int nstars,
-    double* means_comps, double* covs_comps, int ncomps, 
-    double* memb_probs, double* old_memb_probs) {
+
+void expectation(
+    double* st_mns, int st_mn_dim1, int st_mn_dim2, 
+    double* st_covs, int st_dim1, int st_dim2, int st_dim3,
+    double* gr_mns, int gr_mns_dim1, int gr_mns_dim2, 
+    double* gr_covs, int gr_dim1, int gr_dim2, int gr_dim3, 
+    double* bg_lnols, int bg_dim,
+    double* old_memb_probs, int omemb_dim1, int omemb_dim2,
+    double* memb_probs, int memb_dim1) {
+
     /*
      * Take stellar data and components, compute overlaps and return
      * membership probabilities for these stars to be in the components.
      * 
-     * Result: memb_probs [nstars * ncomps(+1?)]
+     * --> Cannot return 2D array, but pack everything into 1D array and
+     * reshape later in python!
+     * Result: memb_probs[nstars+ncomps(+1 for bg?)]
      */
+
 
     int inc_posterior = 0;
     int amp_prior = 0;
@@ -321,10 +430,54 @@ void expectation(double* means_stars, double* covs_stars, int nstars,
     int using_bg = 1;
     
     // Calculate all log overlaps
-    double lnols[nstars*ncomps]; // ncomps+1?    
-    get_all_lnoverlaps(means_stars, covs_stars, means_comps, covs_comps,
-        old_memb_probs, inc_posterior, amp_prior, use_box_background, 
-        nstars, ncomps, lnols, using_bg);
+    //~ double lnols[nstars*ncomps]; // ncomps+1?  
+    int lnols_dim1 = st_mn_dim1;  
+    int lnols_dim2 = gr_mns_dim1+1;
+    double lnols[lnols_dim1*lnols_dim2]; // ncomps+1?
+    //~ get_all_lnoverlaps(means_stars, covs_stars, means_comps, covs_comps,
+        //~ old_memb_probs, inc_posterior, amp_prior, use_box_background, 
+        //~ nstars, ncomps, lnols, using_bg);
+
+    get_all_lnoverlaps(
+        st_mns, st_mn_dim1, st_mn_dim2,
+        st_covs, st_dim1, st_dim2, st_dim3,
+        gr_mns, gr_mns_dim1, gr_mns_dim2,
+        gr_covs, gr_dim1, gr_dim2, gr_dim3,
+        bg_lnols, bg_dim,
+        old_memb_probs, omemb_dim1, omemb_dim2,
+        inc_posterior, amp_prior, use_box_background, 
+        lnols, lnols_dim1, lnols_dim2,
+        using_bg);        
+    
+    //~ printf("dims %d %d %d\n", gr_dim1, gr_dim2, gr_dim3);
+    
+    //~ for (int i=0; i<5; i++) {
+        //~ printf("%d ", i);
+        //~ for (int j=0; j<6; j++) {
+            //~ printf("%f ", gr_mns[i*gr_mns_dim2+j]);
+        //~ }
+        //~ printf("\n");
+        //~ for (int j=0; j<6; j++) {
+            //~ for (int k=0; k<6; k++) {
+                //~ printf("%e ", gr_covs[i*gr_dim1*gr_dim2+j*gr_dim2+k]);
+            //~ }
+            //~ printf("\n");
+        //~ }
+        //~ printf(" | ");
+        //~ for (int j=0; j<5; j++) {
+            //~ printf("%f ", lnols[i*lnols_dim2+j]);
+        //~ }
+        //~ printf("\n\n");
+    //~ }
+    
+    // THIS WORKS
+    //~ printf("lnols[C]\n");
+    //~ for (int i=0; i<10; i++) {
+        //~ for (int j=0; j<6; j++) {
+            //~ printf("%f ", lnols[j*831+i]);
+        //~ }
+        //~ printf("\n");
+    //~ }
 
     // Calculate membership probabilities, tidying up 'nan's as required
     
@@ -334,13 +487,35 @@ void expectation(double* means_stars, double* covs_stars, int nstars,
     // for i in range(ncomps):
     //        star_memb_probs[i] = 1. / np.sum(np.exp(star_lnols - star_lnols[i]))
     
+    //~ printf("memb PROBS CCC\n");
+    int ncomps = gr_mns_dim1+1;
     double memb_probs_i[ncomps];
-    for (int i=0; i<nstars; i++) {
-        calc_membership_probs(&lnols[i*ncomps], ncomps, memb_probs_i);
+    double lnols_i[gr_mns_dim1+1];
+    for (int i=0; i<st_mn_dim1; i++) {
+        // TODO: AVOID THIS FOR LOOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        // Get lnols
+        //~ if (i<10) {
+        //~ printf("lnols_i\n");
+        for (int k=0; k<ncomps; k++) {
+            //~ lnols_i[k] = lnols[i*st_mn_dim1+k]; // no
+            //~ lnols_i[k] = lnols[i*st_mn_dim1+k];
+            lnols_i[k] = lnols[k*st_mn_dim1+i];
+            //~ printf("%f ", lnols_i[k]);
+        }
+        //~ printf("\n");
+        //~ }
+        
+        //~ calc_membership_probs(&lnols[i*gr_mns_dim1], gr_mns_dim1, 
+            //~ memb_probs_i);
+        calc_membership_probs(lnols_i, ncomps, memb_probs_i);
         for (int j=0; j<ncomps; j++) {
             memb_probs[i*ncomps+j] = memb_probs_i[j];
+            //~ if (i<10) printf("%f ", memb_probs[i*ncomps+j]);
         }
+        //~ if (i<10) printf("\n");
     }
+    //~ printf("\n");
+    //~ printf("\n");
     
     // PRINT MEMBERSHIPS
     //~ for (int i=0; i<nstars; i++) {

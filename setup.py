@@ -57,6 +57,15 @@ _overlap = Extension("chronostar/_overlap",
 #                   extra_compile_args = ["-floop-parallelize-all","-ftree-parallelize-loops=4"],
                     )
 
+# MZ
+# Note: This setup works with python3, but fails with python2.7
+_expectation = Extension("chronostar/_expectation",
+                    ["chronostar/expectation.i", 
+                    "chronostar/expectation.c"],
+                    include_dirs = [numpy_include],
+                    libraries = ['gsl', 'gslcblas'],
+                    )
+
 setup(name="chronostar",
       version=version,
       author="Michael J. Ireland",
@@ -70,5 +79,5 @@ setup(name="chronostar",
         "requests",
         "requests_futures"
       ],
-      ext_modules = [_overlap]
+      ext_modules = [_overlap, _expectation]
      )
