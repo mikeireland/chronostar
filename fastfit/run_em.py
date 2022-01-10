@@ -40,6 +40,7 @@ import os.path
 import sys
 sys.path.insert(0, '..')
 
+
 #~ from chronostar import expectmax2 as expectmax
 from chronostar import expectmax
 from chronostar import tabletool
@@ -52,8 +53,16 @@ from chronostar import default_pars
 from chronostar import utils
 
 # New libraries
-from chronostar import expectation
+from chronostar import expectation_marusa as expectation
 from chronostar import maximisation
+
+try:
+    from chronostar._expectation import expectation as expectationC
+except ImportError:
+    print("C IMPLEMENTATION OF expectation NOT IMPORTED")
+    USE_C_IMPLEMENTATION = False
+    TODO = True # NOW WHAT?
+
 
 #~ import subprocess # to call external scripts
 
@@ -395,9 +404,23 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
 
         comps_new_list = [[comp.get_mean(), comp.get_covmatrix()] for comp in comps_new]
 
-        memb_probs_new = expectation.expectation(data_dict, 
-            comps_new_list, memb_probs_old, inc_posterior=inc_posterior, 
-            use_box_background=use_box_background) # TODO background
+        # Python version
+        #~ memb_probs_new = expectation.expectation(data_dict, 
+            #~ comps_new_list, memb_probs_old, inc_posterior=inc_posterior, 
+            #~ use_box_background=use_box_background) # TODO background
+        
+        # C version
+        st_mns = data_dict['means']
+        st_covs = data_dict['covs']
+        gr_mns = [c.get_mean_now() for c in comps_new]
+        gr_covs = [c.get_covmatrix_now() for c in comps_new]
+        #~ comps = [[m, co] for m, co in zip(gr_mns, gr_covs)]
+        bg_lnols = data_dict['bg_lnols']
+        
+        memb_probs_new = expectationC(st_mns, st_covs, gr_mns, gr_covs, 
+            bg_lnols, old_memb_probs, nstars*ncomps)
+        memb_probs_new = memb_probs_new.reshape(nstars, ncomps)
+        
         
         print('MEMB_PROBS_NEW DONE.')
         
