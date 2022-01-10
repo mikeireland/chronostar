@@ -66,6 +66,13 @@ _expectation = Extension("chronostar/_expectation",
                     libraries = ['gsl', 'gslcblas'],
                     )
 
+_temporal_propagation = Extension("chronostar/_temporal_propagation",
+                    ["chronostar/temporal_propagation.i", 
+                    "chronostar/temporal_propagation.c"],
+                    include_dirs = [numpy_include],
+                    libraries = ['gsl', 'gslcblas'],
+                    )
+
 setup(name="chronostar",
       version=version,
       author="Michael J. Ireland",
@@ -79,5 +86,5 @@ setup(name="chronostar",
         "requests",
         "requests_futures"
       ],
-      ext_modules = [_overlap, _expectation]
+      ext_modules = [_overlap, _expectation, _temporal_propagation]
      )

@@ -63,6 +63,13 @@ except ImportError:
     USE_C_IMPLEMENTATION = False
     TODO = True # NOW WHAT?
 
+try:
+    from chronostar._temporal_propagation import trace_epicyclic_orbit, trace_epicyclic_covmatrix
+except ImportError:
+    print("C IMPLEMENTATION OF temporal_propagation NOT IMPORTED")
+    USE_C_IMPLEMENTATION = False
+    TODO = True # NOW WHAT?
+
 
 #~ import subprocess # to call external scripts
 
@@ -412,8 +419,23 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         # C version
         st_mns = data_dict['means']
         st_covs = data_dict['covs']
-        gr_mns = [c.get_mean_now() for c in comps_new]
-        gr_covs = [c.get_covmatrix_now() for c in comps_new]
+        #~ gr_mns = [c.get_mean_now() for c in comps_new]
+        #~ gr_covs = [c.get_covmatrix_now() for c in comps_new]
+        
+        # Means
+        dim = len(comps[0].get_mean())
+        gr_mns = [trace_epicyclic_orbit(comp.get_mean(), comp.get_age(), 
+            dim) for comp in comps_new]
+
+        # Covmatrices
+        c = comps[0].get_covmatrix()
+        dim1 = c.shape[0]
+        dim2 = c.shape[1]
+        h=1e-3 # HARDCODED...
+        gr_covs = [trace_epicyclic_covmatrix(
+            c.get_covmatrix(), dim1, dim2, c.get_mean(), dim, c.get_age(), h, 
+            dim1*dim2).reshape(dim1, dim2) for c in comps_new]
+              
         #~ comps = [[m, co] for m, co in zip(gr_mns, gr_covs)]
         bg_lnols = data_dict['bg_lnols']
         

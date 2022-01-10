@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <gsl/gsl_matrix.h>
+#include <gsl/gsl_blas.h>
 #include <string.h>
 
 //#include "temporal_propagation.h"
@@ -133,8 +134,8 @@ void epicyclic_approx(double* data, double t, double* new_position) {
 }
 
 
-void trace_epicyclic_orbit(double* xyzuvw_start, double t, 
-    double* xyzuvw_new) {
+void trace_epicyclic_orbit(double* xyzuvw_start, int pos_dim, double t, 
+    double* xyzuvw_new, int pos_new_dim) {
     // Units: Velocities are in km/s, convert into pc/Myr
     // TODO: This should be done in the input data!!!
     int i;
@@ -160,8 +161,9 @@ void trace_epicyclic_orbit(double* xyzuvw_start, double t,
 }
 
 
-void trace_epicyclic_covmatrix(double* cov, double* loc, double t,
-    int dim, float h, double* cov_transformed) {
+void trace_epicyclic_covmatrix(double* cov, int cov_dim1, int cov_dim2,
+    double* loc, int loc_dim, double t, float h, 
+    double* cov_transformed, int covt_dim) {
     /*
      * Transform covariance matrix `cov` into `cov_transformed`.
      * `loc` is a 6D point in space... time t.
@@ -169,55 +171,58 @@ void trace_epicyclic_covmatrix(double* cov, double* loc, double t,
      * 
     */
     
-    int i, j, k;
-    //~ double jac[dim][dim]; // = {0.0};
-    double loc_pl[dim];
-    double loc_mi[dim];
-    double final_pos_pl[dim];
-    double final_pos_mi[dim];
+    int dim = cov_dim1; //TODO
+    int i, j;
+    double loc_pl[loc_dim];
+    double loc_mi[loc_dim];
+    double final_pos_pl[loc_dim];
+    double final_pos_mi[loc_dim];
     
+    gsl_matrix* covgsl = gsl_matrix_alloc(dim, dim);
     gsl_matrix* jac = gsl_matrix_alloc(dim, dim);
     gsl_matrix* jac_transposed = gsl_matrix_alloc(dim, dim);
 
-    for (i=0; i<dim; i++) {
-       //~ // memcpy(loc_pl, loc, sizeof(loc_pl));
-       //~ // memcpy(loc_mi, loc, sizeof(loc_mi));
-        memcpy(loc_pl, loc, dim);
-        memcpy(loc_mi, loc, dim);
 
-        trace_epicyclic_orbit(loc_pl, t, final_pos_pl);
-        trace_epicyclic_orbit(loc_mi, t, final_pos_mi);
+    for (i=0; i<dim; i++) {
+        memcpy(loc_pl, loc, sizeof(double)*loc_dim);
+        memcpy(loc_mi, loc, sizeof(double)*loc_dim);
+        
+        loc_pl[i] = loc_pl[i] + h;
+        loc_mi[i] = loc_mi[i] - h;
+
+        trace_epicyclic_orbit(loc_pl, loc_dim, t, final_pos_pl, loc_dim);
+        trace_epicyclic_orbit(loc_mi, loc_dim, t, final_pos_mi, loc_dim);
 
         for (j=0; j<dim; j++) {
-            jac[i][j] = (final_pos_pl[j] - final_pos_mi[j]) / (2.0*h);
+            gsl_matrix_set(jac, j, i, 
+                (final_pos_pl[j] - final_pos_mi[j]) / (2.0*h));
+                
+            // Set covgsl (we don't run a separate double loop for that)
+            gsl_matrix_set(covgsl, i, j, cov[j*dim+i]);
         }
     }
     
     // Compute a transpose of Jacobian
     gsl_matrix_transpose_memcpy(jac_transposed, jac);
     
-    
-    gsl_matrix_mul_elements(gsl_matrix *a, const gsl_matrix *b)
+    gsl_matrix* C = gsl_matrix_alloc(dim, dim);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,
+                      1.0, covgsl, jac_transposed,
+                      0.0, C);
 
-    // TODO: replace this multiplication with e.g. GSL multiplication
-    //~ static double cov_transformed[dim][dim]; // malloc...
+    gsl_matrix* D = gsl_matrix_alloc(dim, dim);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,
+                      1.0, jac, C,
+                      0.0, D);
+        
+    // Copy result into cov_transformed that is the result
+    // Cannot return 2D array, so copy to 1D and transform to 2D 
+    // later in python.
     for (i=0; i<dim; i++) {
         for (j=0; j<dim; j++) {
-            for (k=0; k<dim; k++) {
-                cov_transformed[i][j] = cov[i][k] * jac[k][j].T;
-            }
-        }
+            cov_transformed[i*dim+j] = gsl_matrix_get(D, i, j);
+        }     
     }
-    
-    for (i=0; i<dim; i++) {
-        for (j=0; j<dim; j++) {
-            for (k=0; k<dim; k++) {
-                cov_transformed[i][j] = jac[i][k] * cov_transformed[k][j];
-            }
-        }
-    }
-    
-    //~ //cov_transformed = np.dot(jac, np.dot(cov, jac.T))
     
     // Deallocate the memory
     gsl_matrix_free(jac);

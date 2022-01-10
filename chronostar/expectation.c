@@ -230,6 +230,95 @@ void get_all_lnoverlaps(
 }
 
 
+double get_overall_lnlikelihood(
+    double* st_mns, int st_mn_dim1, int st_mn_dim2, 
+    double* st_covs, int st_dim1, int st_dim2, int st_dim3,
+    double* gr_mns, int gr_mns_dim1, int gr_mns_dim2, 
+    double* gr_covs, int gr_dim1, int gr_dim2, int gr_dim3, 
+    double* bg_lnols, int bg_dim,
+    double* old_memb_probs, int omemb_dim1, int omemb_dim2,
+    double* memb_probs, int memb_dim1) {
+        
+    //~ Get overall likelihood for a proposed model.
+
+    //~ Evaluates each star's overlap with every component and background
+    //~ If only fitting one group, inc_posterior does nothing
+
+    //~ Parameters
+    //~ ----------
+    //~ data: (dict)
+        //~ See fit_many_comps
+    //~ comps: [ncomps] list of Component objects
+        //~ See fit_many_comps
+    //~ return_memb_probs: bool {False}
+        //~ Along with log likelihood, return membership probabilites
+
+    //~ Returns
+    //~ -------
+    //~ overall_lnlikelihood: float
+
+
+    //~ double memb_probs[st_mn_dim1*(gr_mns_dim1+1)];
+    
+    // TODO: UNCOMMENT THIS! It is commented for now because it doesn;t work and won't compile
+    //~ expectation(st_mns, st_mn_dim1, st_mn_dim2, 
+        //~ st_covs, st_dim1, st_dim2, st_dim3,
+        //~ gr_mns, gr_mns_dim1, gr_mns_dim2, 
+        //~ gr_covs, gr_dim1, gr_dim2, gr_dim3, 
+        //~ bg_lnols, bg_dim,
+        //~ old_memb_probs, omemb_dim1, omemb_dim2,
+        //~ memb_probs, memb_dim1);
+
+
+    // UNCOMMENT THIS
+    //~ int lnols_dim1 = st_mn_dim1;
+    //~ int lnols_dim2 = (gr_mns_dim1+1);
+    //~ double all_ln_ols[lnols_dim1*lnols_dim2]; // TODO: check dimension
+    //~ int inc_posterior = 0;
+    //~ int amp_prior = 0;
+    //~ int use_box_background = 0;
+    //~ int using_bg = 1;
+    //~ get_all_lnoverlaps(st_mns, st_mn_dim1, st_mn_dim2,
+        //~ st_covs, st_dim1, st_dim2, st_dim3,
+        //~ gr_mns, gr_mns_dim1, gr_mns_dim2,
+        //~ gr_covs, gr_dim1, gr_dim2, gr_dim3,
+        //~ bg_lnols, bg_dim,
+        //~ old_memb_probs, omemb_dim1, omemb_dim2,
+        //~ inc_posterior, amp_prior, use_box_background, 
+        //~ all_ln_ols, lnols_dim1, lnols_dim2,
+        //~ using_bg);
+    
+
+
+    //~ Multiplies each log overlap by the star's membership probability
+    //~ (In linear space, takes the star's overlap to the power of its
+    //~ membership probability)
+
+    //~ #einsum is an Einstein summation convention. Not suer why it is used here???
+    //~ #weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
+
+    // Compute weighted_lnols = all_ln_ols * memb_probs
+    double sum=0.0;
+    //~ for (int i=0; i<st_mn_dim1*(gr_mns_dim1+1); i++) { // CHECK DIMENSION
+        //weighted_lnols[i] = all_ln_ols[i] * memb_probs[i];
+        //~ sum+=all_ln_ols[i] * memb_probs[i];
+    //~ }
+
+    //~ #if np.sum(weighted_lnols) != np.sum(weighted_lnols):
+    //~ #    import pdb; pdb.set_trace() #!!!!
+
+    // READ THIS: can 'return' memb_probs in any case, because they
+    // get updated here in any case
+
+    // return_memb_probs=True only in expectmax that reads in all the previous fits. We skip this in C.
+    //~ if return_memb_probs:
+        //~ return np.sum(weighted_lnols), memb_probs
+    //~ else:
+        //~ return np.sum(weighted_lnols)
+    
+    return sum;
+}
+
 
 void calc_membership_probs(double *star_lnols, int ncomps, 
     double *star_memb_probs) {

@@ -1,3 +1,5 @@
+// clang -L/usr/local/lib test_temporal_propagation.c  ../chronostar/temporal_propagation.c -o test_temporal_propagation -lgsl -lgslcblas -lm
+
 #include <stdio.h>
 
 #include "../chronostar/temporal_propagation.h" // Sort out these paths
@@ -79,7 +81,6 @@ void test_epicyclic_approx() {
     printf("\n");
 }
 
-
 void test_trace_epicyclic_orbit() {  
     printf("test_trace_epicyclic_orbit()\n"); 
     // mean0 (time=0)
@@ -118,6 +119,55 @@ void test_trace_epicyclic_orbit() {
     }
     printf("\n");  
     
+}
+
+void test_covmatrix() {
+    printf("test_convert_cart2curvilin_curvilin2cart_covmatrix\n");
+    // mean0 (time=0)
+    double mean[6];
+    mean[0]=54.24222826;
+    mean[1]=125.66013072;
+    mean[2]=-73.70025391;
+    mean[3]=-3.7937685;
+    mean[4]=-6.78350686;
+    mean[5]=-0.22042236;
+
+    //~ double *curvilin_coord;
+    double curvilin_coord[6];
+    //~ curvilin_coord = 
+    convert_cart2curvilin(mean, curvilin_coord);
+    
+    trace_epicyclic_covmatrix(double* cov, double* loc, double t,
+    int dim, float h, double* cov_transformed)
+
+    // From python
+    double curvilin_coord_python[6];
+    curvilin_coord_python[0] = 53.24864894;
+    curvilin_coord_python[1] = 126.50741166;
+    curvilin_coord_python[2] = -73.70025391;
+    curvilin_coord_python[3] = -7.16483698;
+    curvilin_coord_python[4] = -5.44204004;
+    curvilin_coord_python[5] = -0.22042236;
+
+
+    printf("curvilin_coord - curvilin_coord_python\n");
+    for (int i=0; i<6; ++i) {
+        printf("%d %f\n", i, curvilin_coord[i]-
+            curvilin_coord_python[i]);
+    }
+    printf("\n");
+    
+    double cart_coord[6];
+    //~ cart_coord = 
+    convert_curvilin2cart(curvilin_coord, cart_coord);
+
+    printf("cart_coord - mean\n");
+    for (int i=0; i<6; ++i) {
+        printf("%d %f\n", i, cart_coord[i]-mean[i]);
+    }
+
+    printf("\n");
+
 }
 
 int main() {

@@ -39,4 +39,7 @@ I’ve tested the code with bPic data. The result has 2 components, and one of t
 ### Already implemented
 - `chronostar/prepare_input_data.py`: run with `python3 ../chronostar/prepare_input_data.py example_convert_astrometry_to_XYZUVW.pars`. This takes a table with astrometry downloaded from Gaia website and transforms it into cartesian system. It replaces the missing radial velocities with the values provided. Parameters are in `example_convert_astrometry_to_XYZUVW.pars`.
 
-- `temporal_propagation.c`: Works for a 6D point, but not yet for a covariance matrix. Need to use `gsl_matrix` but compiler doesn't like it.
+### Modules in C
+- `expectation.c` with corresponding swig module now works. `fastfit/test_expectation.py` compares the result from python and C modules and finds no difference. C module is 10 times faster than python. There are, however, a few points left to implement, e.g. whether to include an option to exclude background, posterior etc. Also, `get_overall_lnlikelihood` is TO BE DONE.
+
+- `temporal_propagation.c`: Works for a 6D point and for a covariance matrix. Swig done, ready to use in python. Test works well (`fastfit/test_temporal_propagation.py`). `trace_epicyclic_orbit` is 30 times faster than in python, and covmatrix transformation is 10 times faster in C.

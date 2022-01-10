@@ -156,5 +156,6 @@ def transform_covmatrix(cov, trans_func, loc, dim=6, h=1e-3, args=None):
         The transformed covariance matrix
     """
     jac = calc_jacobian(trans_func, loc, dim=dim, h=h, args=args)
+
     return np.dot(jac, np.dot(cov, jac.T))
 
