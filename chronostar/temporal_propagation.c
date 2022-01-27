@@ -227,4 +227,7 @@ void trace_epicyclic_covmatrix(double* cov, int cov_dim1, int cov_dim2,
     // Deallocate the memory
     gsl_matrix_free(jac);
     gsl_matrix_free(jac_transposed);
+    gsl_matrix_free(covgsl);
+    gsl_matrix_free(C);
+    gsl_matrix_free(D);
 }

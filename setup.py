@@ -1,5 +1,10 @@
 # coding: utf-8
 
+# Notes for MZ: if gsl is not found:
+# reinstall python3
+# reinstall gsl
+# export LIBRARY_PATH=/usr/local/Cellar/gsl/2.7/lib/
+
 """ A stellar orbit traceback code """
 
 import os
@@ -62,7 +67,7 @@ _overlap = Extension("chronostar/_overlap",
 _expectation = Extension("chronostar/_expectation",
                     ["chronostar/expectation.i", 
                     "chronostar/expectation.c"],
-                    include_dirs = [numpy_include],
+                    include_dirs = [numpy_include, '/usr/local/include/'],
                     libraries = ['gsl', 'gslcblas'],
                     )
 
@@ -71,6 +76,25 @@ _temporal_propagation = Extension("chronostar/_temporal_propagation",
                     "chronostar/temporal_propagation.c"],
                     include_dirs = [numpy_include],
                     libraries = ['gsl', 'gslcblas'],
+                    )
+
+#~ _likelihoodtest = Extension("chronostar/_likelihoodtest",
+                    #~ ["chronostar/likelihoodtest.i", 
+                    #~ "chronostar/likelihoodtest.c"],
+                    #~ include_dirs = [numpy_include],
+                    #~ libraries = ['gsl', 'gslcblas'],
+                    #~ library_dirs = ['/usr/local/include/'], #
+                    #~ )
+
+_likelihoodc = Extension("chronostar/_likelihoodc",
+                    ["chronostar/likelihoodc.i", 
+                    "chronostar/likelihoodc.c"],
+                    include_dirs = [numpy_include, "chronostar/"],
+                    libraries = ['gsl', 'gslcblas'],
+                    #~ library_dirs = ['/usr/local/include/', "chronostar/"], #
+                    library_dirs = ["chronostar/"],
+                    depends = ["chronostar/temporal_propagation.h", 
+                        "chronostar/expectation.h"],
                     )
 
 setup(name="chronostar",
@@ -86,5 +110,8 @@ setup(name="chronostar",
         "requests",
         "requests_futures"
       ],
-      ext_modules = [_overlap, _expectation, _temporal_propagation]
+      ext_modules = [_overlap, _expectation, _temporal_propagation,
+      _likelihoodc],
+      headers=["chronostar/temporal_propagation.h", 
+        "chronostar/expectation.h"]
      )

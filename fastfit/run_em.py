@@ -300,6 +300,7 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         nstars=len(data_dict['means'])
         memb_probs_tmp = np.ones((nstars, ncomps+1)) / (ncomps+1)
                 
+        #~ init_memb_probs = expectmax.expectationC(data_dict, init_comps, 
         init_memb_probs = expectmax.expectation(data_dict, init_comps, 
             memb_probs_tmp, inc_posterior=inc_posterior,
             use_box_background=use_box_background)
@@ -383,8 +384,10 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         ################################################################   
         
         print('################# START MAXIMISATION')
+        # maximisation.maximisation_gradient_descent_serial(
+        # maximisation.maximisation_gradient_descent_multiprocessing(
         comps_new, _, all_init_pos =\
-            maximisation.maximisation_gradient_descent_multiprocessing(
+            maximisation.maximisation_gradient_descent_serial(
                 data_dict, ncomps=ncomps, 
                 convergence_tol=pars['convergence_tol'],
                 memb_probs=memb_probs_old, all_init_pars=all_init_pars,
@@ -393,7 +396,7 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
                 optimisation_method=pars['optimisation_method'],
                 idir=folder_iter,
             )
-
+        print('################# END MAXIMISATION')
         # Save new components
         Component.store_raw_components(filename_components_iter, 
             comps_new)
@@ -423,26 +426,27 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         #~ gr_covs = [c.get_covmatrix_now() for c in comps_new]
         
         # Means
-        dim = len(comps[0].get_mean())
+        dim = len(comps_new[0].get_mean())
         gr_mns = [trace_epicyclic_orbit(comp.get_mean(), comp.get_age(), 
             dim) for comp in comps_new]
 
         # Covmatrices
-        c = comps[0].get_covmatrix()
+        c = comps_new[0].get_covmatrix()
         dim1 = c.shape[0]
         dim2 = c.shape[1]
         h=1e-3 # HARDCODED...
         gr_covs = [trace_epicyclic_covmatrix(
-            c.get_covmatrix(), dim1, dim2, c.get_mean(), dim, c.get_age(), h, 
+            c.get_covmatrix(), c.get_mean(), c.get_age(), h, 
             dim1*dim2).reshape(dim1, dim2) for c in comps_new]
               
         #~ comps = [[m, co] for m, co in zip(gr_mns, gr_covs)]
         bg_lnols = data_dict['bg_lnols']
         
+        print("start expectationC")
         memb_probs_new = expectationC(st_mns, st_covs, gr_mns, gr_covs, 
-            bg_lnols, old_memb_probs, nstars*ncomps)
+            bg_lnols, memb_probs_old, nstars*ncomps)
         memb_probs_new = memb_probs_new.reshape(nstars, ncomps)
-        
+        print("end expectationC")
         
         print('MEMB_PROBS_NEW DONE.')
         
@@ -473,11 +477,12 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         # This is likelihood for all comps combined
         # get_overall_lnlikelihood computes memb_probs again, but
         # this was already computed a few lines earlier...
+        print('start python expectation.get_overall_lnlikelihood')
         overall_lnlike = expectation.get_overall_lnlikelihood(data_dict, 
             comps_new_list, old_memb_probs=memb_probs_new, 
             inc_posterior=False,
             use_box_background=use_box_background) # TODO background
-
+        print('end python expectation.get_overall_lnlikelihood')
         
 
         # MZ added

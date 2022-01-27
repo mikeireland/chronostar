@@ -1,9 +1,4 @@
 #include <stdio.h>
-
-//#ifndef DARWIN 
-//#include <malloc.h>
-//#endif
-
 #include <stddef.h>
 #include <Python.h>
 #include <gsl/gsl_matrix.h>
@@ -341,6 +336,8 @@ void calc_membership_probs(double *star_lnols, int ncomps,
     
     // TODO: Should use GSL vectors to speed this up!
 
+    //~ printf("start calc_membership_probs\n");
+
     int j;
     double sum;
     double si;
@@ -352,6 +349,8 @@ void calc_membership_probs(double *star_lnols, int ncomps,
         }
         star_memb_probs[i] = 1. / sum;
     }
+    
+    //~ printf("end calc_membership_probs\n");
 }
 
 
@@ -384,6 +383,7 @@ void expectation(
     int lnols_dim2 = gr_mns_dim1+1;
     double lnols[lnols_dim1*lnols_dim2];
 
+    //~ printf("C start get_all_lnoverlaps\n");
     get_all_lnoverlaps(
         st_mns, st_mn_dim1, st_mn_dim2,
         st_covs, st_dim1, st_dim2, st_dim3,
@@ -394,7 +394,7 @@ void expectation(
         inc_posterior, amp_prior, use_box_background, 
         lnols, lnols_dim1, lnols_dim2,
         using_bg);        
-    
+    //~ printf("C end get_all_lnoverlaps\n");
  
     // Calculate membership probabilities, tidying up 'nan's as required
     int i, j;
@@ -410,11 +410,18 @@ void expectation(
         }
  
         calc_membership_probs(lnols_i, ncomps, memb_probs_i);
+        //~ printf("END calc_membership_probs(lnols_i, ncomps, memb_probs_i), i=%d\n", i);
         
         for (j=0; j<ncomps; j++) {
+            //~ printf("insert memb_probs i=%d, j=%d, %d, memb_probs_i[j]=%f\n",
+                //~ i, j, i*ncomps+j, memb_probs_i[j]);
             memb_probs[i*ncomps+j] = memb_probs_i[j];
+            //~ printf("memb_probs_i[j] INSERTED\n");
         }
+        //~ printf("END memb_probs[i*ncomps+j] = memb_probs_i[j], i=%d, j=%d\n", i, j);
     }
+
+    //~ printf("last line in expectation in C\n");
 
     //~ // Check if any of the probabilities is nan
     //~ if np.isnan(memb_probs).any():

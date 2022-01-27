@@ -194,6 +194,29 @@ def get_all_lnoverlaps(data, comps_list, old_memb_probs=None,
 
     # For each component, get log overlap with each star, scaled by
     # amplitude (weight) of each component's pdf
+    
+    """
+    CONVERGENCE True 15 3 0.0 0.0 [-14378.556644566966, -14378.556644566966, -14378.556644566966]
+Traceback (most recent call last):
+  File "/Users/marusa/chronostar/fastfit/run_em.py", line 638, in <module>
+    final_best_comps, final_memb_probs = run_expectmax_simple(pars)
+  File "/Users/marusa/chronostar/fastfit/run_em.py", line 538, in run_expectmax_simple
+    overall_lnlike = expectation.get_overall_lnlikelihood(
+  File "/Users/marusa/chronostar/fastfit/../chronostar/expectation_marusa.py", line 236, in get_overall_lnlikelihood
+    memb_probs = expectation(data, comps_list,
+  File "/Users/marusa/chronostar/fastfit/../chronostar/expectation_marusa.py", line 341, in expectation
+    lnols = get_all_lnoverlaps(data, comps_list, old_memb_probs,
+  File "/Users/marusa/chronostar/fastfit/../chronostar/expectation_marusa.py", line 198, in get_all_lnoverlaps
+    mean_now = comp[0]
+TypeError: 'SphereComponent' object is not subscriptable
+
+    """
+    
+    # TODO:  REMOVE THIS IF SENTENCEC
+    if type(comps_list)!=list:
+        print('type(comps_list)!=list', comps_list)
+        comps_list=[comps_list]
+    
     for i, comp in enumerate(comps_list):
         mean_now = comp[0]
         cov_now = comp[1]
@@ -233,11 +256,17 @@ def get_overall_lnlikelihood(data, comps_list, return_memb_probs=False,
     -------
     overall_lnlikelihood: float
     """
+    
+    print('memb_probs = expectation')
+    print(comps_list)
+    print(inc_posterior)
+    print(use_box_background)
     memb_probs = expectation(data, comps_list,
                              old_memb_probs=old_memb_probs,
                              inc_posterior=inc_posterior,
                              use_box_background=use_box_background)
 
+    print('all_ln_ols = get_all_lnoverlaps')
     all_ln_ols = get_all_lnoverlaps(data, comps_list,
                                     old_memb_probs=memb_probs,
                                     inc_posterior=inc_posterior,
