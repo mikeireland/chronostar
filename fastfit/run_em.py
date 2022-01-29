@@ -54,7 +54,8 @@ from chronostar import utils
 
 # New libraries
 from chronostar import expectation_marusa as expectation
-from chronostar import maximisation
+#~ from chronostar import maximisation
+from chronostar import maximisationC
 
 try:
     from chronostar._expectation import expectation as expectationC
@@ -386,16 +387,25 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         print('################# START MAXIMISATION')
         # maximisation.maximisation_gradient_descent_serial(
         # maximisation.maximisation_gradient_descent_multiprocessing(
+        #~ comps_new, _, all_init_pos =\
+            #~ maximisation.maximisation_gradient_descent_serial(
+                #~ data_dict, ncomps=ncomps, 
+                #~ convergence_tol=pars['convergence_tol'],
+                #~ memb_probs=memb_probs_old, all_init_pars=all_init_pars,
+                #~ all_init_pos=all_init_pos, 
+                #~ trace_orbit_func=trace_orbit_func, Component=Component,
+                #~ optimisation_method=pars['optimisation_method'],
+                #~ idir=folder_iter,
+            #~ )
+            
         comps_new, _, all_init_pos =\
-            maximisation.maximisation_gradient_descent_serial(
-                data_dict, ncomps=ncomps, 
-                convergence_tol=pars['convergence_tol'],
-                memb_probs=memb_probs_old, all_init_pars=all_init_pars,
-                all_init_pos=all_init_pos, 
-                trace_orbit_func=trace_orbit_func, Component=Component,
-                optimisation_method=pars['optimisation_method'],
-                idir=folder_iter,
-            )
+            maximisationC.maximisation_gradient_descent_serial(
+            data_dict, ncomps=ncomps, memb_probs=memb_probs_old, 
+            all_init_pars=all_init_pars, all_init_pos=all_init_pos,
+            Component=Component, trace_orbit_func=trace_orbit_func, 
+            optimisation_method=pars['optimisation_method'], 
+            idir=folder_iter)
+            
         print('################# END MAXIMISATION')
         # Save new components
         Component.store_raw_components(filename_components_iter, 
