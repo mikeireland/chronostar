@@ -12,12 +12,14 @@ double ln_alpha_prior(double dx, double dv, double* memb_probs,
     double sig, int nstars);
 
 
-double lnprior(double* mean, double* covmatrix, double dx, double dv, 
-    double age, double* memb_probs, int nstars);
+double lnprior(double* mean, int mean_dim, double* covmatrix, 
+    double dx, double dv, double age, double* memb_probs, int nstars);
 
 
-double lnlike(double* mean_now, double* cov_now, 
-    double* st_mns, double* st_covs, double* bg_lnols,
+double lnlike(double* gr_mn, int gr_mn_dim, 
+    double* gr_cov, int gr_dim1, int gr_dim2,
+    double* st_mns, int st_mn_dim1, int st_mn_dim2, 
+    double* st_covs, int st_dim1, int st_dim2, int st_dim3, 
     double* memb_probs, int nstars);
 
 

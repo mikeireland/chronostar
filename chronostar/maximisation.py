@@ -391,6 +391,7 @@ def fit_comp_gradient_descent_serial(data, memb_probs=None,
             pickle.dump([data, memb_probs, init_pos[i]], h)
         print('lnprob_func_gradient_descent_ pickled', i)
         
+        # TODO: filter out stars with small memb_prob. This is not done anymore in likelihood. nearby_star_mask = np.where(memb_probs > memb_threshold)
         result = scipy.optimize.minimize(
             likelihood2.lnprob_func_gradient_descent, init_pos[i], 
             args=[data, memb_probs, trace_orbit_func, 

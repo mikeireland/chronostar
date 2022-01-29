@@ -108,12 +108,12 @@ def ln_alpha_prior(dx, dv, memb_probs, sig, nstars):
     return _likelihoodc.ln_alpha_prior(dx, dv, memb_probs, sig, nstars)
 ln_alpha_prior = _likelihoodc.ln_alpha_prior
 
-def lnprior(mean, covmatrix, dx, dv, age, memb_probs, nstars):
-    return _likelihoodc.lnprior(mean, covmatrix, dx, dv, age, memb_probs, nstars)
+def lnprior(mean, mean_dim, covmatrix, dx, dv, age, memb_probs, nstars):
+    return _likelihoodc.lnprior(mean, mean_dim, covmatrix, dx, dv, age, memb_probs, nstars)
 lnprior = _likelihoodc.lnprior
 
-def lnlike(mean_now, cov_now, st_mns, st_covs, bg_lnols, memb_probs, nstars):
-    return _likelihoodc.lnlike(mean_now, cov_now, st_mns, st_covs, bg_lnols, memb_probs, nstars)
+def lnlike(gr_mn, gr_mn_dim, gr_cov, gr_dim1, gr_dim2, st_mns, st_mn_dim1, st_mn_dim2, st_covs, st_dim1, st_dim2, st_dim3, memb_probs, nstars):
+    return _likelihoodc.lnlike(gr_mn, gr_mn_dim, gr_cov, gr_dim1, gr_dim2, st_mns, st_mn_dim1, st_mn_dim2, st_covs, st_dim1, st_dim2, st_dim3, memb_probs, nstars)
 lnlike = _likelihoodc.lnlike
 
 def lnprob_func_gradient_descent(pars, data):

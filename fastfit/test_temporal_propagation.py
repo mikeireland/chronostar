@@ -53,6 +53,7 @@ def test_trace_covmatrix():
     mean = np.array([-4.042219, -23.352419, -10.544823, 0.802136, -8.495890, 5.565167])
 
 
+    # It works for this one
     cov = np.array(
         [[650.057168, 78.675453, 0.000000, 14.851775, 3.565047, 0.000000],
         [78.675453, 465.226102, 0.000000, 3.373342, 2.856968, 0.000000],
@@ -60,6 +61,15 @@ def test_trace_covmatrix():
         [14.851775, 3.373342, 0.000000, 0.607276, 0.040567, 0.000000],
         [3.565047, 2.856968, 0.000000, 0.040567, 0.401380, 0.000000],
         [0.000000, 0.000000, -2.568206, 0.000000, 0.000000, 2.286597]])
+
+    #~ cov = np.array(
+    #~ [[8.76440841, 0., 0., 0., 0., 0.],
+    #~ [0., 8.76440841, 0., 0., 0., 0.],
+    #~ [0., 0., 8.76440841, 0., 0., 0.],
+    #~ [0., 0., 0., 0.14979915, 0., 0],
+    #~ [0., 0., 0., 0., 0.14979915, 0.],
+    #~ [0., 0., 0., 0., 0., 0.14979915]])
+
 
 
     covt_dim = 6
@@ -70,20 +80,25 @@ def test_trace_covmatrix():
         trans_func=traceorbit.trace_epicyclic_orbit, loc=mean, 
         args=(age,),)
     duration_P = time.time()-start
+    #~ print(covt_P)
     
     start = time.time()
     covt_C = trace_epicyclic_covmatrix(cov, mean, age, h, covt_dim*covt_dim)
+    #~ print('covt_C')
+    #~ print(covt_C)
     covt_C = covt_C.reshape(covt_dim, covt_dim)
     duration_C = time.time()-start
     
     diff = covt_C - covt_P
     print('diff trace_covmatrix')
     print(diff)
+    mx = np.max(diff)
     if np.any(np.abs(diff)>1e-6):
         print('DISAGREEMENT')
     else:
         print('GOOD AGREEMENT')
-
+    print('Largest difference', mx)
+    
     print('Duration P', duration_P)
     print('Duration C', duration_C)
     print('Duration_P / Duration_C', duration_P / duration_C)

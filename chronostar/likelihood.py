@@ -166,6 +166,7 @@ def lnprior(comp, memb_probs):
 
     return ln_alpha_prior(comp, memb_probs, sig=1.0)
 
+
 def get_lnoverlaps(comp, data, star_mask=None):
     """
     Given the parametric description of an origin, calculate star overlaps
@@ -331,6 +332,7 @@ def lnprob_func(pars, data, memb_probs=None,
     if memb_probs is None:
         memb_probs = np.ones(len(data['means']))
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
+
     lp = lnprior(comp, memb_probs)
     
     if optimisation_method=='emcee':
@@ -342,6 +344,7 @@ def lnprob_func(pars, data, memb_probs=None,
         if not np.isfinite(lp):
             return np.inf
         return - (lp + lnlike(comp, data, memb_probs, **kwargs))
+
 
 def lnprob_func_gradient_descent(pars, args, **kwargs):
     """Computes the log-probability for a fit to a group.
@@ -395,8 +398,22 @@ def lnprob_func_gradient_descent(pars, args, **kwargs):
     
     # TODO: Does the creation of comp take a lot of time?
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
-    lp = lnprior(comp, memb_probs)
 
+
+    #~ print('P pars')
+    #~ print(pars)
+    #~ print('P comp')
+    #~ print(comp)
+    #~ print('get_mean()')
+    #~ print(comp.get_mean())
+    #~ print('get_covmatrix()')
+    #~ print(comp.get_covmatrix())
+
+    lp = lnprior(comp, memb_probs)
+    #~ print('lp P', lp)
+    
+    #~ lnlk = lnlike(comp, data, memb_probs, **kwargs)
+    #~ print('P lnlk', lnlk)
 
     if not np.isfinite(lp):
         return np.inf

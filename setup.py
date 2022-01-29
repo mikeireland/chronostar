@@ -74,8 +74,9 @@ _expectation = Extension("chronostar/_expectation",
 _temporal_propagation = Extension("chronostar/_temporal_propagation",
                     ["chronostar/temporal_propagation.i", 
                     "chronostar/temporal_propagation.c"],
-                    include_dirs = [numpy_include],
+                    include_dirs = [numpy_include, '/usr/local/include/'],
                     libraries = ['gsl', 'gslcblas'],
+                    library_dirs = ['/usr/local/include/'],
                     )
 
 #~ _likelihoodtest = Extension("chronostar/_likelihoodtest",
@@ -88,13 +89,11 @@ _temporal_propagation = Extension("chronostar/_temporal_propagation",
 
 _likelihoodc = Extension("chronostar/_likelihoodc",
                     ["chronostar/likelihoodc.i", 
-                    "chronostar/likelihoodc.c"],
-                    include_dirs = [numpy_include, "chronostar/"],
+                    "chronostar/likelihoodc.c",
+                    "chronostar/expectation.c",                   
+                    "chronostar/temporal_propagation.c"],
+                    include_dirs = [numpy_include, '/usr/local/include/'],
                     libraries = ['gsl', 'gslcblas'],
-                    #~ library_dirs = ['/usr/local/include/', "chronostar/"], #
-                    library_dirs = ["chronostar/"],
-                    depends = ["chronostar/temporal_propagation.h", 
-                        "chronostar/expectation.h"],
                     )
 
 setup(name="chronostar",
@@ -112,6 +111,4 @@ setup(name="chronostar",
       ],
       ext_modules = [_overlap, _expectation, _temporal_propagation,
       _likelihoodc],
-      headers=["chronostar/temporal_propagation.h", 
-        "chronostar/expectation.h"]
      )

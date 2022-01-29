@@ -8,6 +8,7 @@
 #include <math.h>
 
 
+
 void get_lnoverlaps(
     double* gr_cov, int gr_dim1, int gr_dim2, 
     double* gr_mn, int gr_mn_dim, 
@@ -160,6 +161,7 @@ void get_all_lnoverlaps(
     
     
     int i, j;
+    
 
 
     // Compute weights. These are amplitudes of components and are equal to the number of members in each of the components.
@@ -371,6 +373,7 @@ void expectation(
      * array and reshape later in python!
      * Result: memb_probs[nstars+ncomps(+1 for bg?)]
      */
+
 
 
     int inc_posterior = 0;
