@@ -46,6 +46,9 @@ avatar_scripts/*.o*
 # Pytest files
 .pytest_cache
 
+#Temp Scripts
+*.ipynb
+
 # Plots and saves
 *.eps
 *.png
