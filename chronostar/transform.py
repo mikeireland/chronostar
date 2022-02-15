@@ -111,13 +111,13 @@ def calc_jacobian(trans_func, loc, dim=6, h=1e-3, args=None):
         start_pos.append(loc_pl)
         start_pos.append(loc_mi)
     start_pos = np.array(start_pos)
-
     final_pos = trans_func(start_pos, *args)
 
     # return (trans_func(loc_pl) - trans_func(loc_mi)) / (2*h)
 
     for i in range(dim):
         jac[:,i] = (final_pos[2*i] - final_pos[2*i + 1]) / (2*h)
+
 
 #    for i in range(dim):
 #        jac[:,i] = calc_jacobian_column(trans_func, i, loc, dim, h, args)
@@ -156,5 +156,8 @@ def transform_covmatrix(cov, trans_func, loc, dim=6, h=1e-3, args=None):
         The transformed covariance matrix
     """
     jac = calc_jacobian(trans_func, loc, dim=dim, h=h, args=args)
+    #~ print('jac P transform')
+    #~ print(jac)
+
     return np.dot(jac, np.dot(cov, jac.T))
 

@@ -40,7 +40,6 @@ import os.path
 import sys
 sys.path.insert(0, '..')
 
-
 #~ from chronostar import expectmax2 as expectmax
 from chronostar import expectmax
 from chronostar import tabletool
@@ -53,24 +52,8 @@ from chronostar import default_pars
 from chronostar import utils
 
 # New libraries
-from chronostar import expectation_marusa as expectation
-#~ from chronostar import maximisation
-from chronostar import maximisationC
-
-try:
-    from chronostar._expectation import expectation as expectationC
-except ImportError:
-    print("C IMPLEMENTATION OF expectation NOT IMPORTED")
-    USE_C_IMPLEMENTATION = False
-    TODO = True # NOW WHAT?
-
-try:
-    from chronostar._temporal_propagation import trace_epicyclic_orbit, trace_epicyclic_covmatrix
-except ImportError:
-    print("C IMPLEMENTATION OF temporal_propagation NOT IMPORTED")
-    USE_C_IMPLEMENTATION = False
-    TODO = True # NOW WHAT?
-
+from chronostar import expectation
+from chronostar import maximisation
 
 #~ import subprocess # to call external scripts
 
@@ -301,7 +284,6 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         nstars=len(data_dict['means'])
         memb_probs_tmp = np.ones((nstars, ncomps+1)) / (ncomps+1)
                 
-        #~ init_memb_probs = expectmax.expectationC(data_dict, init_comps, 
         init_memb_probs = expectmax.expectation(data_dict, init_comps, 
             memb_probs_tmp, inc_posterior=inc_posterior,
             use_box_background=use_box_background)
@@ -385,28 +367,17 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         ################################################################   
         
         print('################# START MAXIMISATION')
-        # maximisation.maximisation_gradient_descent_serial(
-        # maximisation.maximisation_gradient_descent_multiprocessing(
-        #~ comps_new, _, all_init_pos =\
-            #~ maximisation.maximisation_gradient_descent_serial(
-                #~ data_dict, ncomps=ncomps, 
-                #~ convergence_tol=pars['convergence_tol'],
-                #~ memb_probs=memb_probs_old, all_init_pars=all_init_pars,
-                #~ all_init_pos=all_init_pos, 
-                #~ trace_orbit_func=trace_orbit_func, Component=Component,
-                #~ optimisation_method=pars['optimisation_method'],
-                #~ idir=folder_iter,
-            #~ )
-            
         comps_new, _, all_init_pos =\
-            maximisationC.maximisation_gradient_descent_serial(
-            data_dict, ncomps=ncomps, memb_probs=memb_probs_old, 
-            all_init_pars=all_init_pars, all_init_pos=all_init_pos,
-            Component=Component, trace_orbit_func=trace_orbit_func, 
-            optimisation_method=pars['optimisation_method'], 
-            idir=folder_iter)
-            
-        print('################# END MAXIMISATION')
+            maximisation.maximisation_gradient_descent_multiprocessing(
+                data_dict, ncomps=ncomps, 
+                convergence_tol=pars['convergence_tol'],
+                memb_probs=memb_probs_old, all_init_pars=all_init_pars,
+                all_init_pos=all_init_pos, 
+                trace_orbit_func=trace_orbit_func, Component=Component,
+                optimisation_method=pars['optimisation_method'],
+                idir=folder_iter,
+            )
+
         # Save new components
         Component.store_raw_components(filename_components_iter, 
             comps_new)
@@ -424,39 +395,9 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
 
         comps_new_list = [[comp.get_mean(), comp.get_covmatrix()] for comp in comps_new]
 
-        # Python version
-        #~ memb_probs_new = expectation.expectation(data_dict, 
-            #~ comps_new_list, memb_probs_old, inc_posterior=inc_posterior, 
-            #~ use_box_background=use_box_background) # TODO background
-        
-        # C version
-        st_mns = data_dict['means']
-        st_covs = data_dict['covs']
-        #~ gr_mns = [c.get_mean_now() for c in comps_new]
-        #~ gr_covs = [c.get_covmatrix_now() for c in comps_new]
-        
-        # Means
-        dim = len(comps_new[0].get_mean())
-        gr_mns = [trace_epicyclic_orbit(comp.get_mean(), comp.get_age(), 
-            dim) for comp in comps_new]
-
-        # Covmatrices
-        c = comps_new[0].get_covmatrix()
-        dim1 = c.shape[0]
-        dim2 = c.shape[1]
-        h=1e-3 # HARDCODED...
-        gr_covs = [trace_epicyclic_covmatrix(
-            c.get_covmatrix(), c.get_mean(), c.get_age(), h, 
-            dim1*dim2).reshape(dim1, dim2) for c in comps_new]
-              
-        #~ comps = [[m, co] for m, co in zip(gr_mns, gr_covs)]
-        bg_lnols = data_dict['bg_lnols']
-        
-        print("start expectationC")
-        memb_probs_new = expectationC(st_mns, st_covs, gr_mns, gr_covs, 
-            bg_lnols, memb_probs_old, nstars*ncomps)
-        memb_probs_new = memb_probs_new.reshape(nstars, ncomps)
-        print("end expectationC")
+        memb_probs_new = expectation.expectation(data_dict, 
+            comps_new_list, memb_probs_old, inc_posterior=inc_posterior, 
+            use_box_background=use_box_background) # TODO background
         
         print('MEMB_PROBS_NEW DONE.')
         
@@ -487,12 +428,11 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         # This is likelihood for all comps combined
         # get_overall_lnlikelihood computes memb_probs again, but
         # this was already computed a few lines earlier...
-        print('start python expectation.get_overall_lnlikelihood')
         overall_lnlike = expectation.get_overall_lnlikelihood(data_dict, 
             comps_new_list, old_memb_probs=memb_probs_new, 
             inc_posterior=False,
             use_box_background=use_box_background) # TODO background
-        print('end python expectation.get_overall_lnlikelihood')
+
         
 
         # MZ added
