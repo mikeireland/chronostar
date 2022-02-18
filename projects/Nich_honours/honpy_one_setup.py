@@ -70,12 +70,12 @@ def g_kernal_den(col, gmag, n=100, r=0.01, data=tree,
          fig.show
     return normed
 
-def get_probage(col,gmag,A, n=100, r=0.01, data=tree, 
+def get_probage(A, pdf, # a pdf is made from g_kernal_den
+                n=100, r=0.01, data=tree, 
                 show_PDF=False, show_NearPop=False):
      if not(5<A<11.4):
         print('Err; log(age) out of 5 to 11.4 interval')
-     pdf=g_kernal_den(col, gmag, n=n, r=r, data=data, 
-                      show_PDF=show_PDF,show_NearPop=show_NearPop)
+     
      for i in range(len(lgage)):
          if lgage[i+1] > A:
              grad=(pdf[i+1]-pdf[i])/(lgage[i+1]-lgage[i])
