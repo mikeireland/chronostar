@@ -30,7 +30,7 @@ double calc_alpha(double dx, double dv, int nstars) {
 
 double lnlognormal(double x, double mu, double sig) {
     // mu=2.1, double sig=1.0
-    return -log(x*sig*sqrt(2*M_PI)) - pow(log(x)-mu, 2)/(2*sig*sig);
+    return -log(x*sig*sqrt(2*M_PI)) - pow(log(x)-mu, 2)/(2*sig*sig); //TODO 2*M_PI could be precomputed as a header constant. What about 2*sig*sig?
 }
 
     
@@ -67,6 +67,7 @@ double ln_alpha_prior(double dx, double dv, double* memb_probs,
     // TODO: hardcoded...
     double mu=2.1;
     //~ double sig=1.0;
+    
     return lnlognormal(alpha, mu, sig);
 }
 
@@ -91,7 +92,9 @@ double lnprior(double* mean, int mean_dim, double* covmatrix,
         The logarithm of the prior on the model parameters
     */
     
-    for (int i=0; i<mean_dim; i++) {
+    int i;
+    
+    for (i=0; i<mean_dim; i++) {
         if ((mean[i]<-1e+5) || (mean[i]>1e+5)) return -INFINITY;
     }
     
@@ -125,9 +128,9 @@ double lnprior(double* mean, int mean_dim, double* covmatrix,
     if ((age < 0.0) || (age > MAX_AGE)) return -INFINITY;
 
 
-    // Estimated number of members. This SHOULD be done outside the lnprob function!!!
-    int nstrs=0.0;
-    for (int i=0; i<nstars; i++) {
+    // Estimated number of members. This SHOULD be done outside the lnprob function!!! TODO
+    int nstrs=0;
+    for (i=0; i<nstars; i++) {
         nstrs+=memb_probs[i];
     }
 
@@ -175,6 +178,8 @@ double lnlike(double* gr_mn, int gr_mn_dim,
         the logarithm of the likelihood of the fit
 
     */
+    
+    
     
     //~ // Boost expect star count to some minimum threshold
     //~ // This is a bit of a hack to prevent component amplitudes dwindling
@@ -260,7 +265,7 @@ double lnprob_func_gradient_descent(double* pars, int pars_dim,
         for (j=0; j<means_dim; j++) {
             st_mns[i*means_dim+j] = data[i*data_dim2+j];
         }
-        
+
         for (j=0; j<covs_dim; j++) {
             st_covs[i*covs_dim+j] = data[i*data_dim2+means_dim+j];
         }
@@ -294,6 +299,7 @@ double lnprob_func_gradient_descent(double* pars, int pars_dim,
     trace_epicyclic_orbit(mean_start, means_dim, age, mean_now, 
         means_dim);
 
+    // TODO after Chronostar operates in pc/Myr
     // mean_start is changed by trace_epicyclic_orbit (transform to pc/Myr), so init it here again
     // Could this be omitted if Chronostar operated in pc/Myr everywhere?
     for (i=0; i<means_dim; i++) {
@@ -307,7 +313,7 @@ double lnprob_func_gradient_descent(double* pars, int pars_dim,
     // Trace component's covmatrix mean forward in time
     //~ double covmatrix[covs_dim] = {};
     double covmatrix[covs_dim];
-    for (i=0;  i<covs_dim; i++) covmatrix[i]=0.0; // TODO: init in a faster way? with {0.0}?
+    for (i=0; i<covs_dim; i++) covmatrix[i]=0.0; // TODO: init in a faster way? with {0.0}?
     double dx2=dx*dx;
     double dv2=dv*dv;
     covmatrix[0] = dx2;
@@ -316,7 +322,7 @@ double lnprob_func_gradient_descent(double* pars, int pars_dim,
     covmatrix[21] = dv2;
     covmatrix[28] = dv2;
     covmatrix[35] = dv2;
-    int cov_dim1=6;
+    int cov_dim1=6; //TODO hardcoded...
     int cov_dim2=6;
     
     

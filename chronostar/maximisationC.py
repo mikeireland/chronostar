@@ -13,7 +13,7 @@ import scipy.optimize
 from chronostar.component import SphereComponent
 
 try:
-    from chronostar._likelihoodc import lnprob_func_gradient_descent
+    from chronostar._likelihood import lnprob_func_gradient_descent
 except ImportError:
     print("C IMPLEMENTATION OF lnprob_func_gradient_descent NOT IMPORTED")
     USE_C_IMPLEMENTATION = False

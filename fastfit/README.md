@@ -43,3 +43,8 @@ I’ve tested the code with bPic data. The result has 2 components, and one of t
 - `expectation.c` with corresponding swig module now works. `fastfit/test_expectation.py` compares the result from python and C modules and finds no difference. C module is 10 times faster than python. There are, however, a few points left to implement, e.g. whether to include an option to exclude background, posterior etc. Also, `get_overall_lnlikelihood` is TO BE DONE.
 
 - `temporal_propagation.c`: Works for a 6D point and for a covariance matrix. Swig done, ready to use in python. Test works well (`fastfit/test_temporal_propagation.py`). `trace_epicyclic_orbit` is 30 times faster than in python, and covmatrix transformation is 10 times faster in C.
+
+- `setup.py`: `_overlap` can be removed for C Chronostar because it is already included in `expectation.c`
+
+### Running tests
+- Tests: `test_expecctation.py`, `test_likelihood.py`, `test_temporal_propagation.py`: input data is in `data_for_testing`. It is on github.

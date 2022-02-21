@@ -184,42 +184,25 @@ void trace_epicyclic_covmatrix(double* cov, int cov_dim1, int cov_dim2,
     gsl_matrix* jac = gsl_matrix_alloc(dim, dim);
     gsl_matrix* jac_transposed = gsl_matrix_alloc(dim, dim);
 
-    //~ printf("jac C\n");
     for (i=0; i<dim; i++) {
         memcpy(loc_pl, loc, sizeof(double)*loc_dim);
         memcpy(loc_mi, loc, sizeof(double)*loc_dim);
-        
-        //~ loc_pl[i] = loc_pl[i] + h;
-        //~ loc_mi[i] = loc_mi[i] - h;
+
         loc_pl[i] = loc[i] + h;
         loc_mi[i] = loc[i] - h;
 
-        //~ printf("C age %f\n", t);
-        //~ printf("C loc_pl\n");
         trace_epicyclic_orbit(loc_pl, loc_dim, t, final_pos_pl, loc_dim);
         trace_epicyclic_orbit(loc_mi, loc_dim, t, final_pos_mi, loc_dim);
 
-        //~ for (j=0; j<6; j++) printf("%f ", final_pos_mi[j]);
-        //~ printf("\n");
-
-        //~ printf("jac ");
         for (j=0; j<dim; j++) {
             gsl_matrix_set(jac, j, i, 
                 (final_pos_pl[j] - final_pos_mi[j]) / (2.0*h));
-                //~ printf("%f ", (final_pos_pl[j] - final_pos_mi[j]) / (2.0*h));
-                //~ printf("%f %f \n", final_pos_pl[j], final_pos_mi[j]);
                 
             // Set covgsl (we don't run a separate double loop for that)
             gsl_matrix_set(covgsl, i, j, cov[j*dim+i]);
         }
-        //~ printf("\n");
     }
     
-    //~ printf("print jac C\n");
-    //~ for (i=0; i<dim; i++) {
-        //~ for (j=0; j<dim; j++) printf("%f ", gsl_matrix_get(jac, i, j));
-        //~ printf("\n");
-    //~ }
     
     // Compute a transpose of Jacobian
     gsl_matrix_transpose_memcpy(jac_transposed, jac);

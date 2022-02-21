@@ -1,5 +1,5 @@
-#ifndef LIKELIHOODC_H_
-#define LIKELIHOODC_H_
+#ifndef LIKELIHOOD_H_
+#define LIKELIHOOD_H_
 
 
 double calc_alpha(double dx, double dv, int nstars);
@@ -27,4 +27,4 @@ double lnprob_func_gradient_descent(double* pars, int pars_dim,
     double* data, int data_dim1, int data_dim2);
 
 
-#endif // LIKELIHOODC_H_
+#endif // LIKELIHOOD_H_

@@ -9,12 +9,12 @@ if _swig_python_version_info >= (2, 7, 0):
     def swig_import_helper():
         import importlib
         pkg = __name__.rpartition('.')[0]
-        mname = '.'.join((pkg, '_likelihoodc')).lstrip('.')
+        mname = '.'.join((pkg, '_expectation')).lstrip('.')
         try:
             return importlib.import_module(mname)
         except ImportError:
-            return importlib.import_module('_likelihoodc')
-    _likelihoodc = swig_import_helper()
+            return importlib.import_module('_expectation')
+    _expectation = swig_import_helper()
     del swig_import_helper
 elif _swig_python_version_info >= (2, 6, 0):
     def swig_import_helper():
@@ -22,20 +22,20 @@ elif _swig_python_version_info >= (2, 6, 0):
         import imp
         fp = None
         try:
-            fp, pathname, description = imp.find_module('_likelihoodc', [dirname(__file__)])
+            fp, pathname, description = imp.find_module('_expectation', [dirname(__file__)])
         except ImportError:
-            import _likelihoodc
-            return _likelihoodc
+            import _expectation
+            return _expectation
         try:
-            _mod = imp.load_module('_likelihoodc', fp, pathname, description)
+            _mod = imp.load_module('_expectation', fp, pathname, description)
         finally:
             if fp is not None:
                 fp.close()
         return _mod
-    _likelihoodc = swig_import_helper()
+    _expectation = swig_import_helper()
     del swig_import_helper
 else:
-    import _likelihoodc
+    import _expectation
 del _swig_python_version_info
 
 try:
@@ -96,29 +96,29 @@ except __builtin__.Exception:
     _newclass = 0
 
 
-def calc_alpha(dx, dv, nstars):
-    return _likelihoodc.calc_alpha(dx, dv, nstars)
-calc_alpha = _likelihoodc.calc_alpha
+def get_lnoverlaps(gr_cov, gr_dim1, gr_dim2, gr_mn, gr_mn_dim, st_covs, st_mns, lnols_output, n):
+    return _expectation.get_lnoverlaps(gr_cov, gr_dim1, gr_dim2, gr_mn, gr_mn_dim, st_covs, st_mns, lnols_output, n)
+get_lnoverlaps = _expectation.get_lnoverlaps
 
-def lnlognormal(x, mu, sig):
-    return _likelihoodc.lnlognormal(x, mu, sig)
-lnlognormal = _likelihoodc.lnlognormal
+def get_all_lnoverlaps(st_mns, st_covs, gr_mns, gr_mn_dim1, gr_mn_dim2, gr_covs, old_memb_probs, memb_dim1, memb_dim2, inc_posterior, amp_prior, use_box_background, lnols, lnols_dim1, lnols_dim2, using_bg):
+    return _expectation.get_all_lnoverlaps(st_mns, st_covs, gr_mns, gr_mn_dim1, gr_mn_dim2, gr_covs, old_memb_probs, memb_dim1, memb_dim2, inc_posterior, amp_prior, use_box_background, lnols, lnols_dim1, lnols_dim2, using_bg)
+get_all_lnoverlaps = _expectation.get_all_lnoverlaps
 
-def ln_alpha_prior(dx, dv, memb_probs, sig, nstars):
-    return _likelihoodc.ln_alpha_prior(dx, dv, memb_probs, sig, nstars)
-ln_alpha_prior = _likelihoodc.ln_alpha_prior
+def get_overall_lnlikelihood_for_fixed_memb_probs(st_mns, st_covs, gr_mns, gr_covs, bg_lnols, memb_probs):
+    return _expectation.get_overall_lnlikelihood_for_fixed_memb_probs(st_mns, st_covs, gr_mns, gr_covs, bg_lnols, memb_probs)
+get_overall_lnlikelihood_for_fixed_memb_probs = _expectation.get_overall_lnlikelihood_for_fixed_memb_probs
 
-def lnprior(mean, mean_dim, covmatrix, dx, dv, age, memb_probs, nstars):
-    return _likelihoodc.lnprior(mean, mean_dim, covmatrix, dx, dv, age, memb_probs, nstars)
-lnprior = _likelihoodc.lnprior
+def get_overall_lnlikelihood(st_mns, st_covs, gr_mns, gr_covs, bg_lnols, old_memb_probs, memb_probs):
+    return _expectation.get_overall_lnlikelihood(st_mns, st_covs, gr_mns, gr_covs, bg_lnols, old_memb_probs, memb_probs)
+get_overall_lnlikelihood = _expectation.get_overall_lnlikelihood
 
-def lnlike(gr_mn, gr_mn_dim, gr_cov, gr_dim1, gr_dim2, st_mns, st_mn_dim1, st_mn_dim2, st_covs, st_dim1, st_dim2, st_dim3, memb_probs, nstars):
-    return _likelihoodc.lnlike(gr_mn, gr_mn_dim, gr_cov, gr_dim1, gr_dim2, st_mns, st_mn_dim1, st_mn_dim2, st_covs, st_dim1, st_dim2, st_dim3, memb_probs, nstars)
-lnlike = _likelihoodc.lnlike
+def calc_membership_probs(star_lnols, ncomps, star_memb_probs):
+    return _expectation.calc_membership_probs(star_lnols, ncomps, star_memb_probs)
+calc_membership_probs = _expectation.calc_membership_probs
 
-def lnprob_func_gradient_descent(pars, data):
-    return _likelihoodc.lnprob_func_gradient_descent(pars, data)
-lnprob_func_gradient_descent = _likelihoodc.lnprob_func_gradient_descent
+def expectation(st_mns, st_covs, gr_mns, gr_covs, bg_lnols, old_memb_probs, memb_probs):
+    return _expectation.expectation(st_mns, st_covs, gr_mns, gr_covs, bg_lnols, old_memb_probs, memb_probs)
+expectation = _expectation.expectation
 # This file is compatible with both classic and new-style classes.
 
 

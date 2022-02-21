@@ -41,24 +41,33 @@ import sys
 sys.path.insert(0, '..')
 
 
-#~ from chronostar import expectmax2 as expectmax
-from chronostar import expectmax
 from chronostar import tabletool
 from chronostar import readparam
-#from chronostar import compfitter
 from chronostar import component
-#from chronostar import likelihood
-from chronostar import traceorbit
-from chronostar import default_pars
-from chronostar import utils
 
-# New libraries
-from chronostar import expectation_marusa as expectation
-#~ from chronostar import maximisation
+# What is this?
+from chronostar import default_pars
+from chronostar import utils 
+
+# Deprecated. Replaced by C modules
+#from chronostar import likelihood
+#from chronostar import compfitter
+from chronostar import expectmax
+from chronostar import traceorbit # goes into maximisationC, but it doesn't have to anymore. fix this!
+
+
+# New Python modules (to be replaced by C modules)
+#~ from chronostar.run_em_files_python import expectation_marusa as expectation
+#~ from chronostar import maximisation_marusa as maximisation
+
+# C module: maximisation
 from chronostar import maximisationC
 
+# C modules
 try:
     from chronostar._expectation import expectation as expectationC
+    #~ from chronostar._expectation import get_overall_lnlikelihood
+    from chronostar._expectation import get_overall_lnlikelihood_for_fixed_memb_probs
 except ImportError:
     print("C IMPLEMENTATION OF expectation NOT IMPORTED")
     USE_C_IMPLEMENTATION = False
@@ -178,6 +187,29 @@ def lnprob_convergence(lnprob, slice_size=10):
     return convergence
 
 
+def get_gr_mns_covs_now(comps):
+    """
+    Get gr_mns and gr_covs from [comps] for C modules
+    Temporal propagation happens here.
+    """
+    
+    # Means
+    dim = len(comps[0].get_mean())
+    gr_mns = [trace_epicyclic_orbit(comp.get_mean(), comp.get_age(), 
+        dim) for comp in comps]
+
+    # Covmatrices
+    c = comps[0].get_covmatrix()
+    dim1 = c.shape[0]
+    dim2 = c.shape[1]
+    h=1e-3 # HARDCODED... TODO
+    gr_covs = [trace_epicyclic_covmatrix(
+        c.get_covmatrix(), c.get_mean(), c.get_age(), h, 
+        dim1*dim2).reshape(dim1, dim2) for c in comps]
+        
+    return gr_mns, gr_covs
+
+
 def run_expectmax_simple(pars, data_dict=None, init_comps=None, 
     init_memb_probs=None):
     """
@@ -208,7 +240,7 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
 
 
     # Do we really need these?
-    use_box_background = True # TODO: MZ: I made this up because this parameter is needed.... Revise this!!!
+    use_box_background = False # TODO: MZ: I made this up because this parameter is needed.... Revise this!!! Default in parentfit is False
     inc_posterior=False
 
 
@@ -226,12 +258,14 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
     # Stellar data
     if data_dict is None:
         data_dict = tabletool.build_data_dict_from_table(
-            pars['data_table'], get_background_overlaps=pars['use_background']) # TODO: background???
+            pars['data_table'], 
+            get_background_overlaps=pars['use_background']) # TODO: background???
 
     # Read initial membership probabilities
     if init_memb_probs is None:
         filename_init_memb_probs = pars['filename_init_memb_probs']
-        if filename_init_memb_probs is not None and os.path.exists(filename_init_memb_probs):
+        if filename_init_memb_probs is not None and os.path.exists(
+            filename_init_memb_probs):
             init_memb_probs = np.load(filename_init_memb_probs)
             print('Managed to load in %d init_memb_probs from file'%\
                 len(init_memb_probs))
@@ -239,8 +273,10 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
     # Read initial components
     if init_comps is None:
         filename_init_comps = pars['filename_init_comps']
-        if filename_init_comps is not None and os.path.exists(filename_init_comps):
-            init_comps = Component.load_raw_components(filename_init_comps)
+        if filename_init_comps is not None and os.path.exists(
+            filename_init_comps):
+            init_comps = Component.load_raw_components(
+                filename_init_comps)
             print('Managed to load in %d init_comps from file'%\
                 len(init_comps))
         else:
@@ -264,6 +300,12 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
 
 
 
+    ####################################################################
+    #### STELLAR DATA FOR C MODULES ####################################
+    ####################################################################
+    st_mns = data_dict['means']
+    st_covs = data_dict['covs']
+    bg_lnols = data_dict['bg_lnols']
 
 
     ####################################################################
@@ -301,10 +343,33 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         nstars=len(data_dict['means'])
         memb_probs_tmp = np.ones((nstars, ncomps+1)) / (ncomps+1)
                 
-        #~ init_memb_probs = expectmax.expectationC(data_dict, init_comps, 
-        init_memb_probs = expectmax.expectation(data_dict, init_comps, 
-            memb_probs_tmp, inc_posterior=inc_posterior,
-            use_box_background=use_box_background)
+        # This includes iterations to get component amplitudes right
+        #~ init_memb_probsP = expectmax.expectation(data_dict, init_comps, 
+            #~ memb_probs_tmp, inc_posterior=inc_posterior,
+            #~ use_box_background=use_box_background) # TODO: REMOVE THIS
+
+        # Get gr_mns and gr_covs at t=now
+        gr_mns, gr_covs = get_gr_mns_covs_now(init_comps)
+        
+        init_memb_probs = expectationC(st_mns, st_covs, gr_mns, gr_covs, 
+            bg_lnols, memb_probs_tmp, nstars*(ncomps+1))
+        init_memb_probs = init_memb_probs.reshape(nstars, (ncomps+1))
+
+        #~ print('INIT')
+        #~ print(init_memb_probs)
+        #~ print(init_memb_probsP)
+        #~ print(init_memb_probs-init_memb_probsP)
+        
+        
+        #~ import pickle
+        #~ with open('input_data_to_expectation_INIT.pkl', 'wb') as f:
+            #~ pickle.dump([data_dict, init_comps, memb_probs_tmp,            
+                #~ inc_posterior, use_box_background,
+                #~ st_mns, st_covs, gr_mns, gr_covs, bg_lnols, 
+                #~ memb_probs_tmp, nstars*(ncomps+1), init_memb_probs,
+                #~ init_memb_probsP], f)
+        #~ print('INIT DUMPED.')
+
 
     # Everything available
     else:
@@ -420,9 +485,7 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         #~ with open('input_data_to_expectation.pkl', 'wb') as f:
             #~ pickle.dump([data_dict, comps_new, memb_probs_old, 
                 #~ inc_posterior, use_box_background], f)
-        
 
-        comps_new_list = [[comp.get_mean(), comp.get_covmatrix()] for comp in comps_new]
 
         # Python version
         #~ memb_probs_new = expectation.expectation(data_dict, 
@@ -430,35 +493,14 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             #~ use_box_background=use_box_background) # TODO background
         
         # C version
-        st_mns = data_dict['means']
-        st_covs = data_dict['covs']
-        #~ gr_mns = [c.get_mean_now() for c in comps_new]
-        #~ gr_covs = [c.get_covmatrix_now() for c in comps_new]
-        
-        # Means
-        dim = len(comps_new[0].get_mean())
-        gr_mns = [trace_epicyclic_orbit(comp.get_mean(), comp.get_age(), 
-            dim) for comp in comps_new]
-
-        # Covmatrices
-        c = comps_new[0].get_covmatrix()
-        dim1 = c.shape[0]
-        dim2 = c.shape[1]
-        h=1e-3 # HARDCODED...
-        gr_covs = [trace_epicyclic_covmatrix(
-            c.get_covmatrix(), c.get_mean(), c.get_age(), h, 
-            dim1*dim2).reshape(dim1, dim2) for c in comps_new]
-              
-        #~ comps = [[m, co] for m, co in zip(gr_mns, gr_covs)]
-        bg_lnols = data_dict['bg_lnols']
-        
         print("start expectationC")
+        gr_mns, gr_covs = get_gr_mns_covs_now(comps_new)
+        
         memb_probs_new = expectationC(st_mns, st_covs, gr_mns, gr_covs, 
-            bg_lnols, memb_probs_old, nstars*ncomps)
-        memb_probs_new = memb_probs_new.reshape(nstars, ncomps)
+            bg_lnols, memb_probs_old, nstars*(ncomps+1)) # +1 for bg
+        memb_probs_new = memb_probs_new.reshape(nstars, (ncomps+1))
         print("end expectationC")
         
-        print('MEMB_PROBS_NEW DONE.')
         
         # WORKS
         #~ memb_probs_new = expectation.expectation(data_dict, comps_new, 
@@ -487,12 +529,33 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         # This is likelihood for all comps combined
         # get_overall_lnlikelihood computes memb_probs again, but
         # this was already computed a few lines earlier...
+        
+        # Python
         print('start python expectation.get_overall_lnlikelihood')
-        overall_lnlike = expectation.get_overall_lnlikelihood(data_dict, 
-            comps_new_list, old_memb_probs=memb_probs_new, 
+        #~ comps_new_list = [[comp.get_mean(), comp.get_covmatrix()] for comp in comps_new]
+        overall_lnlike = expectmax.get_overall_lnlikelihood(
+            data_dict, 
+            #~ comps_new_list, old_memb_probs=memb_probs_new, 
+            comps_new, old_memb_probs=memb_probs_new, 
             inc_posterior=False,
             use_box_background=use_box_background) # TODO background
         print('end python expectation.get_overall_lnlikelihood')
+        
+        
+        #~ import pickle
+        #~ with open('input_data_to_get_overall_lnlikelihood_for_fixed_memb_probs.pkl', 'wb') as f:
+            #~ pickle.dump([st_mns, st_covs, gr_mns, gr_covs, bg_lnols, 
+                #~ memb_probs_new, data_dict, comps_new, 
+                #~ memb_probs_new, False, use_box_background], f)
+        #~ print('input_data_to_get_overall_lnlikelihood_for_fixed_memb_probs.pkl WRITTEN.')
+        
+        
+        #~ # C
+        #~ print('start C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')
+        #~ # memb_probs_new: 
+        #~ overall_lnlike = get_overall_lnlikelihood_for_fixed_memb_probs(
+            #~ st_mns, st_covs, gr_mns, gr_covs, bg_lnols, memb_probs_new) # TODO background
+        #~ print('end C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')
         
 
         # MZ added
@@ -546,10 +609,18 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
 
 
     # Likelihood
-    overall_lnlike = expectation.get_overall_lnlikelihood(
+    #~ # for expectation_marusa, comps need to be list
+    #~ final_best_comps_list = [[comp.get_mean(), comp.get_covmatrix()] for comp in final_best_comps]
+    #~ overall_lnlike = expectation.get_overall_lnlikelihood(
+            #~ data_dict, final_best_comps_list, inc_posterior=False,
+            #~ use_box_background=use_box_background,
+    #~ ) # TODO: USE C MODULE
+      
+    overall_lnlike = expectmax.get_overall_lnlikelihood(
             data_dict, final_best_comps, inc_posterior=False,
-            use_box_background=use_box_background,
-    )
+            use_box_background=use_box_background) # TODO background  
+            # TODO: USE C MODULE
+      
                    
     logging.info("Final overall lnlikelihood: {}".format(overall_lnlike))
 

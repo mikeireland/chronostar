@@ -9,12 +9,12 @@ if _swig_python_version_info >= (2, 7, 0):
     def swig_import_helper():
         import importlib
         pkg = __name__.rpartition('.')[0]
-        mname = '.'.join((pkg, '_expectation')).lstrip('.')
+        mname = '.'.join((pkg, '_likelihood')).lstrip('.')
         try:
             return importlib.import_module(mname)
         except ImportError:
-            return importlib.import_module('_expectation')
-    _expectation = swig_import_helper()
+            return importlib.import_module('_likelihood')
+    _likelihood = swig_import_helper()
     del swig_import_helper
 elif _swig_python_version_info >= (2, 6, 0):
     def swig_import_helper():
@@ -22,20 +22,20 @@ elif _swig_python_version_info >= (2, 6, 0):
         import imp
         fp = None
         try:
-            fp, pathname, description = imp.find_module('_expectation', [dirname(__file__)])
+            fp, pathname, description = imp.find_module('_likelihood', [dirname(__file__)])
         except ImportError:
-            import _expectation
-            return _expectation
+            import _likelihood
+            return _likelihood
         try:
-            _mod = imp.load_module('_expectation', fp, pathname, description)
+            _mod = imp.load_module('_likelihood', fp, pathname, description)
         finally:
             if fp is not None:
                 fp.close()
         return _mod
-    _expectation = swig_import_helper()
+    _likelihood = swig_import_helper()
     del swig_import_helper
 else:
-    import _expectation
+    import _likelihood
 del _swig_python_version_info
 
 try:
@@ -96,21 +96,29 @@ except __builtin__.Exception:
     _newclass = 0
 
 
-def get_lnoverlaps(gr_cov, gr_dim1, gr_dim2, gr_mn, gr_mn_dim, st_covs, st_mns, lnols_output, n):
-    return _expectation.get_lnoverlaps(gr_cov, gr_dim1, gr_dim2, gr_mn, gr_mn_dim, st_covs, st_mns, lnols_output, n)
-get_lnoverlaps = _expectation.get_lnoverlaps
+def calc_alpha(dx, dv, nstars):
+    return _likelihood.calc_alpha(dx, dv, nstars)
+calc_alpha = _likelihood.calc_alpha
 
-def get_all_lnoverlaps(st_mns, st_covs, gr_mns, gr_mn_dim1, gr_mn_dim2, gr_covs, old_memb_probs, memb_dim1, memb_dim2, inc_posterior, amp_prior, use_box_background, lnols, lnols_dim1, lnols_dim2, using_bg):
-    return _expectation.get_all_lnoverlaps(st_mns, st_covs, gr_mns, gr_mn_dim1, gr_mn_dim2, gr_covs, old_memb_probs, memb_dim1, memb_dim2, inc_posterior, amp_prior, use_box_background, lnols, lnols_dim1, lnols_dim2, using_bg)
-get_all_lnoverlaps = _expectation.get_all_lnoverlaps
+def lnlognormal(x, mu, sig):
+    return _likelihood.lnlognormal(x, mu, sig)
+lnlognormal = _likelihood.lnlognormal
 
-def calc_membership_probs(star_lnols, ncomps, star_memb_probs):
-    return _expectation.calc_membership_probs(star_lnols, ncomps, star_memb_probs)
-calc_membership_probs = _expectation.calc_membership_probs
+def ln_alpha_prior(dx, dv, memb_probs, sig, nstars):
+    return _likelihood.ln_alpha_prior(dx, dv, memb_probs, sig, nstars)
+ln_alpha_prior = _likelihood.ln_alpha_prior
 
-def expectation(st_mns, st_covs, gr_mns, gr_covs, bg_lnols, old_memb_probs, memb_probs):
-    return _expectation.expectation(st_mns, st_covs, gr_mns, gr_covs, bg_lnols, old_memb_probs, memb_probs)
-expectation = _expectation.expectation
+def lnprior(mean, mean_dim, covmatrix, dx, dv, age, memb_probs, nstars):
+    return _likelihood.lnprior(mean, mean_dim, covmatrix, dx, dv, age, memb_probs, nstars)
+lnprior = _likelihood.lnprior
+
+def lnlike(gr_mn, gr_mn_dim, gr_cov, gr_dim1, gr_dim2, st_mns, st_mn_dim1, st_mn_dim2, st_covs, st_dim1, st_dim2, st_dim3, memb_probs, nstars):
+    return _likelihood.lnlike(gr_mn, gr_mn_dim, gr_cov, gr_dim1, gr_dim2, st_mns, st_mn_dim1, st_mn_dim2, st_covs, st_dim1, st_dim2, st_dim3, memb_probs, nstars)
+lnlike = _likelihood.lnlike
+
+def lnprob_func_gradient_descent(pars, data):
+    return _likelihood.lnprob_func_gradient_descent(pars, data)
+lnprob_func_gradient_descent = _likelihood.lnprob_func_gradient_descent
 # This file is compatible with both classic and new-style classes.
 
 
