@@ -5,14 +5,16 @@ Expectation module. Overlaps are computed here.
 import numpy as np
 
 try:
-    from ._overlap import get_lnoverlaps as c_get_lnoverlaps
+    from chronostar._overlap import get_lnoverlaps as c_get_lnoverlaps
 except ImportError:
     print("C IMPLEMENTATION OF GET_OVERLAP NOT IMPORTED")
     USE_C_IMPLEMENTATION = False
 
 
 from chronostar.component import SphereComponent
-from chronostar import temporal_propagation # This shouldn't be here but should be done at a higher level
+
+
+from chronostar.run_em_files_python import temporal_propagation_marusa as temporal_propagation # This shouldn't be here but should be done at a higher level
 
 def slow_get_lnoverlaps(g_cov, g_mn, st_covs, st_mns, dummy=None):
     """
@@ -288,6 +290,53 @@ def get_overall_lnlikelihood(data, comps_list, return_memb_probs=False,
         return np.sum(weighted_lnols), memb_probs
     else:
         return np.sum(weighted_lnols)
+
+def get_overall_lnlikelihood_for_fixed_memb_probs(data, comps_list, 
+    memb_probs=None,
+    inc_posterior=False,
+    use_box_background=False):
+    """
+    Get overall likelihood for a proposed model.
+
+    Evaluates each star's overlap with every component and background
+    If only fitting one group, inc_posterior does nothing
+
+    Parameters
+    ----------
+    data: (dict)
+        See fit_many_comps
+    comps: [ncomps] list of Component objects
+        See fit_many_comps
+    return_memb_probs: bool {False}
+        Along with log likelihood, return membership probabilites
+
+    Returns
+    -------
+    overall_lnlikelihood: float
+    """
+    
+    print('all_ln_ols = get_all_lnoverlaps')
+    all_ln_ols = get_all_lnoverlaps(data, comps_list,
+                                    old_memb_probs=memb_probs,
+                                    inc_posterior=inc_posterior,
+                                    use_box_background=use_box_background)
+
+    print('Python all_ln_ols')
+    print(all_ln_ols)
+
+    # multiplies each log overlap by the star's membership probability
+    # (In linear space, takes the star's overlap to the power of its
+    # membership probability)
+
+    #einsum is an Einstein summation convention. Not suer why it is used here???
+    #weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
+
+    weighted_lnols = all_ln_ols * memb_probs
+
+    #if np.sum(weighted_lnols) != np.sum(weighted_lnols):
+    #    import pdb; pdb.set_trace() #!!!!
+
+    return np.sum(weighted_lnols)
 
 def calc_membership_probs(star_lnols):
     """

@@ -1,8 +1,8 @@
-%module likelihoodc
+%module likelihood
 
 %{
   #define SWIG_FILE_WITH_INIT
-  #include "likelihoodc.h"
+  #include "likelihood.h"
 %}
 
 %include "numpy.i"
@@ -10,7 +10,6 @@
 %init %{
   import_array();
 %}
-
 
 
 /* INPUT */
@@ -21,7 +20,7 @@
 %apply (double* IN_ARRAY2, int DIM1, int DIM2) \
        {(double* data, int data_dim1, int data_dim2)}
 
-%include "likelihoodc.h"
+%include "likelihood.h"
 
 
 

@@ -21,7 +21,7 @@ except ImportError:
 
 # Read in stellar data
 from chronostar import tabletool
-from chronostar import expectation_marusa as expectationP
+from chronostar.run_em_files_python import expectation_marusa as expectationP
 
 import time
 
@@ -29,8 +29,11 @@ import time
 #### DATA ##########################################################
 ####################################################################
 import pickle
-with open('data_for_testing/input_data_to_expectation.pkl', 'rb') as f:
+#~ with open('data_for_testing/input_data_to_expectation.pkl', 'rb') as f:
+    #~ d = pickle.load(f)
+with open('data_for_testing/input_data_to_expectation_segmentation_fault.pkl', 'rb') as f:
     d = pickle.load(f)
+    #~ # old_memb_probs: probabilities do not sum up to 1!!
 
 data_dict = d[0]
 comps = d[1]

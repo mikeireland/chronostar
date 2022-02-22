@@ -1,5 +1,5 @@
 try:
-    from chronostar._likelihoodc import lnprob_func_gradient_descent
+    from chronostar._likelihood import lnprob_func_gradient_descent
 except ImportError:
     print("C IMPLEMENTATION OF lnprob_func_gradient_descent NOT IMPORTED")
     USE_C_IMPLEMENTATION = False
@@ -13,7 +13,7 @@ import time
 import scipy.optimize
 
 import pickle
-with open('lnprob_func_gradient_descent_10.pkl', 'rb') as h:
+with open('data_for_testing/lnprob_func_gradient_descent_10.pkl', 'rb') as h:
     d = pickle.load(h)
 
 data=d[0]
