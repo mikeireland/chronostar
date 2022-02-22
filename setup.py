@@ -53,7 +53,7 @@ except AttributeError:
 # &TC added extra directory
 _overlap = Extension("chronostar/_overlap",
                     ["chronostar/overlap/overlap.i", "chronostar/overlap/overlap.c"],
-                    include_dirs = [numpy_include],
+                    include_dirs = [numpy_include, '/usr/local/include/'],
                     libraries = ['gsl', 'gslcblas'], 
 #https://stackoverflow.com/questions/44380459/is-openmp-available-in-high-sierra-llvm
 #... but no obvious compile errors. 
@@ -68,7 +68,7 @@ _expectation = Extension("chronostar/_expectation",
                     ["chronostar/expectation.i", 
                     "chronostar/expectation.c"],
                     include_dirs = [numpy_include, '/usr/local/include/'],
-                    libraries = ['gsl', 'gslcblas'],
+                    libraries = ['gsl', 'gslcblas'], extra_compile_args=["-std=c99"]
                     )
 
 _temporal_propagation = Extension("chronostar/_temporal_propagation",
@@ -94,6 +94,7 @@ _likelihoodc = Extension("chronostar/_likelihoodc",
                     "chronostar/temporal_propagation.c"],
                     include_dirs = [numpy_include, '/usr/local/include/'],
                     libraries = ['gsl', 'gslcblas'],
+                    extra_compile_args=["-std=c99"]
                     )
 
 setup(name="chronostar",

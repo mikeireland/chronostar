@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <math.h>
+#ifndef M_PI
+    #define M_PI 3.14159265358979323846
+#endif
 
 #include "expectation.h" // Sort out these paths
 #include "temporal_propagation.h" // Sort out these paths
