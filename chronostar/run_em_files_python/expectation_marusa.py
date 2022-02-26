@@ -268,6 +268,8 @@ def get_overall_lnlikelihood(data, comps_list, return_memb_probs=False,
                              inc_posterior=inc_posterior,
                              use_box_background=use_box_background)
 
+    print('memb_probs-old_memb_probs', memb_probs-old_memb_probs)
+
     print('all_ln_ols = get_all_lnoverlaps')
     all_ln_ols = get_all_lnoverlaps(data, comps_list,
                                     old_memb_probs=memb_probs,
@@ -314,15 +316,10 @@ def get_overall_lnlikelihood_for_fixed_memb_probs(data, comps_list,
     -------
     overall_lnlikelihood: float
     """
-    
-    print('all_ln_ols = get_all_lnoverlaps')
     all_ln_ols = get_all_lnoverlaps(data, comps_list,
                                     old_memb_probs=memb_probs,
                                     inc_posterior=inc_posterior,
                                     use_box_background=use_box_background)
-
-    print('Python all_ln_ols')
-    print(all_ln_ols)
 
     # multiplies each log overlap by the star's membership probability
     # (In linear space, takes the star's overlap to the power of its

@@ -267,6 +267,9 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
 
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
+    
+    print('lnlike', result)
+    
     return result
 
 
@@ -334,7 +337,7 @@ def lnprob_func(pars, data, memb_probs=None,
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
 
     lp = lnprior(comp, memb_probs)
-    
+
     if optimisation_method=='emcee':
         if not np.isfinite(lp):
             return -np.inf

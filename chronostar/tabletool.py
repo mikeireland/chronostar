@@ -193,18 +193,18 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
     #NICH_HONS; Attempting to use 'try' to get my stuff to work without 
     #		breaking everything else.
     try:
-	from . import honpy_one_setup as hp
-	gmag = table['mag_g']
-	bprp = table['bprp_col']
-	#initializing with the pdf of the first star)
-	pdf = hp.g_kernal_den(gmag[0],bprp[0])
-	pdfs= pdf
-	for i in len(1,range(gmag)):
-    		pdf = hp.g_kernal_den(gmag[i],bprp[i])
-		pdfs= np.append(pdfs,pdf,axis=0)
-	results_dict['age_probs']=pdfs
+        from . import honpy_one_setup as hp
+        gmag = table['mag_g']
+        bprp = table['bprp_col']
+        #initializing with the pdf of the first star)
+        pdf = hp.g_kernal_den(gmag[0],bprp[0])
+        pdfs= pdf
+        for i in len(1,range(gmag)):
+            pdf = hp.g_kernal_den(gmag[i],bprp[i])
+            pdfs= np.append(pdfs,pdf,axis=0)
+        results_dict['age_probs']=pdfs
     except:
-	print('NICH_HONS; failure at tabletool.py line 195-207') 
+	    print('NICH_HONS; failure at tabletool.py line 195-207') 
     
 
     # Generate covariance matrices

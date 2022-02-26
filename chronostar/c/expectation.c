@@ -217,13 +217,28 @@ void get_all_lnoverlaps(
         
         for (j=0; j<st_mn_dim1; j++) {
             lnols[i*st_mn_dim1+j] = log(weights[i]) + lnols_comp[j];
+            //~ printf("%f, %f\n", log(weights[i]), lnols_comp[j]);
         }
     }
 
     // Insert one time calculated background overlaps
     for (i=0; i<bg_dim; i++) {
         lnols[st_mn_dim1*gr_mn_dim1+i] = bg_lnols[i];
+        printf("bg_lnols %d %e\n", i, bg_lnols[i]);
     }
+
+
+
+    //~ int count=0;
+    //~ for (i=0; i<st_mn_dim1; i++) {
+        //~ for(j=0; j<lnols_dim2; j++) {
+            //~ printf("i=%d, j=%d, %d, %f\n", i, j, j*st_mn_dim1+i, all_ln_ols[j*st_mn_dim1+i]);
+            //~ count++;
+            //~ if (count>13) break;
+        //~ }
+        //~ if (count>13) break;
+    //~ }
+
 
 }
 
@@ -267,6 +282,14 @@ void calc_membership_probs(double *star_lnols, int ncomps,
 }
 
 
+void print_bg_lnols(double* bg_lnols, int bg_dim) {
+    //~ for (int i=0; i<bg_dim; i++) {
+    for (int i=0; i<10; i++) {
+        printf("bg_lnols PRINT %d %e\n", i, bg_lnols[i]);
+    }   
+}
+
+
 void expectation(
     double* st_mns, int st_mn_dim1, int st_mn_dim2, 
     double* st_covs, int st_dim1, int st_dim2, int st_dim3,
@@ -286,6 +309,9 @@ void expectation(
      */
 
 
+    for (int i=0; i<bg_dim; i++) {
+        printf("bg_lnols expectation %d %e\n", i, bg_lnols[i]);
+    }
 
     int inc_posterior = 0;
     int amp_prior = 0;
@@ -349,6 +375,169 @@ void expectation(
 }
 
 
+void expectation_iterative_component_amplitudes(
+    double* st_mns, int st_mn_dim1, int st_mn_dim2, 
+    double* st_covs, int st_dim1, int st_dim2, int st_dim3,
+    double* gr_mns, int gr_mns_dim1, int gr_mns_dim2, 
+    double* gr_covs, int gr_dim1, int gr_dim2, int gr_dim3, 
+    double* bg_lnols, int bg_dim,
+    double* old_memb_probs, int omemb_dim1, int omemb_dim2,
+    double* memb_probs, int memb_dim1) {
+
+    /*
+     * Take stellar data and components, compute overlaps and return
+     * membership probabilities for these stars to be in the components.
+     * 
+     * --> Cannot return 2D array with swig, but pack everything into 1D 
+     * array and reshape later in python!
+     * Result: memb_probs[nstars+ncomps(+1 for bg?)]
+     * 
+     * WHY ITERATION:
+     * This follows python's version: This method computes memberships
+     * iteratively because it starts with an assumption for component
+     * amplitudes that directly affect the number of stars in each
+     * component. This number in turn affects component amplitudes. The
+     * iteration reduces this cyclic dependency.
+     * The differente with python's version: convergence is not checked
+     * with BIC but with a comparison between old_memb_probs and
+     * new memb_probs. When the difference falls below a certain value,
+     * convergence is acchieved.
+     */
+
+
+
+    int inc_posterior = 0;
+    int amp_prior = 0;
+    int use_box_background = 0;
+    int using_bg = 1;
+    
+    // Calculate all log overlaps
+    int lnols_dim1 = st_mn_dim1;  
+    int lnols_dim2 = gr_mns_dim1+1;
+    double lnols[lnols_dim1*lnols_dim2];
+    
+
+    int i, j;
+    int ncomps = gr_mns_dim1+1;
+    double memb_probs_i[ncomps];
+    double lnols_i[gr_mns_dim1+1];
+    
+    // The difference between the new and old memberships
+    //~ double memb_probs_diff[memb_dim1];
+    double diff_max = 1e-2; // If all memberships change less than this value, the loop converged. TODO: hardcoded
+    
+    // A copy of old_memb_probs because we don't want to change the original
+    double old_memb_probs_tmp[memb_dim1];
+    for (i=0; i<memb_dim1; i++) {
+        old_memb_probs_tmp[i] = old_memb_probs[i];
+    } //TODO use memcpy or similar to make this faster!
+    
+    int memberships_converged = 0;
+    int converged_all_elements = 0;
+    double diff_element;
+    
+    int iter_cnt = 0;
+    while (memberships_converged==0) {
+        if (iter_cnt > 0) {
+            printf("Expectation iter cnt: %i\n", iter_cnt);
+        }
+
+
+        //~ printf("start with overlaps\n");
+        // Calculate all log overlaps
+        get_all_lnoverlaps(
+            st_mns, st_mn_dim1, st_mn_dim2,
+            st_covs, st_dim1, st_dim2, st_dim3,
+            gr_mns, gr_mns_dim1, gr_mns_dim2,
+            gr_covs, gr_dim1, gr_dim2, gr_dim3,
+            bg_lnols, bg_dim,
+            old_memb_probs_tmp, omemb_dim1, omemb_dim2,
+            inc_posterior, amp_prior, use_box_background, 
+            lnols, lnols_dim1, lnols_dim2,
+            using_bg);  
+
+        //~ printf("overlaps done.\n");
+
+        // Check if all elements are below a required value
+        // Assume all are converged, and find if any element hasn't
+        converged_all_elements=1;
+        
+        // Calculate membership probabilities, tidying up 'nan's as required        
+        for (i=0; i<st_mn_dim1; i++) {
+            // TODO: AVOID THIS FOR LOOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            // Get lnols
+            for (j=0; j<ncomps; j++) {
+                lnols_i[j] = lnols[j*st_mn_dim1+i];
+            }
+     
+            //~ printf("start with calc_membership_probs\n");
+            calc_membership_probs(lnols_i, ncomps, memb_probs_i);
+            //~ printf("END calc_membership_probs(lnols_i, ncomps, memb_probs_i), i=%d\n", i);
+            
+            //!!!MJI Remove einsum here.
+            //weighted_lnols = np.einsum('ij,ij->ij', lnols, memb_probs)
+            for (j=0; j<ncomps; j++) {
+                //~ printf("insert memb_probs[%d*ncomps+%d] = memb_probs_i[%d]=%f\n",
+                    //~ i, j, j, memb_probs_i[j]);
+                memb_probs[i*ncomps+j] = memb_probs_i[j];
+                //~ printf("memb_probs_i[j] INSERTED\n");
+                
+                
+                // Convergence check
+                // memb_probs - old_memb_probs
+                //~ memb_probs_diff[i*ncomps+j] = memb_probs[i*ncomps+j]
+                    //~ - old_memb_probs_tmp[i*ncomps+j];
+                
+                diff_element = fabs(memb_probs[i*ncomps+j]
+                    - old_memb_probs_tmp[i*ncomps+j]);
+                
+                //~ printf("diff_element %f\n", diff_element);
+                
+                if (diff_element>diff_max) converged_all_elements = 0;
+                
+            }
+            //~ printf("END memb_probs[i*ncomps+j] = memb_probs_i[j], i=%d, j=%d\n", i, j);
+
+
+            // TODO: Check if any memberships are NAN
+            //~ if np.isnan(memb_probs).any():
+                //~ log_message('AT LEAST ONE MEMBERSHIP IS "NAN"', symbol='!')
+                //~ memb_probs[np.where(np.isnan(memb_probs))] = 0.
+
+        }
+
+    
+        // TODO
+        //~ # Hack in a failsafe to stop a component having an amplitude lower than 10
+        //~ if np.min(memb_probs.sum(axis=0)) < 10.:
+            //~ break
+
+
+        //// CONVERGENCE CHECK /////////////////////////////////////////
+        // Not converged
+        if (converged_all_elements==0) {
+            memberships_converged = 0;
+            //~ old_memb_probs_tmp = &memb_probs; // Does this work properly?
+            //~ printf("memcpy\n");
+            //~ memcpy(&memb_probs, old_memb_probs_tmp, sizeof(memb_probs));
+
+            for (i=0; i<memb_dim1; i++) {
+                old_memb_probs_tmp[i] = memb_probs[i];
+            } //TODO use memcpy or similar to make this faster!            
+            
+            
+        }
+        
+        // Converged
+        else memberships_converged = 1;
+  
+        printf("iter_cnt %d\n", iter_cnt);
+  
+        iter_cnt++;
+    }
+}
+
+
 double get_overall_lnlikelihood_for_fixed_memb_probs(
     double* st_mns, int st_mn_dim1, int st_mn_dim2, 
     double* st_covs, int st_dim1, int st_dim2, int st_dim3,
@@ -378,12 +567,13 @@ double get_overall_lnlikelihood_for_fixed_memb_probs(
     //~ overall_lnlikelihood: float
 
 
-
-
     // Output of get_all_lnoverlaps
     int lnols_dim1 = st_mn_dim1;
     int lnols_dim2 = (gr_mns_dim1+1);
+    //~ int lnols_dim2 = (gr_mns_dim1);
     double all_ln_ols[lnols_dim1*lnols_dim2]; // TODO: check dimension
+    
+    printf("st_mn_dim1 %d, gr_mns_dim1 %d, memb_dim2 %d\n", st_mn_dim1, gr_mns_dim1, memb_dim2);
     
     // TODO: all these params?
     int inc_posterior = 0;
@@ -401,11 +591,15 @@ double get_overall_lnlikelihood_for_fixed_memb_probs(
         all_ln_ols, lnols_dim1, lnols_dim2,
         using_bg);
     
-    for (int i=0; i<lnols_dim1*lnols_dim2; i++) {
-        printf("%f ", all_ln_ols[i]);
+    int count=0;
+    for (int i=0; i<st_mn_dim1; i++) {
+        for(int j=0; j<lnols_dim2; j++) {
+            printf("i=%d, j=%d, %d, %f\n", i, j, j*st_mn_dim1+i, all_ln_ols[j*st_mn_dim1+i]);
+            count++;
+            if (count>13) break;
+        }
+        if (count>13) break;
     }
-    printf("\n");
-    
 
 
     // Multiplies each log overlap by the star's membership probability
@@ -416,16 +610,16 @@ double get_overall_lnlikelihood_for_fixed_memb_probs(
     // #weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
 
     // Compute weighted_lnols = all_ln_ols * memb_probs
-    double sum=0.0;
-    for (int i=0; i<st_mn_dim1*(gr_mns_dim1+1); i++) { // CHECK DIMENSION
-        //~ //weighted_lnols[i] = all_ln_ols[i] * memb_probs[i];
-        sum+=all_ln_ols[i] * memb_probs[i];
+    //TODO some ols and/or memb_probs are 0. Can I skip them here to speed it up?
+    double result=0.0;
+    for (int i=0; i<st_mn_dim1; i++) {
+        for(int j=0; j<lnols_dim2; j++) {
+            result += all_ln_ols[j*st_mn_dim1+i] * memb_probs[i*memb_dim2+j];
+            //~ printf("i=%d, j=%d, j*st_mn_dim1+i %d, %f %f, result=%f\n", i, j, j*st_mn_dim1+i, all_ln_ols[j*st_mn_dim1+i], memb_probs[i*memb_dim2+j], result);
+        }
     }
 
-    //#if np.sum(weighted_lnols) != np.sum(weighted_lnols):
-    //#    import pdb; pdb.set_trace() #!!!!
-
-    //~ // READ THIS: can 'return' memb_probs in any case, because they
+    //~ // READ THIS: can 'return' memb_probs, because they
     //~ // get updated here in any case
 
     //~ // return_memb_probs=True only in expectmax that reads in all the previous fits. We skip this in C.
@@ -434,11 +628,12 @@ double get_overall_lnlikelihood_for_fixed_memb_probs(
     //~ else:
         //~ return np.sum(weighted_lnols)
     
-    return sum;
+    //~ printf("return result %g\n", result);
+    return result; //TODO for some reason this returns result + memb_probs. No idea why
 }
 
 
-double get_overall_lnlikelihood(
+double get_overall_lnlikelihood( // not finished
     double* st_mns, int st_mn_dim1, int st_mn_dim2, 
     double* st_covs, int st_dim1, int st_dim2, int st_dim3,
     double* gr_mns, int gr_mns_dim1, int gr_mns_dim2, 

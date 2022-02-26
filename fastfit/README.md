@@ -41,6 +41,8 @@ I’ve tested the code with bPic data. The result has 2 components, and one of t
 
 ### Modules in C
 - `expectation.c` with corresponding swig module now works. `fastfit/test_expectation.py` compares the result from python and C modules and finds no difference. C module is 10 times faster than python. There are, however, a few points left to implement, e.g. whether to include an option to exclude background, posterior etc. Also, `get_overall_lnlikelihood` is TO BE DONE.
+- `expectation.c`: `expectation_iterative_component_amplitudes`: BIC removed as a convergence criterion. Convergence acchieved when `np.all((new_memb_probs-old_memb_probs)<0.1)`.
+= `expectation.c`: `get_overall_lnlikelihood` doesn't compute new expectation but takes the one that has been computed just before this step in `run_em.py`
 
 - `temporal_propagation.c`: Works for a 6D point and for a covariance matrix. Swig done, ready to use in python. Test works well (`fastfit/test_temporal_propagation.py`). `trace_epicyclic_orbit` is 30 times faster than in python, and covmatrix transformation is 10 times faster in C.
 

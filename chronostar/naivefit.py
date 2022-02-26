@@ -35,7 +35,7 @@ from multiprocessing import Pool
 from multiprocessing import cpu_count
 
 sys.path.insert(0, os.path.abspath('..'))
-from . import expectmax
+from chronostar import expectmax
 from . import readparam
 from . import tabletool
 from . import component

@@ -219,6 +219,8 @@ double lnlike(double* gr_mn, int gr_mn_dim,
         result += lnols[i] * memb_probs[i];
     }
     
+    //~ printf("lnlike %f\n", result);
+    
     return result;
     
 }

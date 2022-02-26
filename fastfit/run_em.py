@@ -66,6 +66,7 @@ from chronostar import maximisationC
 # C modules
 try:
     from chronostar._expectation import expectation as expectationC
+    from chronostar._expectation import print_bg_lnols
     #~ from chronostar._expectation import get_overall_lnlikelihood
     from chronostar._expectation import get_overall_lnlikelihood_for_fixed_memb_probs
 except ImportError:
@@ -210,10 +211,33 @@ def get_gr_mns_covs_now(comps):
     return gr_mns, gr_covs
 
 
+def get_init_emcee_pars(data, memb_probs=None,
+                        Component=None):
+    """
+    Get a set of emcee pars that most closely matches the data given.
+
+    Membership probabilities can optionally be included, and will be used
+    to calculate the weighted mean and covariance matrix
+    """
+    rough_mean_now, rough_cov_now = \
+            Component.approx_currentday_distribution(data=data,
+                                           membership_probs=memb_probs)
+
+    # Exploit the component logic to generate closest set of pars
+    dummy_comp = Component(attributes={'mean':rough_mean_now,
+                                       'covmatrix':rough_cov_now,})
+    return dummy_comp.get_emcee_pars()
+
 def run_expectmax_simple(pars, data_dict=None, init_comps=None, 
     init_memb_probs=None):
     """
     Run expectation-maximisation algorithm...
+    
+    pars: dict. Mandatory fields:
+        component
+        trace_orbit_func
+        folder_destination
+        
     """
 
     ####################################################################
@@ -261,6 +285,8 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             pars['data_table'], 
             get_background_overlaps=pars['use_background']) # TODO: background???
 
+    nstars = len(data_dict['means'])
+
     # Read initial membership probabilities
     if init_memb_probs is None:
         filename_init_memb_probs = pars['filename_init_memb_probs']
@@ -305,7 +331,12 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
     ####################################################################
     st_mns = data_dict['means']
     st_covs = data_dict['covs']
-    bg_lnols = data_dict['bg_lnols']
+    bg_lnols = np.array(data_dict['bg_lnols'])
+    print('run_em bg_lnols')
+    print(bg_lnols)
+    print_bg_lnols(bg_lnols)
+    
+    exit(0)
 
 
     ####################################################################
@@ -316,6 +347,7 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
     # No info known. Set ncomps=1
     if init_memb_probs is None and init_comps[0] is None:
         logging.info('No specificed initialisation... assuming all stars are members.')
+        print('No specificed initialisation... assuming all stars are members.')
         ncomps = 1
         init_comps = [None]
         all_init_pars = [None]
@@ -325,17 +357,27 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             ncomps + pars['use_background']))
         init_memb_probs[:, 0] = 1. - 1.e-10
         init_memb_probs[:, 1] = 1.e-10        
+
+        # all_init_pars are required in maximisationC.fit_single_comp_gradient_descent_serial
+        all_init_pars = [get_init_emcee_pars(data_dict, 
+            memb_probs=init_memb_probs[:,i], Component=Component) for i in range(ncomps)]
     
     # init_memb_probs available, but not comps
     elif init_memb_probs is not None and init_comps[0] is None:
         logging.info('Initialised by memberships')
+        print('Initialised by memberships')
         ncomps = init_memb_probs.shape[1]-1
         init_comps = [None] * ncomps
-        all_init_pars = [None] * ncomps
+        all_init_pars = [None] * ncomps # TODO: this shouldn't be None!
+
+        # all_init_pars are required in maximisationC.fit_single_comp_gradient_descent_serial
+        all_init_pars = [get_init_emcee_pars(data_dict, 
+            memb_probs=init_memb_probs[:,i], Component=Component) for i in range(ncomps)]
     
     # Comps available, but not init_memb_probs
     elif init_memb_probs is None and init_comps[0] is not None:
         logging.info('Initialised by components')
+        print('Initialised by components')
         ncomps = len(init_comps)
         all_init_pars = [ic.get_emcee_pars() for ic in init_comps]
 
@@ -350,10 +392,18 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
 
         # Get gr_mns and gr_covs at t=now
         gr_mns, gr_covs = get_gr_mns_covs_now(init_comps)
+
         
+
+        print('before expectationC')
+        print(bg_lnols)        
         init_memb_probs = expectationC(st_mns, st_covs, gr_mns, gr_covs, 
             bg_lnols, memb_probs_tmp, nstars*(ncomps+1))
         init_memb_probs = init_memb_probs.reshape(nstars, (ncomps+1))
+    
+        print('run_em initialised_by_components')
+        print(bg_lnols.shape)
+        print(bg_lnols)
 
         #~ print('INIT')
         #~ print(init_memb_probs)
@@ -386,7 +436,7 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
     except:
         pass
 
-    print('EM ncomps: %d'%ncomps)
+    #~ print('EM ncomps: %d'%ncomps)
 
 
     ####################################################################
@@ -398,6 +448,7 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
     # Initialise values for upcoming iterations
     memb_probs_old = init_memb_probs
     comps_old = init_comps
+    #~ print('INITIALIZE, comps_old', comps_old)
     #lnols = None
     all_init_pos = [None] * ncomps
 
@@ -462,7 +513,14 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
                 #~ optimisation_method=pars['optimisation_method'],
                 #~ idir=folder_iter,
             #~ )
-            
+        
+        #~ print('before maximisationC')
+        #~ print(ncomps)
+        #~ print(memb_probs_old)
+        #~ print(all_init_pars)
+        #~ print(all_init_pos)
+        #~ print('nstars', nstars)
+        
         comps_new, _, all_init_pos =\
             maximisationC.maximisation_gradient_descent_serial(
             data_dict, ncomps=ncomps, memb_probs=memb_probs_old, 
@@ -502,6 +560,14 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         print("end expectationC")
         
         
+        print('run_em bg_lnols after expectationC')
+        print(bg_lnols)
+        #~ print('run_em comps_new')
+        #~ print(comps_new)
+        #~ print('run_em memb_probs_new')
+        #~ print(memb_probs_new)
+        
+        
         # WORKS
         #~ memb_probs_new = expectation.expectation(data_dict, comps_new, 
             #~ memb_probs_old, inc_posterior=inc_posterior, 
@@ -531,16 +597,16 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         # this was already computed a few lines earlier...
         
         # Python
-        print('start python expectation.get_overall_lnlikelihood')
-        #~ comps_new_list = [[comp.get_mean(), comp.get_covmatrix()] for comp in comps_new]
-        overall_lnlike = expectmax.get_overall_lnlikelihood(
-            data_dict, 
-            #~ comps_new_list, old_memb_probs=memb_probs_new, 
-            comps_new, old_memb_probs=memb_probs_new, 
-            inc_posterior=False,
-            use_box_background=use_box_background) # TODO background
-        print('end python expectation.get_overall_lnlikelihood')
-        
+        #~ print('start python expectation.get_overall_lnlikelihood')
+        #comps_new_list = [[comp.get_mean(), comp.get_covmatrix()] for comp in comps_new] # SHOULD BE NOW (time=NOW)
+        #~ overall_lnlike = expectmax.get_overall_lnlikelihood(
+            #~ data_dict, 
+            #comps_new_list, old_memb_probs=memb_probs_new, 
+            #~ comps_new, old_memb_probs=memb_probs_new, 
+            #~ inc_posterior=False, # inc_posterior=False in python version
+            #~ use_box_background=use_box_background) # TODO background
+        #~ print('end python expectation.get_overall_lnlikelihood')
+        #~ print('overall_lnlike python', overall_lnlike)
         
         #~ import pickle
         #~ with open('input_data_to_get_overall_lnlikelihood_for_fixed_memb_probs.pkl', 'wb') as f:
@@ -550,12 +616,15 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         #~ print('input_data_to_get_overall_lnlikelihood_for_fixed_memb_probs.pkl WRITTEN.')
         
         
-        #~ # C
-        #~ print('start C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')
-        #~ # memb_probs_new: 
-        #~ overall_lnlike = get_overall_lnlikelihood_for_fixed_memb_probs(
-            #~ st_mns, st_covs, gr_mns, gr_covs, bg_lnols, memb_probs_new) # TODO background
-        #~ print('end C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')
+        # C
+        print('start C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')
+        # memb_probs_new: 
+        overall_lnlike = get_overall_lnlikelihood_for_fixed_memb_probs(
+            st_mns, st_covs, gr_mns, gr_covs, bg_lnols, memb_probs_new) # TODO background
+        print('overall_lnlikeALL', overall_lnlike)
+        overall_lnlike = overall_lnlike[0] # I think that's swig's problem
+        print('end C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')
+        print('overall_lnlike', overall_lnlike)
         
 
         # MZ added

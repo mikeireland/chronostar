@@ -327,7 +327,7 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
         with the log background overlaps appended as the final column
     """
     
-    print('old_memb_probs from the beginning of get_all_lnoverlaps', old_memb_probs)
+    #~ print('old_memb_probs from the beginning of get_all_lnoverlaps', old_memb_probs)
     
     # Tidy input, infer some values
     if not isinstance(data, dict):
@@ -347,7 +347,7 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     # 'weights' is the same as 'amplitudes', amplitudes for components
     weights = old_memb_probs[:, :ncomps].sum(axis=0)
     
-    print('weights in get_all_lnoverlaps', weights)
+    #~ print('weights in get_all_lnoverlaps', weights)
     if np.min(weights) < 0.01:
         raise UserWarning("An association must have at least 1 star. <0.01 stars is extreme...")
 
@@ -484,11 +484,11 @@ def expectation(data, comps, old_memb_probs=None,
             print('Initialising old_memb_probs with equal membership')
             old_memb_probs = np.ones((nstars, n_memb_cols)) / (n_memb_cols)
 
-        #!!!MJI Logging to screen what is about to be done.
-        if inc_posterior:
-            print("Expectation overlaps. Posterior True.")
-        else:
-            print("Expectation overlaps. Posterior False.")
+        #~ #!!!MJI Logging to screen what is about to be done.
+        #~ if inc_posterior:
+            #~ print("Expectation overlaps. Posterior True.")
+        #~ else:
+            #~ print("Expectation overlaps. Posterior False.")
         # Calculate all log overlaps
         lnols = get_all_lnoverlaps(data, comps, old_memb_probs,
                                    inc_posterior=inc_posterior,
@@ -557,10 +557,19 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     -------
     overall_lnlikelihood: float
     """
+    
+    print('expectmax before expectation')
+    print('comps')
+    print(comps)
+    print('old_memb_probs')
+    print(old_memb_probs)
     memb_probs = expectation(data, comps,
                              old_memb_probs=old_memb_probs,
                              inc_posterior=inc_posterior,
                              use_box_background=use_box_background)
+
+    print('expectmax.det_overall_likelihood DIFF')
+    print(memb_probs-old_memb_probs)
 
     all_ln_ols = get_all_lnoverlaps(data, comps,
                                     old_memb_probs=memb_probs,
@@ -583,6 +592,7 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
         return np.sum(weighted_lnols), memb_probs
     else:
         return np.sum(weighted_lnols)
+
 
 def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_pos=None,
                       ignore_stable_comps=False, ignore_dead_comps=False,
@@ -1321,6 +1331,16 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
         logging.info("Fitting {} groups with {} method with cap of {} EM iterations.".format(ncomps, optimisation_method, max_em_iterations))
 
 
+
+    #### PRINT OUT INPUT PARAMS FOR run_em.py ##########################
+    import pickle
+    with open('input_data_for_em.pkl', 'wb') as h:
+        pickle.dump([data, ncomps, init_memb_probs, init_comps], h)
+    
+    print('$$$$$$$ input_data_for_em.pkl written.')
+    ####################################################################
+
+
     # INITIALISE RUN PARAMETERS
     print('## start running expectmax.fit_many_comps', init_comps)
 
@@ -1602,7 +1622,9 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
 
         if len(list_prev_bics) < min_em_iterations:
             all_converged = False
+            print('len(list_prev_bics) < min_em_iterations')
         else:
+            print('CHECK CONVERGENCE with compfitter.burnin_convergence')
             # Exploitng pre-exisitng burnin_convergecne checker bya pplying it to BIC "chain"
             all_converged = compfitter.burnin_convergence(
                     lnprob=np.expand_dims(list_prev_bics[-min_em_iterations:], axis=0),

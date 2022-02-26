@@ -878,7 +878,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             return_dict = manager.dict()
 
             def worker(i, pos, return_dict):
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=1, method=optimisation_method) # MZ: changed tol=1 from tol=0.01
                 #~ return_dict[result.fun] = result
                 return_dict[i] = result
             #TODO: tol: is this value optimal?
@@ -905,7 +905,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             logging.info('Running %i fits'%(len(init_pos)))
             for i, pos in enumerate(init_pos):
                 logging.info(' init age: %5.2f'%pos[-1])
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=0.01, method=optimisation_method)
+                print('START scipy.optimize.minimize')
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], method=optimisation_method, tol=10) # MZ: changed tol=0.01 to tol=1 tol=1, 
                 #~ return_dict[result.fun] = result
                 return_dict[i] = result
                 logging.info('         res: %5.2f | %5.3f'%(result.x[-1], -result.fun))

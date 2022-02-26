@@ -26,6 +26,8 @@ def fit_single_comp_gradient_descent_serial(data, memb_probs=None,
     Write docs...
     """
 
+    #~ print('init_pars', init_pars)
+
     init_age = init_pars[-1]
     age_offsets = [-9, -4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10., 20., 40.]
     #~ age_offsets = [-9, -4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10., 20., 40.]
@@ -49,6 +51,8 @@ def fit_single_comp_gradient_descent_serial(data, memb_probs=None,
 
     return_dict={}
     for i in range(len(init_pos)):
+        #~ print('init_pos[%d]'%i, init_pos)
+        #~ print('optimisation_method', optimisation_method)
         result = scipy.optimize.minimize(lnprob_func_gradient_descent, 
             init_pos[i], args=a, 
             tol=convergence_tol, method=optimisation_method)
