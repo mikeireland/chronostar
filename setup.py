@@ -92,6 +92,15 @@ _likelihood = Extension("chronostar/_likelihood",
                     extra_compile_args=["-std=c99"]
                     )
 
+_overall_likelihood = Extension("chronostar/_overall_likelihood",
+                    ["chronostar/c/overall_likelihood.i", 
+                    "chronostar/c/overall_likelihood.c",
+                    "chronostar/c/expectation.c"],
+                    include_dirs = [numpy_include, '/usr/local/include/'],
+                    libraries = ['gsl', 'gslcblas'],
+                    extra_compile_args=["-std=c99"]
+                    )
+
 setup(name="chronostar",
       version=version,
       author="Michael J. Ireland",
@@ -106,5 +115,5 @@ setup(name="chronostar",
         "requests_futures"
       ],
       ext_modules = [_overlap, _expectation, _temporal_propagation,
-      _likelihood],
+      _likelihood, _overall_likelihood],
      )

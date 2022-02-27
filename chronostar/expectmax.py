@@ -569,7 +569,10 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
                              use_box_background=use_box_background)
 
     print('expectmax.det_overall_likelihood DIFF')
-    print(memb_probs-old_memb_probs)
+    try:
+        print(memb_probs-old_memb_probs)
+    except:
+        print('memb_probs-old_memb_probs not possible')
 
     all_ln_ols = get_all_lnoverlaps(data, comps,
                                     old_memb_probs=memb_probs,

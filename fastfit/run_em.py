@@ -46,15 +46,11 @@ from chronostar import readparam
 from chronostar import component
 
 # What is this?
-from chronostar import default_pars
+from chronostar import default_pars # Default parameters of the fit
 from chronostar import utils 
 
 # Deprecated. Replaced by C modules
-#from chronostar import likelihood
-#from chronostar import compfitter
-from chronostar import expectmax
-from chronostar import traceorbit # goes into maximisationC, but it doesn't have to anymore. fix this!
-
+#~ from chronostar import expectmax
 
 # New Python modules (to be replaced by C modules)
 #~ from chronostar.run_em_files_python import expectation_marusa as expectation
@@ -66,11 +62,16 @@ from chronostar import maximisationC
 # C modules
 try:
     from chronostar._expectation import expectation as expectationC
-    from chronostar._expectation import print_bg_lnols
-    #~ from chronostar._expectation import get_overall_lnlikelihood
-    from chronostar._expectation import get_overall_lnlikelihood_for_fixed_memb_probs
+    from chronostar._expectation import print_bg_lnols # REMOVE
 except ImportError:
     print("C IMPLEMENTATION OF expectation NOT IMPORTED")
+    USE_C_IMPLEMENTATION = False
+    TODO = True # NOW WHAT?
+    
+try:
+    from chronostar._overall_likelihood import get_overall_lnlikelihood_for_fixed_memb_probs
+except ImportError:
+    print("C IMPLEMENTATION OF overall_likelihood NOT IMPORTED")
     USE_C_IMPLEMENTATION = False
     TODO = True # NOW WHAT?
 
@@ -158,7 +159,8 @@ memb_probs: [nstars, ncomps] array
     membership probabilities
 """
 
-def lnprob_convergence(lnprob, slice_size=10):
+def lnprob_convergence(lnprob, slice_size=10, 
+    filename_lnprob_convergence=None):
     """
     Check if lnprob is not changing anymore: Determine median values
     for chunks of slice_size. If median worsens, declare convergence.
@@ -184,6 +186,19 @@ def lnprob_convergence(lnprob, slice_size=10):
     #~ convergence = (medians[-2]>medians[-3]) & (medians[-1]>medians[-3])
     
     print('CONVERGENCE', convergence, len(lnprob), chunk_size, r1, r2, medians)
+    
+    if filename_lnprob_convergence is not None:
+        import matplotlib.pyplot as plt # TODO: display thing so it works on the server
+        
+        fig=plt.figure()
+        ax=fig.add_subplot(111)
+        ax.plot(range(len(lnprob)), -lnprob, c='k') # Plotting minus so the scale can be logarithmic
+        ax.set_yscale('log')
+        ax.set_xlabel('Iteration')
+        ax.set_ylabel('-lnprob')
+        plt.tight_layout()
+        plt.savefig(filename_lnprob_convergence)
+        print('%s saved.'%filename_lnprob_convergence)
 
     return convergence
 
@@ -228,6 +243,7 @@ def get_init_emcee_pars(data, memb_probs=None,
                                        'covmatrix':rough_cov_now,})
     return dummy_comp.get_emcee_pars()
 
+
 def run_expectmax_simple(pars, data_dict=None, init_comps=None, 
     init_memb_probs=None):
     """
@@ -235,7 +251,6 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
     
     pars: dict. Mandatory fields:
         component
-        trace_orbit_func
         folder_destination
         
     """
@@ -252,13 +267,6 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         raise UserWarning('Unknown (or missing) component parametrisation')
 
 
-    # Set up trace_orbit_func
-    if pars['trace_orbit_func'] == 'epicyclic':
-        utils.log_message('trace_orbit: epicyclic')
-        trace_orbit_func = traceorbit.trace_epicyclic_orbit
-    else:
-        utils.log_message('trace_orbit: cartesian (galpy)')
-        trace_orbit_func = traceorbit.trace_cartesian_orbit
 
 
 
@@ -331,12 +339,18 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
     ####################################################################
     st_mns = data_dict['means']
     st_covs = data_dict['covs']
-    bg_lnols = np.array(data_dict['bg_lnols'])
-    print('run_em bg_lnols')
-    print(bg_lnols)
-    print_bg_lnols(bg_lnols)
+    bg_lnols = data_dict['bg_lnols']
     
-    exit(0)
+    # For some reason, bg_ols in C only work this way now. They worked before from data_dict... A mystery! data_dict now produces values +/-1e+240 or similar.
+    filename_tmp = 'bgols_tmp.dat'
+    np.savetxt(filename_tmp, bg_lnols)
+    bg_lnols = np.loadtxt(filename_tmp)
+    print('run_em: bg_lnols read from a txt file!')
+    #~ print('run_em bg_lnols')
+    #~ print(bg_lnols)
+    #~ print_bg_lnols(bg_lnols)
+    
+    #~ exit(0)
 
 
     ####################################################################
@@ -395,15 +409,15 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
 
         
 
-        print('before expectationC')
-        print(bg_lnols)        
+        #~ print('before expectationC')
+        #~ print(bg_lnols)        
         init_memb_probs = expectationC(st_mns, st_covs, gr_mns, gr_covs, 
             bg_lnols, memb_probs_tmp, nstars*(ncomps+1))
         init_memb_probs = init_memb_probs.reshape(nstars, (ncomps+1))
     
-        print('run_em initialised_by_components')
-        print(bg_lnols.shape)
-        print(bg_lnols)
+        #~ print('run_em initialised_by_components')
+        #~ print(bg_lnols.shape)
+        #~ print(bg_lnols)
 
         #~ print('INIT')
         #~ print(init_memb_probs)
@@ -468,6 +482,7 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
     converged = False
     iter_count = 0
     while not converged and iter_count < pars['max_em_iterations']:
+        print('EM iteration... %d'%iter_count)
         ################################################################
         #### Folders and filenames #####################################
         ################################################################
@@ -484,23 +499,20 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
                 # try to create this dir at the same time.
                 pass
 
-
-        #~ utils.log_message('Iteration {}'.format(iter_count),
-                    #~ symbol='-', surround=True)
-
         filename_memberships_iter = os.path.join(folder_iter, 
             pars['filename_iter_memberships'])
         filename_components_iter = os.path.join(folder_iter, 
             pars['filename_iter_comps'])
-        filename_lnprob_and_bic_iter= os.path.join(folder_iter, 
+        filename_lnprob_and_bic_iter = os.path.join(folder_iter, 
             pars['filename_iter_lnprob_and_bic'])
-
-
+        filename_lnprob_convergence = os.path.join(folder_iter, 
+            pars['filename_lnprob_convergence'])
+            
+        
         ################################################################
         #### MAXIMISATION ##############################################
-        ################################################################   
-        
-        print('################# START MAXIMISATION')
+        ################################################################  
+        #~ print('################# START MAXIMISATION')
         # maximisation.maximisation_gradient_descent_serial(
         # maximisation.maximisation_gradient_descent_multiprocessing(
         #~ comps_new, _, all_init_pos =\
@@ -525,11 +537,11 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             maximisationC.maximisation_gradient_descent_serial(
             data_dict, ncomps=ncomps, memb_probs=memb_probs_old, 
             all_init_pars=all_init_pars, all_init_pos=all_init_pos,
-            Component=Component, trace_orbit_func=trace_orbit_func, 
+            Component=Component, 
             optimisation_method=pars['optimisation_method'], 
             idir=folder_iter)
             
-        print('################# END MAXIMISATION')
+        #~ print('################# END MAXIMISATION')
         # Save new components
         Component.store_raw_components(filename_components_iter, 
             comps_new)
@@ -551,22 +563,14 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             #~ use_box_background=use_box_background) # TODO background
         
         # C version
-        print("start expectationC")
+        #~ print("start expectationC")
         gr_mns, gr_covs = get_gr_mns_covs_now(comps_new)
         
         memb_probs_new = expectationC(st_mns, st_covs, gr_mns, gr_covs, 
             bg_lnols, memb_probs_old, nstars*(ncomps+1)) # +1 for bg
         memb_probs_new = memb_probs_new.reshape(nstars, (ncomps+1))
-        print("end expectationC")
-        
-        
-        print('run_em bg_lnols after expectationC')
-        print(bg_lnols)
-        #~ print('run_em comps_new')
-        #~ print(comps_new)
-        #~ print('run_em memb_probs_new')
-        #~ print(memb_probs_new)
-        
+        #~ print("end expectationC")
+                
         
         # WORKS
         #~ memb_probs_new = expectation.expectation(data_dict, comps_new, 
@@ -617,15 +621,10 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         
         
         # C
-        print('start C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')
-        # memb_probs_new: 
+        #~ print('start C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')
         overall_lnlike = get_overall_lnlikelihood_for_fixed_memb_probs(
             st_mns, st_covs, gr_mns, gr_covs, bg_lnols, memb_probs_new) # TODO background
-        print('overall_lnlikeALL', overall_lnlike)
-        overall_lnlike = overall_lnlike[0] # I think that's swig's problem
-        print('end C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')
-        print('overall_lnlike', overall_lnlike)
-        
+        #~ print('end C expectation.get_overall_lnlikelihood_for_fixed_memb_probs')        
 
         # MZ added
         np.save(filename_lnprob_and_bic_iter, [overall_lnlike])
@@ -646,14 +645,11 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             converged = False
         else:
             converged = lnprob_convergence(list_prev_lnlikes, 
-                slice_size=pars['lnlike_convergence_slice_size'])
+                slice_size=pars['lnlike_convergence_slice_size'],
+                filename_lnprob_convergence=filename_lnprob_convergence)
         
         #~ utils.log_message('Convergence status: {}'.format(converged),
             #~ symbol='-', surround=True)
-        
-        # NOT CONVERGED
-        #~ if not converged:
-            #~ logging.info('lnlike not converged')
 
 
         iter_count += 1
@@ -685,10 +681,16 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             #~ use_box_background=use_box_background,
     #~ ) # TODO: USE C MODULE
       
-    overall_lnlike = expectmax.get_overall_lnlikelihood(
-            data_dict, final_best_comps, inc_posterior=False,
-            use_box_background=use_box_background) # TODO background  
-            # TODO: USE C MODULE
+    # Python
+    #~ overall_lnlike = expectmax.get_overall_lnlikelihood(
+            #~ data_dict, final_best_comps, inc_posterior=False,
+            #~ use_box_background=use_box_background) # TODO background  
+            #~ # TODO: USE C MODULE
+    
+    # C
+    gr_mns, gr_covs = get_gr_mns_covs_now(final_best_comps)
+    overall_lnlike = get_overall_lnlikelihood_for_fixed_memb_probs(
+        st_mns, st_covs, gr_mns, gr_covs, bg_lnols, final_memb_probs) # TODO background
       
                    
     logging.info("Final overall lnlikelihood: {}".format(overall_lnlike))
@@ -733,6 +735,7 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             filename_memberships_fits, get_background_overlaps=True, 
             stellar_id_colname = pars['stellar_id_colname']
             )
+        print('%s written.'%filename_memberships_fits)
     except:
         logging.info("[WARNING] Couldn't print membership.fits file. Is source_id available?")
 

@@ -74,7 +74,7 @@ def fit_single_comp_gradient_descent_serial(data, memb_probs=None,
 def maximisation_gradient_descent_serial(data, ncomps=None, 
     memb_probs=None, all_init_pars=None, all_init_pos=None,
     convergence_tol=1, Component=SphereComponent,
-    trace_orbit_func=None, optimisation_method='Nelder-Mead', 
+    optimisation_method='Nelder-Mead', 
     idir=None):
     """
     What is idir?

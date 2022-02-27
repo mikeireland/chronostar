@@ -224,7 +224,7 @@ void get_all_lnoverlaps(
     // Insert one time calculated background overlaps
     for (i=0; i<bg_dim; i++) {
         lnols[st_mn_dim1*gr_mn_dim1+i] = bg_lnols[i];
-        printf("bg_lnols %d %e\n", i, bg_lnols[i]);
+        //~ printf("bg_lnols %d %e\n", i, bg_lnols[i]);
     }
 
 
@@ -309,9 +309,9 @@ void expectation(
      */
 
 
-    for (int i=0; i<bg_dim; i++) {
-        printf("bg_lnols expectation %d %e\n", i, bg_lnols[i]);
-    }
+    //~ for (int i=0; i<bg_dim; i++) {
+        //~ printf("bg_lnols expectation %d %e\n", i, bg_lnols[i]);
+    //~ }
 
     int inc_posterior = 0;
     int amp_prior = 0;
@@ -535,190 +535,5 @@ void expectation_iterative_component_amplitudes(
   
         iter_cnt++;
     }
-}
-
-
-double get_overall_lnlikelihood_for_fixed_memb_probs(
-    double* st_mns, int st_mn_dim1, int st_mn_dim2, 
-    double* st_covs, int st_dim1, int st_dim2, int st_dim3,
-    double* gr_mns, int gr_mns_dim1, int gr_mns_dim2, 
-    double* gr_covs, int gr_dim1, int gr_dim2, int gr_dim3, 
-    double* bg_lnols, int bg_dim,
-    double* memb_probs, int memb_dim1, int memb_dim2) {
-    //~ run_em.py computes expectation just before this step, so we can
-    //~ take that result. No need to compute expectation again.
-    //~ For now keep this separate from get_overall_lnlikelihood
-    //~ because I don't know if this is called from other parts of
-    //~ Chronostar and requires new memb_probs determination.
-        
-    //~ Get overall likelihood for a proposed model.
-
-    //~ Evaluates each star's overlap with every component and background
-    //~ If only fitting one group, inc_posterior does nothing
-
-    //~ Parameters
-    //~ ----------
-    //~ data: (dict)
-        //~ See fit_many_comps
-    //~ comps: [ncomps] list of Component objects
-        //~ See fit_many_comps
-    //~ Returns
-    //~ -------
-    //~ overall_lnlikelihood: float
-
-
-    // Output of get_all_lnoverlaps
-    int lnols_dim1 = st_mn_dim1;
-    int lnols_dim2 = (gr_mns_dim1+1);
-    //~ int lnols_dim2 = (gr_mns_dim1);
-    double all_ln_ols[lnols_dim1*lnols_dim2]; // TODO: check dimension
-    
-    printf("st_mn_dim1 %d, gr_mns_dim1 %d, memb_dim2 %d\n", st_mn_dim1, gr_mns_dim1, memb_dim2);
-    
-    // TODO: all these params?
-    int inc_posterior = 0;
-    int amp_prior = 0;
-    int use_box_background = 0;
-    int using_bg = 1;
-    
-    get_all_lnoverlaps(st_mns, st_mn_dim1, st_mn_dim2,
-        st_covs, st_dim1, st_dim2, st_dim3,
-        gr_mns, gr_mns_dim1, gr_mns_dim2,
-        gr_covs, gr_dim1, gr_dim2, gr_dim3,
-        bg_lnols, bg_dim,
-        memb_probs, memb_dim1, memb_dim2,
-        inc_posterior, amp_prior, use_box_background, 
-        all_ln_ols, lnols_dim1, lnols_dim2,
-        using_bg);
-    
-    int count=0;
-    for (int i=0; i<st_mn_dim1; i++) {
-        for(int j=0; j<lnols_dim2; j++) {
-            printf("i=%d, j=%d, %d, %f\n", i, j, j*st_mn_dim1+i, all_ln_ols[j*st_mn_dim1+i]);
-            count++;
-            if (count>13) break;
-        }
-        if (count>13) break;
-    }
-
-
-    // Multiplies each log overlap by the star's membership probability
-    // (In linear space, takes the star's overlap to the power of its
-    // membership probability)
-
-    // #einsum is an Einstein summation convention. Not suer why it is used here???
-    // #weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
-
-    // Compute weighted_lnols = all_ln_ols * memb_probs
-    //TODO some ols and/or memb_probs are 0. Can I skip them here to speed it up?
-    double result=0.0;
-    for (int i=0; i<st_mn_dim1; i++) {
-        for(int j=0; j<lnols_dim2; j++) {
-            result += all_ln_ols[j*st_mn_dim1+i] * memb_probs[i*memb_dim2+j];
-            //~ printf("i=%d, j=%d, j*st_mn_dim1+i %d, %f %f, result=%f\n", i, j, j*st_mn_dim1+i, all_ln_ols[j*st_mn_dim1+i], memb_probs[i*memb_dim2+j], result);
-        }
-    }
-
-    //~ // READ THIS: can 'return' memb_probs, because they
-    //~ // get updated here in any case
-
-    //~ // return_memb_probs=True only in expectmax that reads in all the previous fits. We skip this in C.
-    //~ if return_memb_probs:
-        //~ return np.sum(weighted_lnols), memb_probs
-    //~ else:
-        //~ return np.sum(weighted_lnols)
-    
-    //~ printf("return result %g\n", result);
-    return result; //TODO for some reason this returns result + memb_probs. No idea why
-}
-
-
-double get_overall_lnlikelihood( // not finished
-    double* st_mns, int st_mn_dim1, int st_mn_dim2, 
-    double* st_covs, int st_dim1, int st_dim2, int st_dim3,
-    double* gr_mns, int gr_mns_dim1, int gr_mns_dim2, 
-    double* gr_covs, int gr_dim1, int gr_dim2, int gr_dim3, 
-    double* bg_lnols, int bg_dim,
-    double* old_memb_probs, int omemb_dim1, int omemb_dim2,
-    double* memb_probs, int memb_dim1) {
-        
-    //~ Get overall likelihood for a proposed model.
-
-    //~ Evaluates each star's overlap with every component and background
-    //~ If only fitting one group, inc_posterior does nothing
-
-    //~ Parameters
-    //~ ----------
-    //~ data: (dict)
-        //~ See fit_many_comps
-    //~ comps: [ncomps] list of Component objects
-        //~ See fit_many_comps
-    //~ return_memb_probs: bool {False}
-        //~ Along with log likelihood, return membership probabilites
-
-    //~ Returns
-    //~ -------
-    //~ overall_lnlikelihood: float
-
-
-    //~ double memb_probs[st_mn_dim1*(gr_mns_dim1+1)];
-    
-    // WHY DO WE NEED MEMB_PROBS HERE? TODO
-    expectation(st_mns, st_mn_dim1, st_mn_dim2, 
-        st_covs, st_dim1, st_dim2, st_dim3,
-        gr_mns, gr_mns_dim1, gr_mns_dim2, 
-        gr_covs, gr_dim1, gr_dim2, gr_dim3, 
-        bg_lnols, bg_dim,
-        old_memb_probs, omemb_dim1, omemb_dim2,
-        memb_probs, memb_dim1);
-
-
-    // UNCOMMENT THIS
-    int lnols_dim1 = st_mn_dim1;
-    int lnols_dim2 = (gr_mns_dim1+1);
-    double all_ln_ols[lnols_dim1*lnols_dim2]; // TODO: check dimension
-    int inc_posterior = 0;
-    int amp_prior = 0;
-    int use_box_background = 0;
-    int using_bg = 1;
-    get_all_lnoverlaps(st_mns, st_mn_dim1, st_mn_dim2,
-        st_covs, st_dim1, st_dim2, st_dim3,
-        gr_mns, gr_mns_dim1, gr_mns_dim2,
-        gr_covs, gr_dim1, gr_dim2, gr_dim3,
-        bg_lnols, bg_dim,
-        old_memb_probs, omemb_dim1, omemb_dim2,
-        inc_posterior, amp_prior, use_box_background, 
-        all_ln_ols, lnols_dim1, lnols_dim2,
-        using_bg);
-    
-
-
-    // Multiplies each log overlap by the star's membership probability
-    // (In linear space, takes the star's overlap to the power of its
-    // membership probability)
-
-    // #einsum is an Einstein summation convention. Not suer why it is used here???
-    // #weighted_lnols = np.einsum('ij,ij->ij', all_ln_ols, memb_probs)
-
-    // Compute weighted_lnols = all_ln_ols * memb_probs
-    double sum=0.0;
-    for (int i=0; i<st_mn_dim1*(gr_mns_dim1+1); i++) { // CHECK DIMENSION
-        //~ //weighted_lnols[i] = all_ln_ols[i] * memb_probs[i];
-        sum+=all_ln_ols[i] * memb_probs[i];
-    }
-
-    //#if np.sum(weighted_lnols) != np.sum(weighted_lnols):
-    //#    import pdb; pdb.set_trace() #!!!!
-
-    //~ // READ THIS: can 'return' memb_probs in any case, because they
-    //~ // get updated here in any case
-
-    //~ // return_memb_probs=True only in expectmax that reads in all the previous fits. We skip this in C.
-    //~ if return_memb_probs:
-        //~ return np.sum(weighted_lnols), memb_probs
-    //~ else:
-        //~ return np.sum(weighted_lnols)
-    
-    return sum;
 }
 
