@@ -24,16 +24,25 @@ from multiprocessing import cpu_count
 
 sys.path.insert(0, os.path.abspath('..'))
 #~ from chronostar import expectmax2 as expectmax
-from chronostar import expectmax
+#~ from chronostar import expectmax # replaced by C modules
 from chronostar import readparam
 from chronostar import tabletool
 from chronostar import component
+from chronostar.component import SphereComponent
 from chronostar import utils
 from chronostar import default_pars
 
+from chronostar import traceorbitC
 import run_em
 
-
+try:
+    from chronostar._overall_likelihood import get_overall_lnlikelihood_for_fixed_memb_probs
+except ImportError:
+    print("C IMPLEMENTATION OF overall_likelihood NOT IMPORTED")
+    USE_C_IMPLEMENTATION = False
+    TODO = True # NOW WHAT?
+    
+# SPLIT COMPONENTS HERE:
 def build_init_comps(prev_comps=None, split_comp_ix=0, memb_probs=None,
     Component=None, data_dict=None, split_group_method='age'):
     """
@@ -92,6 +101,47 @@ def build_init_comps(prev_comps=None, split_comp_ix=0, memb_probs=None,
     return init_comps
 
 
+def calc_bic(data, ncomps, lnlike, memb_probs=None, 
+    Component=SphereComponent):
+    """Calculates the Bayesian Information Criterion
+
+    A simple metric to judge whether added components are worthwhile.
+    The number of 'data points' is the expected star membership count.
+    This way the BIC is (mostly) independent of the overall data set,
+    if most of those stars are not likely members of the component fit.
+
+    Parameters
+    ----------
+    data: dict
+        See fit_many_comps
+    ncomps: int
+        Number of components used in fit
+    lnlike: float
+        the overall log likelihood of the fit
+    memb_probs: [nstars,ncomps {+1}] float array_like
+        See fit_many_comps
+    Component:
+        See fit_many_comps
+
+    Returns
+    -------
+    bic: float
+        A log likelihood score, scaled by number of free parameters. A
+        lower BIC indicates a better fit. Differences of <4 are minor
+        improvements.
+    """
+    # 2020/11/15 TC: removed this...
+#     if memb_probs is not None:
+#         nstars = np.sum(memb_probs[:, :ncomps])
+#     else:
+    nstars = len(data['means'])
+    ncomp_pars = len(Component.PARAMETER_FORMAT)
+    n = nstars * 6                      # 6 for phase space origin
+    k = ncomps * (ncomp_pars)           # parameters for each component model
+                                        #  -1 for age, +1 for amplitude
+    return np.log(n)*k - 2 * lnlike
+
+
 def calc_score(data_dict, comps, memb_probs, Component,
     use_box_background=False):
     """
@@ -106,17 +156,52 @@ def calc_score(data_dict, comps, memb_probs, Component,
 
     TODO: Establish relevance of bg_ln_ols
     """
-
-    lnlike = expectmax.get_overall_lnlikelihood(data_dict, comps,
-        old_memb_probs=memb_probs, use_box_background=use_box_background)
-        
-    lnpost = expectmax.get_overall_lnlikelihood(data_dict, comps,
-        old_memb_probs=memb_probs, use_box_background=use_box_background,
-        inc_posterior=True)
-
+    
     ncomps = len(comps)
-    bic = expectmax.calc_bic(data_dict, ncomps, lnlike,
-        memb_probs=memb_probs, Component=Component)
+
+    # python
+    #~ lnlike = expectmax.get_overall_lnlikelihood(data_dict, comps,
+        #~ old_memb_probs=memb_probs, use_box_background=use_box_background)
+
+    #~ print('lnlikeP', lnlike)
+
+    #~ lnpost = expectmax.get_overall_lnlikelihood(data_dict, comps,
+        #~ old_memb_probs=memb_probs, use_box_background=use_box_background,
+        #~ inc_posterior=True)
+
+    #~ bic = expectmax.calc_bic(data_dict, ncomps, lnlike,
+        #~ memb_probs=memb_probs, Component=Component)
+
+
+    ####################################################################
+    #### DATA FOR C MODULES ############################################
+    ####################################################################
+    gr_mns, gr_covs = traceorbitC.get_gr_mns_covs_now(comps)
+    st_mns = data_dict['means']
+    st_covs = data_dict['covs']
+    bg_lnols = data_dict['bg_lnols']
+    
+    # For some reason, bg_ols in C only work this way now. They worked before from data_dict... A mystery! data_dict now produces values +/-1e+240 or similar.
+    filename_tmp = 'bgols_tmp.dat'
+    np.savetxt(filename_tmp, bg_lnols)
+    bg_lnols = np.loadtxt(filename_tmp)
+    print('run_em: bg_lnols read from a txt file!')
+    
+    lnlike = get_overall_lnlikelihood_for_fixed_memb_probs(
+        st_mns, st_covs, gr_mns, gr_covs, bg_lnols, memb_probs) # TODO background
+    
+    #~ print('lnlikeC', lnlike)
+
+    # use lnlikeC
+    bic = calc_bic(data_dict, ncomps, lnlike, memb_probs=memb_probs, 
+        Component=Component)
+    
+    #~ lnpost = expectmax.get_overall_lnlikelihood(data_dict, comps,
+        #~ old_memb_probs=memb_probs, use_box_background=use_box_background,
+        #~ inc_posterior=True)  
+          
+    lnpost=np.nan # don't need it
+        
     
     # 2020/11/16 TC: handling the case for a bad bic.
     # This comes up for the initial 1 component fit with box background
@@ -420,6 +505,7 @@ be an improvement, they are taken as the best fit, and are renamed to
 `prev_result`
 """
 
+global_bics = []
 while ncomps <= pars['max_comp_count']:
     utils.log_message(msg='FITTING {} COMPONENT'.format(ncomps),
         symbol='*', surround=True)
@@ -518,18 +604,25 @@ while ncomps <= pars['max_comp_count']:
     log_score_comparison(new=new_score, prev=prev_score)
     
     
-    print('all scores so far')
+    print('scores in all possible splits')
     for s in all_scores:
         print(s)
     print('')
     
+    
+    print('all BICs so far')
+    print(all_bics)
            
-    print('SCORE COMPARISON FOR CONVERGENCE', new_score['bic'], prev_score['bic'], new_score['bic'] < prev_score['bic'])
+    print('SCORE COMPARISON FOR CONVERGENCE', new_score['bic'], 
+        prev_score['bic'], 'Does new BIC improve the model?', new_score['bic'] < prev_score['bic'])
     #### NOT CONVERGED YET, CONTINUE WITH SPLITTING ####################
     if new_score['bic'] < prev_score['bic']:
+        print('Not converged. Continue')
         prev_score = new_score
         prev_result = new_result
         ncomps += 1
+        
+        global_bics.append(new_score['bic'])
         
         utils.log_message(
             msg="Commencing {} component fit on {}{}".format(
@@ -539,10 +632,19 @@ while ncomps <= pars['max_comp_count']:
     
     #### CONVERGED. WRITE RESULTS AND EXIT #############################
     else:
+        print('CONVERGED. EXIT THE LOOP')
+        print('global bics')
+        print(global_bics)
+        print('last BIC', new_score['bic'])
         # WRITING THE FINAL RESULTS INTO FILES
         # SAVE prev_result rather than new_result because prev_result
         # is optimal while new_result has worsened the score.
         write_results_to_file(prev_result, prev_score, pars)
+        
+        #~ fig=plt.figure()
+        #~ ax=fig.add_subplot(111)
+        #~ ax.plot(range(len(all_bics)), all_bics)
+        #~ plt.savefig('all_bics.png')
         
         # Terminate the loop
         break
@@ -551,7 +653,7 @@ while ncomps <= pars['max_comp_count']:
             [group.get_pars() for group in prev_result['comps']]))
 
 
-print(all_scores)
+
 
 # FINAL LOGGING
 if ncomps >= pars['max_comp_count']:

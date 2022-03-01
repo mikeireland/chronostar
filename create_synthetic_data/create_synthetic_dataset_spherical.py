@@ -39,7 +39,7 @@ large number of stars.
 """
 using_bg = True
 
-run_name = 'synt'
+run_name = 'synt52'
 
 savedir = 'spheresyn/{}_naive_{}/'.format(PY_VERS, run_name)
 os.makedirs(savedir)
@@ -60,11 +60,15 @@ uniform_age = 1e-10
 comp_pars = np.array([
     # X, Y, Z, U, V, W, dX, dV, age,
     [  0,  0, 0, 0, 0, 0, 10., 7, 10],
-    [  50,  0, 0, 0, 0, 0, 10., 7, 25], 
+    [  50,  30, -20, 5, 1, -2, 10., 7, 20], 
+    [  20,  0, 0, 0, 0, 0, 9., 5, 5], 
+    [  70,  -10, 0, 0, 2, 0, 4., 2, 5], 
+    [  -20,  4, 8, 1, -1, 0, 7, 3, 15], 
 ])
 
 # Number of members in each component
-starcounts = [200, 120]
+starcounts = [200, 120, 50, 80, 90]
+starcount_background = 1000
 ########################################################################
 
 
@@ -110,4 +114,10 @@ print('background_count', background_count)
 synth_data.table['background_log_overlap'] =\
     len(synth_data.table) * [np.log(background_density)]
 
+# Reduce the number of background stars. Assume that bg is added at the end
+if background_count>starcount_background:
+    Ncut = np.sum(starcounts) + starcount_background
+    synth_data.table = synth_data.table[:Ncut]
+
+print('Number of stars in the dataset:', len(synth_data.table))
 synth_data.table.write(filename_output, overwrite=True)

@@ -115,3 +115,87 @@ def maximisation_gradient_descent_serial(data, ncomps=None,
 
     return new_comps_list, all_lnprob, all_final_pos
 
+
+def maximisation_gradient_descent_multiprocessing(data, ncomps=None, 
+    memb_probs=None, all_init_pars=None, all_init_pos=None,
+    convergence_tol=1, Component=SphereComponent,
+    optimisation_method='Nelder-Mead', 
+    idir=None):
+    """
+    What is idir?
+    """
+    
+    """
+    I get lots pf pickling errors.
+    
+    From stackoverflow:
+    
+    The multiprocessing module has a major limitation when it comes to IPython use:
+
+    Functionality within this package requires that the __main__ module be importable by the children. [...] This means that some examples, such as the multiprocessing.pool.Pool examples will not work in the interactive interpreter. [from the documentation]
+
+    Fortunately, there is a fork of the multiprocessing module called multiprocess which uses dill instead of pickle to serialization and overcomes this issue conveniently.
+
+    Just install multiprocess and replace multiprocessing with multiprocess in your imports
+    """
+    print('IN maximisation_gradient_descent_multiprocessing')
+    
+    manager = multiprocessing.Manager()
+    return_dict = manager.dict()
+    
+    #~ global worker # should solve pickle error in ipython, but it doesn't
+    
+    #~ return_dict={}
+    #~ for i in range(ncomps):
+        #~ best_comp, final_pos, lnprob =\
+            #~ fit_single_comp_gradient_descent_serial(data=data, 
+                #~ memb_probs=memb_probs[:, i],
+                #~ convergence_tol=convergence_tol,
+                #init_pos=all_init_pos[i],
+                #~ init_pars=all_init_pars[i], Component=Component,
+                #trace_orbit_func=trace_orbit_func,
+                #~ optimisation_method=optimisation_method, # e.g. Nelder-Mead
+        #~ )
+        #~ return_dict[i] = [best_comp, lnprob, final_pos]
+
+
+
+
+    def worker(i, return_dict):
+        best_comp, final_pos, lnprob =\
+            fit_single_comp_gradient_descent_serial(data=data, 
+                memb_probs=memb_probs[:, i],
+                convergence_tol=convergence_tol,
+                init_pars=all_init_pars[i], Component=Component,
+                optimisation_method=optimisation_method, # e.g. Nelder-Mead
+            )
+
+        return_dict[i] = [best_comp, lnprob, final_pos]
+
+
+
+
+    jobs = []
+    for i in range(ncomps):
+        process = multiprocessing.Process(target=worker, 
+            args=(i, return_dict))
+        jobs.append(process)
+
+    # Start the processes
+    for j in jobs:
+        j.start()
+
+    # Ensure all of the processes have finished
+    for j in jobs:
+        j.join()
+
+
+    print('END maximisation_gradient_descent_multiprocessing')
+
+
+
+    new_comps_list = [return_dict[i][0] for i in range(ncomps)]
+    all_lnprob = [return_dict[i][1] for i in range(ncomps)]
+    all_final_pos = [return_dict[i][2] for i in range(ncomps)]
+
+    return new_comps_list, all_lnprob, all_final_pos

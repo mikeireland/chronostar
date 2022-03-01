@@ -75,13 +75,13 @@ except ImportError:
     USE_C_IMPLEMENTATION = False
     TODO = True # NOW WHAT?
 
-try:
-    from chronostar._temporal_propagation import trace_epicyclic_orbit, trace_epicyclic_covmatrix
-except ImportError:
-    print("C IMPLEMENTATION OF temporal_propagation NOT IMPORTED")
-    USE_C_IMPLEMENTATION = False
-    TODO = True # NOW WHAT?
-
+#~ try:
+    #~ from chronostar._temporal_propagation import trace_epicyclic_orbit, trace_epicyclic_covmatrix
+#~ except ImportError:
+    #~ print("C IMPLEMENTATION OF temporal_propagation NOT IMPORTED")
+    #~ USE_C_IMPLEMENTATION = False
+    #~ TODO = True # NOW WHAT?
+from chronostar import traceorbitC
 
 #~ import subprocess # to call external scripts
 
@@ -160,12 +160,16 @@ memb_probs: [nstars, ncomps] array
 """
 
 def lnprob_convergence(lnprob, slice_size=10, 
-    filename_lnprob_convergence=None):
+    filename_lnprob_convergence=None, convergence_requirement=0.03):
     """
     Check if lnprob is not changing anymore: Determine median values
     for chunks of slice_size. If median worsens, declare convergence.
     """
     lnprob = np.array(lnprob)
+
+    # Normalize to range [0, 1]
+    lnprob -= np.min(lnprob)
+    lnprob /= np.max(lnprob)
     
     chunk_size = int(float(len(lnprob))/float(slice_size))
     indices_chunks = np.array_split(range(len(lnprob)), chunk_size)
@@ -177,10 +181,15 @@ def lnprob_convergence(lnprob, slice_size=10,
     #~ convergence = medians[-2]>medians[-1]
     
     # Convergence when the median is not significantly improved anymore
-    f = 0.01
+    #~ f = 0.03 # TODO hardcoded
     r1 = np.abs(1.0 - medians[-1]/medians[-2])
     r2 = np.abs(1.0 - medians[-1]/medians[-3])
-    convergence = (r1<f) & (r2<f)
+    convergence_r = (r1<convergence_requirement) & (r2<convergence_requirement)
+    
+    #~ stds = [np.std(lnprob[i]) for i in indices_chunks]
+    #~ convergence_s = (stds[-1]<0.03) & (stds[-2]<0.03)
+    
+    convergence = convergence_r #& convergence_s
 
     # Did the median worsen for the last two chunks? Then we claim convergence!
     #~ convergence = (medians[-2]>medians[-3]) & (medians[-1]>medians[-3])
@@ -192,13 +201,15 @@ def lnprob_convergence(lnprob, slice_size=10,
         
         fig=plt.figure()
         ax=fig.add_subplot(111)
-        ax.plot(range(len(lnprob)), -lnprob, c='k') # Plotting minus so the scale can be logarithmic
-        ax.set_yscale('log')
+        ax.plot(range(len(lnprob)), lnprob, c='k') # Plotting minus so the scale can be logarithmic
+        #~ ax.set_yscale('log')
         ax.set_xlabel('Iteration')
         ax.set_ylabel('-lnprob')
         plt.tight_layout()
         plt.savefig(filename_lnprob_convergence)
-        print('%s saved.'%filename_lnprob_convergence)
+        #~ print('%s saved.'%filename_lnprob_convergence)
+        
+        np.savetxt(filename_lnprob_convergence.replace('png', 'dat'), lnprob)
 
     return convergence
 
@@ -405,7 +416,8 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             #~ use_box_background=use_box_background) # TODO: REMOVE THIS
 
         # Get gr_mns and gr_covs at t=now
-        gr_mns, gr_covs = get_gr_mns_covs_now(init_comps)
+        #~ gr_mns, gr_covs = get_gr_mns_covs_now(init_comps)
+        gr_mns, gr_covs = traceorbitC.get_gr_mns_covs_now(init_comps)
 
         
 
@@ -564,7 +576,8 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         
         # C version
         #~ print("start expectationC")
-        gr_mns, gr_covs = get_gr_mns_covs_now(comps_new)
+        #~ gr_mns, gr_covs = get_gr_mns_covs_now(comps_new)
+        gr_mns, gr_covs = traceorbitC.get_gr_mns_covs_now(comps_new)
         
         memb_probs_new = expectationC(st_mns, st_covs, gr_mns, gr_covs, 
             bg_lnols, memb_probs_old, nstars*(ncomps+1)) # +1 for bg
@@ -646,7 +659,8 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
         else:
             converged = lnprob_convergence(list_prev_lnlikes, 
                 slice_size=pars['lnlike_convergence_slice_size'],
-                filename_lnprob_convergence=filename_lnprob_convergence)
+                filename_lnprob_convergence=filename_lnprob_convergence,
+                convergence_requirement=pars['EM_convergence_requirement'])
         
         #~ utils.log_message('Convergence status: {}'.format(converged),
             #~ symbol='-', surround=True)
@@ -688,7 +702,8 @@ def run_expectmax_simple(pars, data_dict=None, init_comps=None,
             #~ # TODO: USE C MODULE
     
     # C
-    gr_mns, gr_covs = get_gr_mns_covs_now(final_best_comps)
+    #~ gr_mns, gr_covs = get_gr_mns_covs_now(final_best_comps)
+    gr_mns, gr_covs = traceorbitC.get_gr_mns_covs_now(final_best_comps)
     overall_lnlike = get_overall_lnlikelihood_for_fixed_memb_probs(
         st_mns, st_covs, gr_mns, gr_covs, bg_lnols, final_memb_probs) # TODO background
       

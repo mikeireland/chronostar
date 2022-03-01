@@ -54,6 +54,10 @@ pars = {
     # It turns out that in scipy.optimize.maximize tol=1 is optimal...
     'optimisation_method': 'Nelder-Mead',
     'convergence_tol': 1,
+    
+    # TODO: organise this together with min_em_iterations, lnlike_convergence_slice_size
+    # EM convergence criterion: when the median values of lnprob slices change less than X (fraction)
+    'EM_convergence_requirement': 0.03, # fraction of maximal lnprob change
 
 
     # How to split group: in age or in space?

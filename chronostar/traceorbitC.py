@@ -1,17 +1,13 @@
 """
-Various functions that improve the functionality but are not the core
-of Chronostar
+Trace orbit forward in time. Wrapper for a C module
 """
 
-import logging
-
-def log_message(msg, symbol='.', surround=False):
-    """Little formatting helper"""
-    res = '{}{:^40}{}'.format(5 * symbol, msg, 5 * symbol)
-    if surround:
-        res = '\n{}\n{}\n{}'.format(50 * symbol, res, 50 * symbol)
-    logging.info(res)
-
+try:
+    from chronostar._temporal_propagation import trace_epicyclic_orbit, trace_epicyclic_covmatrix
+except ImportError:
+    print("C IMPLEMENTATION OF temporal_propagation NOT IMPORTED")
+    USE_C_IMPLEMENTATION = False
+    TODO = True # NOW WHAT?
 
 def get_gr_mns_covs_now(comps):
     """
