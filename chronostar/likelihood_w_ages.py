@@ -266,12 +266,32 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     lnols[nearby_star_mask] = get_lnoverlaps(comp, data,
                                              star_mask=nearby_star_mask)
 
+#NICH HONS; adding the log prob age pdf to this sum
+    pdfs=data['age_probs']
+    age=comp.get_age()
+    #My hp.get_probage(age,pdfs) func takes float and ndarray shape (64,)
+    #needs to be ndarray (ncomponents, 1) and (nstars, 64) and return ...???
+    log_starprobs=[]
+    for pdf in pdfs:
+        prob=hp.get_probage(age, pdf)
+        log_starprobs.append(np.log(prob))
+    age_lnliklihood=np.sum(log_starprobs*memb_probs)
+
+    #TODO~  RN this is unmasked for bad stars or v low probability stars. 
+        #Bad stars won't be a problem for the synthetic data, but this is 
+        #calculating approx 0 percent probability stars. 
+        #Check masking behaviour
+    
+
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
     
     print('lnlike', result)
     
-    return result
+    
+    
+    
+    return result + age_lnliklihood
 
 
 def lnprob_func(pars, data, memb_probs=None,
@@ -422,7 +442,7 @@ def lnprob_func_gradient_descent(pars, args, **kwargs):
     #~ lnlk = lnlike(comp, data, memb_probs, **kwargs)
     #~ print('P lnlk', lnlk)
     
-    
+
     if not np.isfinite(lp):
         return np.inf
     return - (lp + lnlike(comp, data, memb_probs, **kwargs))

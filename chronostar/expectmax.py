@@ -47,7 +47,7 @@ except ImportError:
     print("Warning: matplotlib not imported")
 
 from .component import SphereComponent
-from . import likelihood
+from . import likelihood_w_ages as likelihood
 from . import compfitter
 from . import tabletool
 try:

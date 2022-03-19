@@ -24,7 +24,7 @@ import os
 import multiprocessing
 import scipy.optimize
 
-from . import likelihood
+from . import likelihood_w_ages as likelihood
 from . import tabletool
 from . import component
 from .component import SphereComponent
