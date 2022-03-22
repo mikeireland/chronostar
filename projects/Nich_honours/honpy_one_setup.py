@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.spatial as sp
 
-g, bp , rp, age, bn, feh, m, ms = np.load('10MSTAR_POPULATION_GBRABFM.npy').T
+g, bp , rp, age, bn, feh, m, ms = np.load('36.6K_starpop.npy').T
 
 def show_pop():
     fig, ax = plt.subplots()
@@ -33,7 +33,7 @@ def treeGetAges(col,mag,radius, data=tree):
 
 lgage=np.arange(5,11.4, 0.1)
 
-def make_hists(col, gmag, n=100, r=0.01, data=tree):
+def make_hists(col, gmag, n=30, r=0.1, data=tree):
     ages,colres,gres=treeGetAges(col, gmag, r, data=data)
     if len(ages)>(n*2):
         r=0.75*r
@@ -55,7 +55,7 @@ gaus  = np.exp(-(lgage-np.median(lgage))**2/ 0.1**2 /2)
 gaus /= np.sum(gaus)
 gausft = np.fft.rfft(np.fft.fftshift(gaus))
 
-def g_kernal_den(col, gmag, n=100, r=0.01, data=tree, 
+def g_kernal_den(col, gmag, n=30, r=0.1, data=tree, 
                  show_PDF=False, show_NearPop=True):
     age_h=make_hists(col, gmag, n=n, r=r, data=data);
     age_pdf=np.fft.irfft(np.fft.rfft(age_h*10**lgage)*gausft);
@@ -70,9 +70,10 @@ def g_kernal_den(col, gmag, n=100, r=0.01, data=tree,
          fig.show
     return normed
 
-def get_probage(A, pdf, # a pdf is made from g_kernal_den
-                n=100, r=0.01, data=tree, 
+def get_probage(age, pdf, # a pdf is made from g_kernal_den
+                n=30, r=0.1, data=tree, 
                 show_PDF=False, show_NearPop=False):
+     A= np.log10(age) +6
      if not(5<A<11.4):
         print('Err; log(age) out of 5 to 11.4 interval')
      

@@ -58,7 +58,7 @@ except:
     #Do NOT use logging here, as it won't set up a log file at all if logging is attempted prior to
     #setting up the directory and log file...
     #logging.info("WARNING: Couldn't import C implementation, using slow pythonic overlap instead")
-    from .likelihood import slow_get_lnoverlaps as get_lnoverlaps
+    from .likelihood_w_ages import slow_get_lnoverlaps as get_lnoverlaps
 
 #from functools import partial
 
