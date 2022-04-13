@@ -906,8 +906,17 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             for i, pos in enumerate(init_pos):
                 logging.info(' init age: %5.2f'%pos[-1])
                 print('START scipy.optimize.minimize')
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], method=optimisation_method, tol=10) # MZ: changed tol=0.01 to tol=1 tol=1, 
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], method=optimisation_method, tol=1e-3) # MZ: changed tol=0.01 to tol=1 tol=1, 
+                #The args optimisation_method has to be 'Nelder-Mead'. But the other one can have other values.
+                if not result.success:
+                    print("ERROR: could not converge. Please debug...")
+                    import pdb; pdb.set_trace()
+                else:
+                    print(result.message)
+                    print("Number of iterations: {:d}".format(nit))
+                    
                 #~ return_dict[result.fun] = result
+                
                 return_dict[i] = result
                 logging.info('         res: %5.2f | %5.3f'%(result.x[-1], -result.fun))
 
