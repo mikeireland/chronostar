@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy.spatial as sp
 
-g, bp , rp, age, bn, feh, m, ms = np.load('10MSTAR_POPULATION_GBRABFM.npy').T
+g, bp , rp, age, bn, feh, m, ms = np.load(
+    '10MSTAR_POPULATION_GBRABFM.npy').T
 
 def show_pop():
     fig, ax = plt.subplots()
@@ -71,8 +72,7 @@ def g_kernal_den(col, gmag, n=50, r=0.1, data=tree,
     return normed
 
 def get_probage(age, pdf, # a pdf is made from g_kernal_den
-                n=50, r=0.1, data=tree, 
-                show_PDF=False, show_NearPop=False):
+                ):
      A= np.log10(age) +6
      if not(5<A<11.4):
         print('Err; log(age) out of 5 to 11.4 interval')

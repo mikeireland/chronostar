@@ -291,7 +291,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     
     
     
-    return result + age_lnliklihood
+    return (result + age_lnliklihood)
 
 
 def lnprob_func(pars, data, memb_probs=None,

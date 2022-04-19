@@ -190,20 +190,19 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
     results_dict = {'means':means}
 
     
-    #NICH_HONS; Attempting to use 'try' to get my stuff to work without 
-    #		breaking everything else.
-        #And then I undid that since RuntimeWarnings seemed to stop the code.
-    #try:
-    from . import honpy_one_setup as hp
-    gmag = table['mag_g']
-    bprp = table['bprp_col']
-    #initializing with the pdf of the first star)
-    pdf = hp.g_kernal_den(gmag[0],bprp[0])
-    pdfs= pdf
-    for i in range(1,len(gmag)):
-        pdf = hp.g_kernal_den(gmag[i],bprp[i])
-        pdfs= np.vstack([pdfs,pdf])
-    results_dict['age_probs']=pdfs
+    #TODO age parameter from .pars file
+    age_parameter=True
+    if age_parameter:
+        from . import honpy_one_setup as hp
+        gmag = table['mag_g']
+        bprp = table['bprp_col']
+        #initializing with the pdf of the first star)
+        pdf = hp.g_kernal_den(bprp[0],gmag[0])
+        pdfs= pdf
+        for i in range(1,len(gmag)):
+            pdf = hp.g_kernal_den(bprp[i],gmag[i])
+            pdfs= np.vstack([pdfs,pdf])
+        results_dict['age_probs']=pdfs
     #except:
 	   # print('NICH_HONS; failure at tabletool.py line 195-207') 
     
@@ -269,12 +268,19 @@ def build_data_dict_from_table(table, main_colnames=None, error_colnames=None,
         print('%d stars MASKED OUT!'%nexcluded)
         print(np.where(np.logical_not(good_row_mask)))
         print(table[np.logical_not(good_row_mask)])
-    results_dict = {
-        'means':means[good_row_mask],
-        'covs':covs[good_row_mask],
-        #NICH_HONS;
-        'age_probs':pdfs[good_row_mask]
-    }
+    #TODO age parameter from .pars file
+    if age_parameter:
+        results_dict = {
+            'means':means[good_row_mask],
+            'covs':covs[good_row_mask],
+            #NICH_HONS;
+            'age_probs':pdfs[good_row_mask]
+        }
+    else:
+        results_dict = {
+            'means':means[good_row_mask],
+            'covs':covs[good_row_mask],
+        }
 
     # Insert background overlaps
     if get_background_overlaps:

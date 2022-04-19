@@ -906,7 +906,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             for i, pos in enumerate(init_pos):
                 logging.info(' init age: %5.2f'%pos[-1])
                 print('START scipy.optimize.minimize')
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], method=optimisation_method, tol=10) # MZ: changed tol=0.01 to tol=1 tol=1, 
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], method=optimisation_method, tol=1, options={'xatol':0.1,'fatol':0.1}) # MZ: changed tol=0.01 to tol=1; NS, tried to use options dict to make tol work 
                 #~ return_dict[result.fun] = result
                 return_dict[i] = result
                 logging.info('         res: %5.2f | %5.3f'%(result.x[-1], -result.fun))
