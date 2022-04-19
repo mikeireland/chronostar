@@ -910,19 +910,16 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             for i, pos in enumerate(init_pos):
                 logging.info(' init age: %5.2f'%pos[-1])
                 print('START scipy.optimize.minimize')
-<<<<<<< HEAD
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], method=optimisation_method, tol=1, options={'xatol':0.1,'fatol':0.1}) # MZ: changed tol=0.01 to tol=1; NS, tried to use options dict to make tol work 
-=======
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], method=optimisation_method, tol=1e-3) # MZ: changed tol=0.01 to tol=1 tol=1, 
+
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], method=optimisation_method, tol=1e-2) # MZ: changed tol=0.01 to tol=1 tol=1. Instead of "tol" you can use options={'xatol':0.1,'fatol':0.1}
                 #The args optimisation_method has to be 'Nelder-Mead'. But the other one can have other values.
                 if not result.success:
                     print("ERROR: could not converge. Please debug...")
                     import pdb; pdb.set_trace()
                 else:
                     print(result.message)
-                    print("Number of iterations: {:d}".format(nit))
+                    print("Number of iterations: {:d}".format(result.nit))
                     
->>>>>>> bff1a45b5d6a55c285991d8068709f705eb26341
                 #~ return_dict[result.fun] = result
                 
                 return_dict[i] = result

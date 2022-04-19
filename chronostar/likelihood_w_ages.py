@@ -274,7 +274,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     log_starprobs=[]
     for pdf in pdfs:
         prob=hp.get_probage(age, pdf)
-        log_starprobs.append(np.log(prob))
+        log_starprobs.append(np.log(np.max([prob,1e-30]))) #A hack because probabilities can't be negative (or zero if a logarithm is to be taken)!
     age_lnliklihood=np.sum(log_starprobs*memb_probs)
 
     #TODO~  RN this is unmasked for bad stars or v low probability stars. 
