@@ -281,15 +281,14 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
         #Bad stars won't be a problem for the synthetic data, but this is 
         #calculating approx 0 percent probability stars. 
         #Check masking behaviour
-    
+    if np.isnan(age_lnliklihood):
+        print("ERROR - age_lnlikelihood is not a number! Please debug...")    
+        import pdb; pdb.set_trace()
 
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
     
-    print('lnlike', result)
-    
-    
-    
+    print('lnlike (without age)', result)
     
     return (result + age_lnliklihood)
 
@@ -358,6 +357,9 @@ def lnprob_func(pars, data, memb_probs=None,
     comp = Component(emcee_pars=pars, trace_orbit_func=trace_orbit_func)
 
     lp = lnprior(comp, memb_probs)
+    if np.isnan(lp):
+        print("ERROR: Prior is not a number! Please debug...")
+        import pdb; pdb.set_trace()
 
     if optimisation_method=='emcee':
         if not np.isfinite(lp):
