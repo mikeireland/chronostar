@@ -13,7 +13,15 @@ import scipy.optimize
 from chronostar.component import SphereComponent
 
 try:
-    from chronostar._likelihood import lnprob_func_gradient_descent
+    #TODO age consideration parameter from .pars file
+    age_parameter=False
+    if age parameter:
+        from chronostar.likelihood import lnprob_func_gradient_descent
+    else:
+        from chronostar._likelihood import lnprob_func_gradient_descent
+        #TODO from NS, what is _likelihood compared to likelihood.py? 
+        # Will _likelihood go around the likelihood_w_ages, leaving the age 
+        # consideration out of the mximisation step?
 except ImportError:
     print("C IMPLEMENTATION OF lnprob_func_gradient_descent NOT IMPORTED")
     USE_C_IMPLEMENTATION = False

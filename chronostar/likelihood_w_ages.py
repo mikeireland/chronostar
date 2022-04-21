@@ -269,12 +269,22 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
 #NICH HONS; adding the log prob age pdf to this sum
     pdfs=data['age_probs']
     age=comp.get_age()
-    #My hp.get_probage(age,pdfs) func takes float and ndarray shape (64,)
-    #needs to be ndarray (ncomponents, 1) and (nstars, 64) and return ...???
     log_starprobs=[]
-    for pdf in pdfs:
-        prob=hp.get_probage(age, pdf)
-        log_starprobs.append(np.log(np.max([prob,1e-30]))) #A hack because probabilities can't be negative (or zero if a logarithm is to be taken)!
+    
+    if age<0.1:
+       young_tail_func=1e-29*age
+       log_starprobs.append(np.log(young_tail_func))
+       
+       
+    elif age>10**(11.4 - 6):
+       old_tail_func=1e-24/(1e6-10**(5.4)) - 1e-30*age/(1e6-10**(5.4))
+       log_starprobs.append(np.log(young_tail_func))
+
+    else:
+        for pdf in pdfs:
+            prob=hp.get_probage(age, pdf)
+            log_starprobs.append(np.log(np.max([prob,1e-30]))) #A hack because probabilities can't be negative (or zero if a logarithm is to be taken)!
+        
     age_lnliklihood=np.sum(log_starprobs*memb_probs)
 
     #TODO~  RN this is unmasked for bad stars or v low probability stars. 
@@ -289,6 +299,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     result = np.sum(lnols * memb_probs)
     
     print('lnlike (without age)', result)
+    print('lnlike (with age)   ', result + age_lnliklihood)
     
     return (result + age_lnliklihood)
 

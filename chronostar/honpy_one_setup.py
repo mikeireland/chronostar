@@ -2,6 +2,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.spatial as sp
+import pickle
 
 g, bp , rp, age, bn, feh, m, ms = np.load(
     '10MSTAR_POPULATION_GBRABFM.npy').T
@@ -19,8 +20,14 @@ def show_pop():
     fig.show1
     
 zipnowork=np.vstack(((bp-rp),g)).T
-zipnowork.shape
-tree=sp.KDTree(zipnowork)
+#Too speed up, tree is loaded from a pickle
+#tree=sp.KDTree(zipnowork)
+try:
+    tree=pickle.load( open( "treepickle.p", "rb" ) )
+except FileNotFoundError:
+    tree=sp.KDTree(zipnowork)
+    pickle.dump( tree, open( "treepickle.p", "wb" ) )
+    
 
 #%%
 def treeGetAges(col,mag,radius, data=tree):
