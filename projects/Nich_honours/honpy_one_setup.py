@@ -2,8 +2,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.spatial as sp
+import pickle
 
-g, bp , rp, age, bn, feh, m, ms = np.load('36.6K_starpop.npy').T
+g, bp , rp, age, bn, feh, m, ms = np.load('10MSTAR_POPULATION_GBRABFM.npy').T
 
 def show_pop():
     fig, ax = plt.subplots()
@@ -18,8 +19,14 @@ def show_pop():
     fig.show1
     
 zipnowork=np.vstack(((bp-rp),g)).T
-zipnowork.shape
-tree=sp.KDTree(zipnowork)
+#Too speed up, tree is loaded from a pickle
+#tree=sp.KDTree(zipnowork)
+try:
+    tree=pickle.load( open( "treepickle.p", "rb" ) )
+except FileNotFoundError:
+    tree=sp.KDTree(zipnowork)
+    pickle.dump( tree, open( "treepickle.p", "wb" ) )
+    
 
 #%%
 def treeGetAges(col,mag,radius, data=tree):
@@ -33,12 +40,14 @@ def treeGetAges(col,mag,radius, data=tree):
 
 lgage=np.arange(5,11.4, 0.1)
 
-def make_hists(col, gmag, n=30, r=0.1, data=tree):
+def make_hists(col, gmag, n=50, r=0.1, data=tree):
     ages,colres,gres=treeGetAges(col, gmag, r, data=data)
-    if len(ages)>(n*2):
+    while len(ages)>(n*2):
         r=0.75*r
         ages,colres,gres=treeGetAges(col, gmag, r, data=data)
-    if len(ages)<n:
+    while len(ages)<n/2:
+        if n>5:
+            n=int(n/2)
         r=1.5*r
         ages,colres,gres=treeGetAges(col, gmag, r, data=data)
     
@@ -55,24 +64,34 @@ gaus  = np.exp(-(lgage-np.median(lgage))**2/ 0.1**2 /2)
 gaus /= np.sum(gaus)
 gausft = np.fft.rfft(np.fft.fftshift(gaus))
 
-def g_kernal_den(col, gmag, n=30, r=0.1, data=tree, 
+def g_kernal_den(col, gmag, n=50, r=0.1, data=tree, 
                  show_PDF=False, show_NearPop=True):
     age_h=make_hists(col, gmag, n=n, r=r, data=data);
     age_pdf=np.fft.irfft(np.fft.rfft(age_h*10**lgage)*gausft);
+    
+    #TODO; No NaNs later please
+        #This should guarentee the least amount of fudging to ensure all positives
+    if np.any(age_pdf<0):
+        age_pdf=age_pdf + np.min(age_pdf)
+    
     grated=np.trapz(age_pdf,10**lgage);
     normed=age_pdf/grated;
+    
     if show_PDF:
-         fig, ax = plt.subplots()
-         ax.plot(lgage,normed)
-         ax.set_ylabel('Relative Probability')
-         ax.set_xlabel('log(Age)')
-         fig.savefig('g_kernal_den_OUT.pdf')
-         fig.show
+        fig, ax = plt.subplots()
+        ax.plot(lgage,normed)
+        ax.set_ylabel('Relative Probability')
+        ax.set_xlabel('log(Age)')
+        fig.savefig('g_kernal_den_OUT.pdf')
+        fig.show
+    
+    if np.any(normed<0):
+        print("Err; g_kernal_den negative pdf; ", np.min(normed))   
+
     return normed
 
 def get_probage(age, pdf, # a pdf is made from g_kernal_den
-                n=30, r=0.1, data=tree, 
-                show_PDF=False, show_NearPop=False):
+                ):
      A= np.log10(age) +6
      if not(5<A<11.4):
         print('Err; log(age) out of 5 to 11.4 interval')

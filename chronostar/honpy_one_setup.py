@@ -4,8 +4,7 @@ import numpy as np
 import scipy.spatial as sp
 import pickle
 
-g, bp , rp, age, bn, feh, m, ms = np.load(
-    '10MSTAR_POPULATION_GBRABFM.npy').T
+g, bp , rp, age, bn, feh, m, ms = np.load('10MSTAR_POPULATION_GBRABFM.npy').T
 
 def show_pop():
     fig, ax = plt.subplots()
@@ -43,10 +42,12 @@ lgage=np.arange(5,11.4, 0.1)
 
 def make_hists(col, gmag, n=50, r=0.1, data=tree):
     ages,colres,gres=treeGetAges(col, gmag, r, data=data)
-    if len(ages)>(n*2):
+    while len(ages)>(n*2):
         r=0.75*r
         ages,colres,gres=treeGetAges(col, gmag, r, data=data)
-    if len(ages)<n:
+    while len(ages)<n/2:
+        if n>5:
+            n=int(n/2)
         r=1.5*r
         ages,colres,gres=treeGetAges(col, gmag, r, data=data)
     
@@ -67,8 +68,19 @@ def g_kernal_den(col, gmag, n=50, r=0.1, data=tree,
                  show_PDF=False, show_NearPop=True):
     age_h=make_hists(col, gmag, n=n, r=r, data=data);
     age_pdf=np.fft.irfft(np.fft.rfft(age_h*10**lgage)*gausft);
+    
+    #TODO; No NaNs later please
+        #This should guarentee the least amount of fudging to ensure all positives
+    if np.any(age_pdf<0):
+        age_pdf=age_pdf + abs(np.min(age_pdf))
+    
     grated=np.trapz(age_pdf,10**lgage);
     normed=age_pdf/grated;
+    
+    if np.any(normed<0):
+        print("Err; g_kernal_den still producing negative probs")
+    
+    
     if show_PDF:
          fig, ax = plt.subplots()
          ax.plot(lgage,normed)
