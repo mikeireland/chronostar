@@ -612,7 +612,7 @@ def fit_comp_gradient_descent_multiprocessing(data, memb_probs=None,
 
 
 def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
-             burnin_steps=1000, Component=SphereComponent, plot_it=False,
+             burnin_steps=1000, Component=SphereComponent, plot_it=True,
              pool=None, convergence_tol=0.25, plot_dir='', save_dir='',
              sampling_steps=None, max_iter=None, trace_orbit_func=None,
              store_burnin_chains=False, nthreads=1, 
@@ -911,7 +911,10 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
                 logging.info(' init age: %5.2f'%pos[-1])
                 print('START scipy.optimize.minimize')
 
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], method=optimisation_method, tol=1e-2) # MZ: changed tol=0.01 to tol=1 tol=1. Instead of "tol" you can use options={'xatol':0.1,'fatol':0.1}
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, 
+                                                 args=[data, memb_probs, trace_orbit_func, optimisation_method], 
+                                                 method=optimisation_method, tol=1e-2) 
+                #^^ MZ: changed tol=0.01 to tol=1 tol=1. Instead of "tol" you can use options={'xatol':0.1,'fatol':0.1}
                 #The args optimisation_method has to be 'Nelder-Mead'. But the other one can have other values.
                 if not result.success:
                     print("ERROR: could not converge. Please debug...")
