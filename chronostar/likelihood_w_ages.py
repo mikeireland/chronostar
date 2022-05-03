@@ -278,7 +278,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
        
     elif age>10**(11.4 - 6):
        old_tail_func=1e-24/(1e6-10**(5.4)) - 1e-30*age/(1e6-10**(5.4))
-       log_starprobs.append(np.log(young_tail_func))
+       log_starprobs.append(np.log(old_tail_func))
 
     else:
         for pdf in pdfs:

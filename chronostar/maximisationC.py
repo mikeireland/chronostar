@@ -15,7 +15,7 @@ from chronostar.component import SphereComponent
 try:
     #TODO age consideration parameter from .pars file
     age_parameter=False
-    if age parameter:
+    if age_parameter:
         from chronostar.likelihood import lnprob_func_gradient_descent
     else:
         from chronostar._likelihood import lnprob_func_gradient_descent
