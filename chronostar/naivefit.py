@@ -28,6 +28,7 @@ import logging
 from distutils.dir_util import mkpath
 import random
 import uuid
+import time
 
 #~ from emcee.utils import MPIPool
 from multiprocessing import Pool
@@ -98,7 +99,9 @@ class NaiveFit(ParentFit):
                    'lnpost': log posterior of that run}
         """
 
-        log_message('Beginning Chronostar run',
+        starttime=time.perf_counter()
+        
+        log_message('Beginning Chronostar run at time {}'.format(starttime),
                     symbol='_', surround=True)
 
         # ------------------------------------------------------------
@@ -140,7 +143,8 @@ class NaiveFit(ParentFit):
             pass
 
         # MZ: just testing. Delete after if works
-        print("self.fit_pars['init_memb_probs']", self.fit_pars['init_memb_probs'])
+        #NS: seems to, trying to dysplay just first entry
+        print("self.fit_pars['init_memb_probs']", self.fit_pars['init_memb_probs'][0])
         print("self.fit_pars['init_comps']", self.fit_pars['init_comps'])
 
 

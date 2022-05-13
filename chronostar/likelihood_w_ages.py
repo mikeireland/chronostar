@@ -195,9 +195,11 @@ def get_lnoverlaps(comp, data, star_mask=None):
     if star_mask is not None:
         star_means = data['means'][star_mask]
         star_covs = data['covs'][star_mask]
+        pdfs=data['age_probs'][star_mask]
     else:
         star_means = data['means']
         star_covs = data['covs']
+        pdfs=data['age_probs']
 
     star_count = len(star_means)
 
@@ -211,7 +213,30 @@ def get_lnoverlaps(comp, data, star_mask=None):
                                  star_count)
     else:
         lnols = slow_get_lnoverlaps(cov_now, mean_now, star_covs, star_means)
-    return lnols
+    
+    age=comp.get_age()
+    age_probs=[]
+    
+    if age<0.1:
+       young_tail_func=1e-29*age
+       age_probs.append(np.log(young_tail_func))
+       
+       
+    elif age>10**(11.4 - 6):
+       old_tail_func=1e-24/(1e6-10**(5.4)) - 1e-30*age/(1e6-10**(5.4))
+       age_probs.append(np.log(old_tail_func))
+
+    else:
+        for pdf in pdfs:
+            prob=hp.get_probage(age, pdf)
+            age_probs.append(np.log(np.max([prob,1e-30]))) #A hack because probabilities can't be negative (or zero if a logarithm is to be taken)!
+        
+
+    if np.any(np.isnan(age_probs)):
+        print("ERROR - age_lnlikelihood is not a number! Please debug...")    
+        import pdb; pdb.set_trace()
+    
+    return lnols + np.array(age_probs)
 
 
 def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
@@ -267,41 +292,14 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
                                              star_mask=nearby_star_mask)
 
 #NICH HONS; adding the log prob age pdf to this sum
-    pdfs=data['age_probs']
-    age=comp.get_age()
-    log_starprobs=[]
     
-    if age<0.1:
-       young_tail_func=1e-29*age
-       log_starprobs.append(np.log(young_tail_func))
-       
-       
-    elif age>10**(11.4 - 6):
-       old_tail_func=1e-24/(1e6-10**(5.4)) - 1e-30*age/(1e6-10**(5.4))
-       log_starprobs.append(np.log(old_tail_func))
-
-    else:
-        for pdf in pdfs:
-            prob=hp.get_probage(age, pdf)
-            log_starprobs.append(np.log(np.max([prob,1e-30]))) #A hack because probabilities can't be negative (or zero if a logarithm is to be taken)!
-        
-    age_lnliklihood=np.sum(log_starprobs*memb_probs)
-
-    #TODO~  RN this is unmasked for bad stars or v low probability stars. 
-        #Bad stars won't be a problem for the synthetic data, but this is 
-        #calculating approx 0 percent probability stars. 
-        #Check masking behaviour
-    if np.isnan(age_lnliklihood):
-        print("ERROR - age_lnlikelihood is not a number! Please debug...")    
-        import pdb; pdb.set_trace()
 
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
     
-    print('lnlike (without age)', result)
-    print('lnlike (with age)   ', result + age_lnliklihood)
-    
-    return (result + age_lnliklihood)
+    #print('lnlike (without age)', result)
+   
+    return result
 
 
 def lnprob_func(pars, data, memb_probs=None,

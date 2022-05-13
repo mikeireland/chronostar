@@ -34,7 +34,6 @@ from chronostar.component import SphereComponent
 #~ from chronostar import component
 #~ SphereComponent = component.SphereComponent
 #~ from . import component
-from . import honpy_one_setup as hp
 USE_C_IMPLEMENTATION = True
 try:
     from ._overlap import get_lnoverlaps as c_get_lnoverlaps
@@ -269,7 +268,7 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
     
-    print('lnlike', result)
+    #print('lnlike', result)
     
     return result
 
@@ -348,8 +347,8 @@ def lnprob_func(pars, data, memb_probs=None,
         if not np.isfinite(lp):
             print("Infinite return...")
             return np.inf
-        print("Finite return")
-        print(comp)
+        #print("Finite return")
+        #print(comp)
         return - (lp + lnlike(comp, data, memb_probs, **kwargs))
 
 

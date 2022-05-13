@@ -16,6 +16,7 @@ import itertools
 import logging
 import numpy as np
 import multiprocessing
+import time
 
 # python3 throws FileNotFoundError that is essentially the same as IOError
 try:
@@ -197,7 +198,7 @@ def get_background_overlaps_with_covariances(background_means, star_means,
     # So I do it in a loop for every star
     bg_lnols = []
     for i, (star_mean, star_cov) in enumerate(zip(star_means, star_covs)):
-        print('bgols', i)
+        #print('bgols', i)
         #print('{} of {}'.format(i, len(star_means)))
         #print(star_cov)
         #print('det', np.linalg.det(star_cov))
@@ -513,6 +514,7 @@ def expectation(data, comps, old_memb_probs=None,
             memb_probs[i] = calc_membership_probs(lnols[i])
         if np.isnan(memb_probs).any():
             log_message('AT LEAST ONE MEMBERSHIP IS "NAN"', symbol='!')
+            print('AT LEAST ONE MEMBERSHIP IS "NAN"')
             memb_probs[np.where(np.isnan(memb_probs))] = 0.
 
         # Hack in a failsafe to stop a component having an amplitude lower than 10
@@ -572,8 +574,9 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
     print('expectmax before expectation')
     print('comps')
     print(comps)
-    print('old_memb_probs')
-    print(old_memb_probs)
+    #print('old_memb_probs')
+    #NS; Reducing the amount of faff being printed to the screen
+    #print(old_memb_probs)
     memb_probs = expectation(data, comps,
                              old_memb_probs=old_memb_probs,
                              inc_posterior=inc_posterior,
@@ -581,9 +584,10 @@ def get_overall_lnlikelihood(data, comps, return_memb_probs=False,
 
     print('expectmax.det_overall_likelihood DIFF')
     try:
-        print(memb_probs-old_memb_probs)
+        memb_probs-old_memb_probs
     except:
         print('memb_probs-old_memb_probs not possible')
+        #import pdb; pdb.set_trace()
 
     all_ln_ols = get_all_lnoverlaps(data, comps,
                                     old_memb_probs=memb_probs,
@@ -726,6 +730,7 @@ def maximise_one_comp(data, memb_probs, i, idir, all_init_pars=None, all_init_po
     logging.info("Best comp pars:\n{}".format(
         best_comp.get_pars()
     ))
+    print("Finished maximising comp;", best_comp.get_pars())
 
     if optimisation_method == 'emcee':
         final_pos = chain[:, -1, :]
@@ -958,6 +963,7 @@ def maximisation(data, ncomps, memb_probs, burnin_steps, idir,
     # # reference to stable comps
     # Component.store_raw_components(idir + 'best_comps.npy', new_comps)
     # np.save(idir + 'best_comps_bak.npy', new_comps)
+    
 
     return new_comps, all_samples, all_lnprob, \
            all_final_pos, success_mask
@@ -1068,7 +1074,9 @@ def maximisation_gradient_descent(data, ncomps=None, memb_probs=None,
         all_final_pos.append(final_pos)
         all_lnprob.append(lnprob)
 
-
+    #NS
+    print("Finished maximisation_gradient_decent for {} componets.".format(ncomps))
+          
     return new_comps, all_lnprob, all_final_pos
 
 
@@ -1727,7 +1735,9 @@ def fit_many_comps(data, ncomps, rdir='', pool=None, init_memb_probs=None,
     best_all_init_pos   = list_all_init_pos[best_bic_ix]
     final_med_and_spans = list_all_med_and_spans[best_bic_ix]
 
-    log_message('Storing final result', symbol='-', surround=True)
+    #NSAdding timer
+    endtime=time.perf_counter()
+    log_message('Storing final result at time {}'.format(endtime), symbol='-', surround=True)
     final_dir = rdir+'final/'
     mkpath(final_dir)
 

@@ -710,6 +710,8 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
     probability
         [nwalkers, nsteps] array of probabilities for each sample
     """
+    #NS
+    print("Fitting a comp;")
     # TIDYING INPUT
     if not isinstance(data, dict):
         data = tabletool.build_data_dict_from_table(data)
@@ -841,7 +843,6 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
         return best_component, sampler.chain, sampler.lnprobability
 
-
     #########################################
     ### OPTIMISE WITH GRADIENT DESCENT ######
     elif optimisation_method=='Nelder-Mead':
@@ -859,7 +860,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             init_pars = get_init_emcee_pars(data=data, memb_probs=memb_probs,
                                             Component=Component)
         init_age = init_pars[-1]
-        age_offsets = [-9, -4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10., 20., 40.]
+        age_offsets = [-4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10.]
         init_ages = np.abs([init_age + age_offset for age_offset in age_offsets])
         init_guess_comp = Component(emcee_pars=init_pars)
         init_guess_comps = init_guess_comp.split_group_ages(init_ages)
@@ -882,7 +883,10 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             return_dict = manager.dict()
 
             def worker(i, pos, return_dict):
-                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, args=[data, memb_probs, trace_orbit_func, optimisation_method], tol=1, method=optimisation_method) # MZ: changed tol=1 from tol=0.01
+                #ALso screwing with the optimisation method here
+                result = scipy.optimize.minimize(likelihood.lnprob_func, pos, 
+                                                 args=[data, memb_probs, trace_orbit_func, optimisation_method], 
+                                                 method=optimisation_method, options={'xatol':0.05, 'fatol':1, 'maxfev':6400}) # MZ: changed tol=1 from tol=0.01
                 #~ return_dict[result.fun] = result
                 return_dict[i] = result
             #TODO: tol: is this value optimal?
@@ -906,22 +910,28 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             Compute optimisations in a for loop. This is slow.
             """
             return_dict=dict()
-            logging.info('Running %i fits'%(len(init_pos)))
+            logging.info('In compfitter.fitcomp, Running %i fits'%(len(init_pos)))
+            print('Running %i fits'%(len(init_pos)))
             for i, pos in enumerate(init_pos):
                 logging.info(' init age: %5.2f'%pos[-1])
-                print('START scipy.optimize.minimize')
+               # print('START scipy.optimize.minimize')
 
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, 
                                                  args=[data, memb_probs, trace_orbit_func, optimisation_method], 
-                                                 method=optimisation_method, tol=1e-2) 
+                                                 method=optimisation_method, options={'xatol':0.05, 'fatol':1, 'maxfev':6400}) 
+                #Im now screwing with the optimisation method
+
                 #^^ MZ: changed tol=0.01 to tol=1 tol=1. Instead of "tol" you can use options={'xatol':0.1,'fatol':0.1}
                 #The args optimisation_method has to be 'Nelder-Mead'. But the other one can have other values.
                 if not result.success:
-                    print("ERROR: could not converge. Please debug...")
-                    import pdb; pdb.set_trace()
-                else:
-                    print(result.message)
-                    print("Number of iterations: {:d}".format(result.nit))
+                    print("Not converged: with comp; ", pos)
+                    logging.info('NS; Minimize call did not converge.')
+                    #import pdb; pdb.set_trace()
+              
+              #NS; These now typically succeed. Hiding to reduce printouts.  
+              #else:
+                  #  print(result.message)
+                  # print("Number of iterations and fev: {:d} , {:d}".format(result.nit,result.nfev))
                     
                 #~ return_dict[result.fun] = result
                 
@@ -941,5 +951,5 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
         # Identify and create the best component (with best lnprob)
         best_component = Component(emcee_pars=best_result.x)
-
+        print("compfitter.fit_comp finished")
         return best_component, best_result.x, -best_result.fun

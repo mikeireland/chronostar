@@ -439,7 +439,7 @@ class ParentFit(object):
         #~ except (IOError, FileNotFoundError) as e:
         except IOError:
             print('run_em_unless_loadable.except IOError')
-            print('run_em_unless_loadable: fitting comps', self.fit_pars['init_memb_probs'])
+            print('run_em_unless_loadable: fitting comps', self.fit_pars['init_comps'])
             comps, med_and_spans, memb_probs = \
                 expectmax.fit_many_comps(data=self.data_dict,
                                          ncomps=self.ncomps, rdir=run_dir,
