@@ -859,7 +859,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             init_pars = get_init_emcee_pars(data=data, memb_probs=memb_probs,
                                             Component=Component)
         init_age = init_pars[-1]
-        age_offsets = [-9, -4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10., 20., 40.]
+        age_offsets = [-4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10., 20.]
         init_ages = np.abs([init_age + age_offset for age_offset in age_offsets])
         init_guess_comp = Component(emcee_pars=init_pars)
         init_guess_comps = init_guess_comp.split_group_ages(init_ages)
@@ -909,23 +909,24 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             logging.info('Running %i fits'%(len(init_pos)))
             for i, pos in enumerate(init_pos):
                 logging.info(' init age: %5.2f'%pos[-1])
-                print('START scipy.optimize.minimize')
+                #print('START scipy.optimize.minimize, NOT MULTITHREAD')
 
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, 
-                                                 args=[data, memb_probs, trace_orbit_func, optimisation_method], 
-                                                 method=optimisation_method, tol=1e-2) 
+                                                 args=[data, memb_probs, trace_orbit_func, optimisation_method],
+                                                 method=optimisation_method, options={'xatol':0.1, 'fatol':1, 'maxiter':2000, 'maxfev':6400}) 
                 #^^ MZ: changed tol=0.01 to tol=1 tol=1. Instead of "tol" you can use options={'xatol':0.1,'fatol':0.1}
                 #The args optimisation_method has to be 'Nelder-Mead'. But the other one can have other values.
                 if not result.success:
-                    print("ERROR: could not converge. Please debug...")
-                    import pdb; pdb.set_trace()
+                    print("ERROR: could not converge with comp; ", result.x)
+                    #import pdb; pdb.set_trace()
                 else:
-                    print(result.message)
-                    print("Number of iterations: {:d}".format(result.nit))
+                   # print(result.message)
+                    print("Number of iterations & fEv: {:d} , {:d}".format(result.nit,result.nfev))
                     
                 #~ return_dict[result.fun] = result
                 
                 return_dict[i] = result
+        
                 logging.info('         res: %5.2f | %5.3f'%(result.x[-1], -result.fun))
 
         # Select the best result. Keys are lnprob values.

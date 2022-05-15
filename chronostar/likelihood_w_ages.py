@@ -298,8 +298,8 @@ def lnlike(comp, data, memb_probs, memb_threshold=1e-5,
     # Weight each stars contribution by their membership probability
     result = np.sum(lnols * memb_probs)
     
-    print('lnlike (without age)', result)
-    print('lnlike (with age)   ', result + age_lnliklihood)
+    #print('lnlike (without age)', result)
+    #print('lnlike (with age)   ', result + age_lnliklihood)
     
     return (result + age_lnliklihood)
 
@@ -381,8 +381,8 @@ def lnprob_func(pars, data, memb_probs=None,
         if not np.isfinite(lp):
             print("Infinite return...")
             return np.inf
-        print("Finite return")
-        print(comp)
+       # print("Finite return")
+       # print(comp)
         return - (lp + lnlike(comp, data, memb_probs, **kwargs))
 
 

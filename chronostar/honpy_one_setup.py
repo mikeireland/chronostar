@@ -79,7 +79,7 @@ def g_kernal_den(col, gmag, n=50, r=0.1, data=tree,
     
     if np.any(normed<0):
         print("Err; g_kernal_den still producing negative probs")
-    
+        import pdb; pdb.trace()
     
     if show_PDF:
          fig, ax = plt.subplots()
