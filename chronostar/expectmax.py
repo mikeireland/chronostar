@@ -360,6 +360,9 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
     
     #~ print('weights in get_all_lnoverlaps', weights)
     if np.min(weights) < 0.01:
+        #NS; Adding pdb here
+        print("An association must have at least 1 star. <0.01 stars is extreme...")
+        import pdb; pdb.set_trace()
         raise UserWarning("An association must have at least 1 star. <0.01 stars is extreme...")
 
     # [ADVANCED/dodgy] Optionally scale each weight by the component prior, then rebalance

@@ -4,7 +4,7 @@ import numpy as np
 import scipy.spatial as sp
 import pickle
 
-g, bp , rp, age, bn, feh, m, ms = np.load('10MSTAR_POPULATION_GBRABFM.npy').T
+g, bp , rp, age, bn, feh, m, ms = np.load('../..//data/field_CMD/10MSTAR_POPULATION_GBRABFM.npy').T
 
 def show_pop():
     fig, ax = plt.subplots()
@@ -22,10 +22,10 @@ zipnowork=np.vstack(((bp-rp),g)).T
 #Too speed up, tree is loaded from a pickle
 #tree=sp.KDTree(zipnowork)
 try:
-    tree=pickle.load( open( "treepickle.p", "rb" ) )
+    tree=pickle.load( open( "../../data/field_CMD/treepickle.p", "rb" ) )
 except FileNotFoundError:
     tree=sp.KDTree(zipnowork)
-    pickle.dump( tree, open( "treepickle.p", "wb" ) )
+    pickle.dump( tree, open( "../../data/field_CMD/treepickle.p", "wb" ) )
     
 
 #%%
@@ -72,22 +72,22 @@ def g_kernal_den(col, gmag, n=50, r=0.1, data=tree,
     #TODO; No NaNs later please
         #This should guarentee the least amount of fudging to ensure all positives
     if np.any(age_pdf<0):
-        age_pdf=age_pdf + np.min(age_pdf)
+        age_pdf=age_pdf + abs(np.min(age_pdf))
     
     grated=np.trapz(age_pdf,10**lgage);
     normed=age_pdf/grated;
     
-    if show_PDF:
-        fig, ax = plt.subplots()
-        ax.plot(lgage,normed)
-        ax.set_ylabel('Relative Probability')
-        ax.set_xlabel('log(Age)')
-        fig.savefig('g_kernal_den_OUT.pdf')
-        fig.show
-    
     if np.any(normed<0):
-        print("Err; g_kernal_den negative pdf; ", np.min(normed))   
-
+        print("Err; g_kernal_den still producing negative probs")
+        import pdb; pdb.trace()
+    
+    if show_PDF:
+         fig, ax = plt.subplots()
+         ax.plot(lgage,normed)
+         ax.set_ylabel('Relative Probability')
+         ax.set_xlabel('log(Age)')
+         fig.savefig('g_kernal_den_OUT.pdf')
+         fig.show
     return normed
 
 def get_probage(age, pdf, # a pdf is made from g_kernal_den

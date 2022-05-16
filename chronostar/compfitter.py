@@ -913,7 +913,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
 
                 result = scipy.optimize.minimize(likelihood.lnprob_func, pos, 
                                                  args=[data, memb_probs, trace_orbit_func, optimisation_method],
-                                                 method=optimisation_method, options={'xatol':0.1, 'fatol':1, 'maxiter':2000, 'maxfev':6400}) 
+                                                 method=optimisation_method, options={'xatol':0.1, 'fatol':1, 'maxiter':3200, 'maxfev':6400}) 
                 #^^ MZ: changed tol=0.01 to tol=1 tol=1. Instead of "tol" you can use options={'xatol':0.1,'fatol':0.1}
                 #The args optimisation_method has to be 'Nelder-Mead'. But the other one can have other values.
                 if not result.success:
