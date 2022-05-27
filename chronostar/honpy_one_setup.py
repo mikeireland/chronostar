@@ -4,7 +4,7 @@ import numpy as np
 import scipy.spatial as sp
 import pickle
 
-g, bp , rp, age, bn, feh, m, ms = np.load('10MSTAR_POPULATION_GBRABFM.npy').T
+g, bp , rp, age, bn, feh, m, ms = np.load('../data/field_CMD/10MSTAR_POPULATION_GBRABFM.npy').T
 
 def show_pop():
     fig, ax = plt.subplots()
@@ -22,13 +22,12 @@ zipnowork=np.vstack(((bp-rp),g)).T
 #Too speed up, tree is loaded from a pickle
 #tree=sp.KDTree(zipnowork)
 try:
-    tree=pickle.load( open( "treepickle.p", "rb" ) )
+    tree=pickle.load( open( "../data/field_CMD/treepickle.p", "rb" ) )
 except FileNotFoundError:
     tree=sp.KDTree(zipnowork)
-    pickle.dump( tree, open( "treepickle.p", "wb" ) )
+    pickle.dump( tree, open( "../data/field_CMD/treepickle.p", "wb" ) )
     
 
-#%%
 def treeGetAges(col,mag,radius, data=tree):
 
     inds=data.query_ball_point((col,mag),radius)
@@ -40,36 +39,50 @@ def treeGetAges(col,mag,radius, data=tree):
 
 lgage=np.arange(5,11.4, 0.1)
 
-def make_hists(col, gmag, n=50, r=0.1, data=tree):
-    ages,colres,gres=treeGetAges(col, gmag, r, data=data)
-    while len(ages)>(n*2):
-        r=0.75*r
+def make_hists(col, gmag, n=50, r=0.1, data=tree, BG=False):
+    if not(BG):
         ages,colres,gres=treeGetAges(col, gmag, r, data=data)
-    while len(ages)<n/2:
-        if n>5:
-            n=int(n/2)
-        r=1.5*r
-        ages,colres,gres=treeGetAges(col, gmag, r, data=data)
+        while len(ages)>(n*2):
+            r=0.75*r
+            ages,colres,gres=treeGetAges(col, gmag, r, data=data)
+        while len(ages)<n/2:
+            if n>5:
+                n=int(n/2)
+            r=1.5*r
+            ages,colres,gres=treeGetAges(col, gmag, r, data=data)
+        
+        dists=np.sqrt((col-colres)**2+(gmag-gres)**2)
+        ages=ages[np.argsort(dists)]
+        ages=ages[:n]
+        ags=np.round((ages-5)/0.1).astype(int)
+        age_hists=np.zeros_like(lgage)
+        for i in ags:
+            age_hists[i]+=1
     
-    dists=np.sqrt((col-colres)**2+(gmag-gres)**2)
-    ages=ages[np.argsort(dists)]
-    ages=ages[:n]
-    ags=np.round((ages-5)/0.1).astype(int)
-    age_hists=np.zeros_like(lgage)
-    for i in ags:
-        age_hists[i]+=1
-    return age_hists    
+    if BG:
+        ages=age
+        colres=bp-rp
+        gres=gmag
+        
+        ags=np.round((ages-5)/0.1).astype(int)
+        age_hists=np.zeros_like(lgage)
+        for i in ags:
+            age_hists[i]+=1
+            
+    return age_hists
+    
     
 gaus  = np.exp(-(lgage-np.median(lgage))**2/ 0.1**2 /2)
 gaus /= np.sum(gaus)
 gausft = np.fft.rfft(np.fft.fftshift(gaus))
 
 def g_kernal_den(col, gmag, n=50, r=0.1, data=tree, 
-                 show_PDF=False, show_NearPop=True):
-    age_h=make_hists(col, gmag, n=n, r=r, data=data);
-    age_pdf=np.fft.irfft(np.fft.rfft(age_h*10**lgage)*gausft);
+                 show_PDF=False, show_NearPop=True, BG=False):
+    age_h=make_hists(col, gmag, n=n, r=r, data=data, BG=BG);
+    age_pdf=np.fft.irfft(np.fft.rfft(age_h #*10**lgage  #The normalisation is already done since the bins get bigger
+                                     )*gausft);
     
-    #TODO; No NaNs later please
+    # No NaNs later please
         #This should guarentee the least amount of fudging to ensure all positives
     if np.any(age_pdf<0):
         age_pdf=age_pdf + abs(np.min(age_pdf))
@@ -79,15 +92,16 @@ def g_kernal_den(col, gmag, n=50, r=0.1, data=tree,
     
     if np.any(normed<0):
         print("Err; g_kernal_den still producing negative probs")
-    
+        import pdb; pdb.trace()
     
     if show_PDF:
          fig, ax = plt.subplots()
          ax.plot(lgage,normed)
          ax.set_ylabel('Relative Probability')
          ax.set_xlabel('log(Age)')
+         #ax.set_yscale('log')
          fig.savefig('g_kernal_den_OUT.pdf')
-         fig.show
+        # fig.show()
     return normed
 
 def get_probage(age, pdf, # a pdf is made from g_kernal_den

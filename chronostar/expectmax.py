@@ -205,6 +205,8 @@ def get_background_overlaps_with_covariances(background_means, star_means,
         #bg_lnol = get_lnoverlaps(star_cov, star_mean, background_covs,
         #                         background_means, nstars)
         try:
+            #TODO; NS, why is this get_lnoverlaps swapping star_covs for group_covs? 
+            
             #print('***********', nstars, star_cov, star_mean, background_covs, background_means)
             bg_lnol = get_lnoverlaps(star_cov, star_mean, background_covs,
                                      background_means, nstars)
