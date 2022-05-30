@@ -4,7 +4,11 @@ import numpy as np
 import scipy.spatial as sp
 import pickle
 
-g, bp , rp, age, bn, feh, m, ms = np.load('../data/field_CMD/10MSTAR_POPULATION_GBRABFM.npy').T
+try:
+    g, bp , rp, age, bn, feh, m, ms = np.load('../data/field_CMD/10MSTAR_POPULATION_GBRABFM.npy').T
+except:
+    g, bp , rp, age, bn, feh, m, ms = np.load('../../data/field_CMD/10MSTAR_POPULATION_GBRABFM.npy').T
+
 
 def show_pop():
     fig, ax = plt.subplots()
@@ -24,8 +28,15 @@ zipnowork=np.vstack(((bp-rp),g)).T
 try:
     tree=pickle.load( open( "../data/field_CMD/treepickle.p", "rb" ) )
 except FileNotFoundError:
-    tree=sp.KDTree(zipnowork)
-    pickle.dump( tree, open( "../data/field_CMD/treepickle.p", "wb" ) )
+    try:
+        tree=sp.KDTree(zipnowork)
+        pickle.dump( tree, open( "../data/field_CMD/treepickle.p", "wb" ) )
+    except:
+        print("You're probably not where NS expected you to run, making a new KDTree.")
+        tree=sp.KDTree(zipnowork)
+        pickle.dump( tree, open( "../../data/field_CMD/treepickle.p", "wb" ) )
+
+    
     
 
 def treeGetAges(col,mag,radius, data=tree):
