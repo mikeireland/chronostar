@@ -39,9 +39,9 @@ except FileNotFoundError:
     
     
 
-def treeGetAges(col,mag,radius, data=tree):
+def treeGetAges(col,mag,n, data=tree):
 
-    inds=data.query_ball_point((col,mag),radius)
+    dists,inds=data.query((col,mag),n)
     ages=age[inds]
     colres=bp[inds]-rp[inds]
     gres=g[inds]
@@ -50,18 +50,9 @@ def treeGetAges(col,mag,radius, data=tree):
 
 lgage=np.arange(5,11.4, 0.1)
 
-def make_hists(col, gmag, n=50, r=0.1, data=tree, BG=False):
+def make_hists(col, gmag, n=50, data=tree, BG=False):
     if not(BG):
-        ages,colres,gres=treeGetAges(col, gmag, r, data=data)
-        while len(ages)>(n*2):
-            r=0.75*r
-            ages,colres,gres=treeGetAges(col, gmag, r, data=data)
-        while len(ages)<n/2:
-            if n>5:
-                n=int(n/2)
-            r=1.5*r
-            ages,colres,gres=treeGetAges(col, gmag, r, data=data)
-        
+        ages,colres,gres=treeGetAges(col, gmag, n, data=data)
         dists=np.sqrt((col-colres)**2+(gmag-gres)**2)
         ages=ages[np.argsort(dists)]
         ages=ages[:n]
@@ -87,12 +78,12 @@ gaus  = np.exp(-(lgage-np.median(lgage))**2/ 0.1**2 /2)
 gaus /= np.sum(gaus)
 gausft = np.fft.rfft(np.fft.fftshift(gaus))
 
-def g_kernal_den(col, gmag, n=50, r=0.1, data=tree, 
+def g_kernal_den(col, gmag, n=50, data=tree, 
                  show_PDF=False, show_NearPop=True, BG=False):
-    age_h=make_hists(col, gmag, n=n, r=r, data=data, BG=BG);
+    age_h=make_hists(col, gmag, n=n, data=data, BG=BG);
     age_pdf=np.fft.irfft(np.fft.rfft(age_h #*10**lgage  #The normalisation is already done since the bins get bigger
                                      )*gausft);
-    
+
     # No NaNs later please
         #This should guarentee the least amount of fudging to ensure all positives
     if np.any(age_pdf<0):
@@ -104,6 +95,7 @@ def g_kernal_den(col, gmag, n=50, r=0.1, data=tree,
     if np.any(normed<0):
         print("Err; g_kernal_den still producing negative probs")
         import pdb; pdb.trace()
+
     
     if show_PDF:
          fig, ax = plt.subplots()
@@ -113,9 +105,10 @@ def g_kernal_den(col, gmag, n=50, r=0.1, data=tree,
          #ax.set_yscale('log')
          fig.savefig('g_kernal_den_OUT.pdf')
         # fig.show()
+
     return normed
 
-def get_probage(age, pdf, # a pdf is made from g_kernal_den
+def get_probage(age, pdf, # a pdf is made from g_kernel_den
                 ):
      A= np.log10(age) +6
      if not(5<A<11.4):
