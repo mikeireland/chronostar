@@ -392,7 +392,7 @@ def get_all_lnoverlaps(data, comps, old_memb_probs=None,
 
     # insert one time calculated background overlaps
     if using_bg:
-        lnols[:, -1] = data['bg_lnols']
+        lnols[:, -1] = data['bg_lnols'] -10
     if use_box_background:
         logging.info('Calculating overall lnlike with a box bg')
         nbg_stars = np.sum(old_memb_probs[:, -1])
