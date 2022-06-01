@@ -860,7 +860,7 @@ def fit_comp(data, memb_probs=None, init_pos=None, init_pars=None,
             init_pars = get_init_emcee_pars(data=data, memb_probs=memb_probs,
                                             Component=Component)
         init_age = init_pars[-1]
-        age_offsets = [-4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10.]
+        age_offsets = [-4, -0.4, -0.2, -0.5, 0., 0.1, 0.3, 0.5, 5., 10.,40.,80.]
         init_ages = np.abs([init_age + age_offset for age_offset in age_offsets])
         init_guess_comp = Component(emcee_pars=init_pars)
         init_guess_comps = init_guess_comp.split_group_ages(init_ages)
